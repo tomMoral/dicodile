@@ -1,0 +1,22 @@
+__pycache__
+*csv
+*npy
+*pkl
+*pdf
+*.egg-info
+.cache
+/.vscode
+.pytest_cache
+
+# Project config
+*sublime*
+
+# Save experiences
+/save_exp
+/joblib
+
+# Development scripts
+/dev_scripts
+
+# Config files
+hostfile
