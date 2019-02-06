@@ -41,8 +41,7 @@ def recv_reduce_sum_array(comm, shape):
 def wait_message():
     comm = MPI.Comm.Get_parent()
     mpi_status = MPI.Status()
-    while not comm.Iprobe(status=mpi_status):
-        time.sleep(.001)
+    comm.Probe(status=mpi_status)
 
     # Receive a message
     msg = np.empty(1, dtype='i')
@@ -51,6 +50,7 @@ def wait_message():
     comm.Recv([msg, MPI.INT], source=src, tag=tag)
 
     assert tag == msg[0], "tag and msg should be equal"
+
 
     if tag == constants.TAG_WORKER_STOP:
         shutdown_mpi()
@@ -63,7 +63,6 @@ def shutdown_mpi():
     comm = MPI.Comm.Get_parent()
     comm.Barrier()
     comm.Disconnect()
-    comm.Free()
 
 
 def sync_workers():

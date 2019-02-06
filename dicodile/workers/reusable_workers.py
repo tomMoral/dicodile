@@ -45,17 +45,11 @@ def get_reusable_workers(n_jobs=4, hostfile=None):
 def send_command_to_reusable_workers(tag, verbose=0):
     global _worker_comm, _n_workers
 
-    t_start = time.time()
     msg = np.empty(1, dtype='i')
     msg[0] = tag
-    requests = []
+    t_start = time.time()
     for i_worker in range(_n_workers):
-        requests.append(_worker_comm.Issend([msg, MPI.INT], dest=i_worker,
-                                            tag=tag))
-    while requests:
-        if requests[0].Test():
-            requests.pop(0)
-        time.sleep(.001)
+        _worker_comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
     if verbose > 5:
         print("Sent message {} in {:.3f}s".format(tag, time.time() - t_start))
 
@@ -66,7 +60,6 @@ def shutdown_reusable_workers():
         send_command_to_reusable_workers(constants.TAG_WORKER_STOP)
         _worker_comm.Barrier()
         _worker_comm.Disconnect()
-        _worker_comm.Free()
         _n_workers = None
         _worker_comm = None
 
