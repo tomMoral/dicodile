@@ -5,7 +5,7 @@ This package is still under development. If you have any trouble running this co
 
 ## DiCoDiLe
 
-Package to run the experiments for the ICML submission [Distributed Convolutional Dictionary Learning (DiCoDiLe): Pattern Discovery in Large Images and Signals](https://arxiv.org/abs/1901.09235).
+Package to run the experiments for the preprint paper [Distributed Convolutional Dictionary Learning (DiCoDiLe): Pattern Discovery in Large Images and Signals](https://arxiv.org/abs/1901.09235).
 
 #### Requirements
 
