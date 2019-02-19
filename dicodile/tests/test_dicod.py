@@ -12,7 +12,7 @@ from dicodile.utils.csc import reconstruct, compute_objective
 VERBOSE = 100
 N_WORKERS = 4
 
-
+@pytest.mark.filterwarnings("ignore", message="require different size")
 @pytest.mark.parametrize('signal_shape, atom_shape', [((800,), (50,)),
                                                       ((100, 100), (10, 8))])
 @pytest.mark.parametrize('n_jobs', [2, 6, N_WORKERS])
