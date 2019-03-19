@@ -17,9 +17,9 @@ from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_shape
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
-from dicodile.coordinate_descent import _select_coordinate
-from dicodile.coordinate_descent import _check_convergence
-from dicodile.coordinate_descent import _init_beta, coordinate_update
+from dicodile.update_z.coordinate_descent import _select_coordinate
+from dicodile.update_z.coordinate_descent import _check_convergence
+from dicodile.update_z.coordinate_descent import _init_beta, coordinate_update
 
 
 class DICODWorker:
@@ -620,8 +620,9 @@ class DICODWorker:
             else:
                 kwargs = {'end': '', 'flush': True}
             msg_fmt = msg_fmt.ljust(80)
-            print(msg_fmt.format(identity, level_name, *fmt_args,
-                                 **fmt_kwargs,), **kwargs)
+            print(msg_fmt.format(*fmt_args, identity=identity,
+                                 level_name=level_name, **fmt_kwargs,),
+                  **kwargs)
 
     ###########################################################################
     #     Communication primitives
@@ -655,7 +656,7 @@ class DICODWorker:
         self.return_ztz = params['return_ztz']
         self.freeze_support = params['freeze_support']
 
-        self.info("tol updated to {:.2e}", self.tol, global_msg=True)
+        self.debug("tol updated to {:.2e}", self.tol, global_msg=True)
         return params
 
     def get_signal(self, X_shape, debug=False):

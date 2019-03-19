@@ -8,15 +8,15 @@ import logging
 import numpy as np
 from mpi4py import MPI
 
-from .utils import constants
-from .utils import debug_flags as flags
-from .utils.csc import compute_objective
-from .utils.segmentation import Segmentation
+from ..utils import constants
+from ..utils import debug_flags as flags
+from ..utils.csc import compute_objective
+from ..utils.segmentation import Segmentation
 from .coordinate_descent import coordinate_descent
-from .utils.mpi import broadcast_array, recv_reduce_sum_array
+from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 
-from .workers.reusable_workers import get_reusable_workers
-from .workers.reusable_workers import send_command_to_reusable_workers
+from ..workers.reusable_workers import get_reusable_workers
+from ..workers.reusable_workers import send_command_to_reusable_workers
 
 
 log = logging.getLogger('dicod')
@@ -138,7 +138,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     t_init_local = _wait_local_init_end(comm, workers_segments)
 
     if verbose > 0:
-        print('\r[DICOD-{}:INFO] End initialization - {:.4}s ({:.2}s)'
+        print('\r[INFO:DICOD-{}] End initialization - {:.4}s ({:.2}s)'
               .format(workers_segments.effective_n_seg, t_init_local,
                       t_init + t_init_local).ljust(80))
 
@@ -297,7 +297,7 @@ def _collect_end_stat(comm, n_jobs, verbose=0):
     n_coordinate_updates = np.sum(stats, axis=0)[0]
     runtime = np.max(stats, axis=0)[1]
     if verbose > 0:
-        print("\r[DICOD-{}:INFO] converged in {:.3f}s with {:.0f} coordinate "
+        print("\r[INFO:DICOD-{}] converged in {:.3f}s with {:.0f} coordinate "
               "updates.".format(n_jobs, runtime,
                                 n_coordinate_updates))
     return runtime, n_coordinate_updates
@@ -326,7 +326,7 @@ def _recv_result(comm, D_shape, valid_shape, workers_segments,
 
     t_reduce = time.time() - t_start
     if verbose >= 5:
-        print('\r[DICOD-{}:DEBUG] End finalization - {:.4}s'
+        print('\r[DEBUG:DICOD-{}] End finalization - {:.4}s'
               .format(workers_segments.effective_n_seg, t_reduce))
 
     return z_hat, ztz, ztX, cost, _log, t_reduce

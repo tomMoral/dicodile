@@ -2,15 +2,16 @@ import pytest
 import numpy as np
 
 
-from dicodile import dicod
+from dicodile.update_z.dicod import dicod
 from dicodile.utils import check_random_state
-from dicodile.coordinate_descent import _init_beta
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_shape
+from dicodile.update_z.coordinate_descent import _init_beta
 from dicodile.utils.csc import reconstruct, compute_objective
 
 VERBOSE = 100
 N_WORKERS = 4
+
 
 @pytest.mark.filterwarnings("ignore", message="require different size")
 @pytest.mark.parametrize('signal_shape, atom_shape', [((800,), (50,)),

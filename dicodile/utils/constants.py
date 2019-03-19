@@ -34,8 +34,8 @@ SIZE_MSG = 4
 
 
 # Output control
-GLOBAL_OUTPUT_TAG = "\r[DICOD-{}:{}] "
-WORKER_OUTPUT_TAG = "\r[DICOD:Worker-{:<3}:{}] "
+GLOBAL_OUTPUT_TAG = "\r[{level_name}:DICOD-{identity}] "
+WORKER_OUTPUT_TAG = "\r[{level_name}:DICOD:Worker-{identity:<3}] "
 
 
 # Worker status

@@ -8,12 +8,13 @@ import numpy as np
 from scipy.signal import fftconvolve
 
 
-from .utils import check_random_state
-from .utils import debug_flags as flags
-from .utils.segmentation import Segmentation
-from .utils.csc import compute_ztz, compute_ztX
-from .utils.dictionary import compute_DtD, compute_norm_atoms
-from .utils.csc import compute_objective, soft_thresholding, reconstruct
+from dicodile.utils.csc import reconstruct
+from dicodile.utils import check_random_state
+from dicodile.utils import debug_flags as flags
+from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.csc import compute_ztz, compute_ztX
+from dicodile.utils.csc import compute_objective, soft_thresholding
+from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
 
 def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',

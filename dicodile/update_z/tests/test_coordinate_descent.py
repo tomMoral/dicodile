@@ -1,7 +1,7 @@
 import numpy as np
 
 from dicodile.utils.csc import compute_objective
-from dicodile.coordinate_descent import _init_beta
+from dicodile.update_z.coordinate_descent import _init_beta
 
 
 def test_init_beta():

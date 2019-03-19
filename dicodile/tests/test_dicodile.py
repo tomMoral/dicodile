@@ -1,0 +1,16 @@
+from dicodile.dicodile import dicodile
+from dicodile.data.simulate import simulate_data
+
+
+from dicodile.utils.testing import is_deacreasing
+
+
+def test_dicodile():
+
+    X, D = simulate_data(n_times=100, n_times_atom=10, n_atoms=2, n_channels=3,
+                         noise_level=1e-5, seed=42)
+
+    pobj, times, D_hat, z_hat = dicodile(
+            X, D, reg=.1, z_positive=True, n_iter=10, eps=1e-4,
+            n_jobs=1, verbose=2, tol=1e-10)
+    assert is_deacreasing(pobj)

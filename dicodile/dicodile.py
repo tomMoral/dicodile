@@ -16,8 +16,8 @@ from .workers.reusable_workers import get_reusable_workers
 from .utils.mpi import broadcast_array, recv_reduce_sum_array
 from .workers.reusable_workers import send_command_to_reusable_workers
 
-from ._dicod import _send_task, _find_grid_size, _collect_end_stat
-from ._dicod import recv_cost, recv_z_hat, recv_sufficient_statistics
+from .update_z.dicod import _send_task, _find_grid_size, _collect_end_stat
+from .update_z.dicod import recv_cost, recv_z_hat, recv_sufficient_statistics
 
 
 DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), timeout=None)
@@ -31,7 +31,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
     lmbd_max = get_lambda_max(X, D_hat).max()
     if verbose > 5:
-        print("[DICODILE:DEBUG] Lambda_max = {}".format(lmbd_max))
+        print("[DEBUG:DICODILE] Lambda_max = {}".format(lmbd_max))
     reg_ = reg * lmbd_max
 
     params = DEFAULT_DICOD_KWARGS.copy()
@@ -83,10 +83,10 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     t_init = _send_task(comm, X, D_hat, reg_, z0, workers_segments, params)
 
     # monitor cost function
-    t_start = time.time()
-    times = [0]
-    pobj = [compute_cost(comm)]
     tol_, step_size = .2, 1e-4
+    times = [t_init]
+    pobj = [compute_cost(comm)]
+    t_start = time.time()
 
     for ii in range(n_iter):  # outer loop of coordinate descent
         if verbose == 1:
@@ -94,7 +94,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
             print(msg, end='')
             sys.stdout.flush()
         if verbose > 1:
-            print('[{}:INFO] - CD iterations {} / {} ({:.0f}s)'
+            print('[INFO:{}] - CD iterations {} / {} ({:.0f}s)'
                   .format(name, ii, n_iter, time.time() - t_start))
 
         tol_ /= 2
@@ -104,7 +104,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         update_worker_params(comm, params)
 
         if verbose > 5:
-            print('[{}:DEBUG] lambda = {:.3e}'.format(name, reg_))
+            print('[DEBUG:{}] lambda = {:.3e}'.format(name, reg_))
 
         # Compute z update
         t_start_update_z = time.time()
@@ -118,9 +118,9 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
         z_nnz = get_z_nnz(comm, n_atoms)
         if verbose > 5 or True:
-            print("[{}:DEBUG] sparsity: {:.3e}".format(
+            print("[DEBUG:{}] sparsity: {:.3e}".format(
                 name, z_nnz.sum() / z_size))
-            print('[{}:DEBUG] Objective (z) : {:.3e} ({:.0f}s)'
+            print('[DEBUG:{}] Objective (z) : {:.3e} ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
 
         if np.all(z_nnz == 0):
@@ -147,10 +147,10 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
             z_hat = get_z_hat(comm, n_atoms, workers_segments)
             D_hat[k0] = get_max_error_dict(X, z_hat, D_hat)[0]
             if verbose > 1:
-                print('[{}:INFO] Resampled atom {}'.format(name, k0))
+                print('[INFO:{}] Resampled atom {}'.format(name, k0))
 
         if verbose > 5 or True:
-            print('[{}:DEBUG] Objective (d) : {:.3e}  ({:.0f}s)'
+            print('[DEBUG:{}] Objective (d) : {:.3e}  ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
 
         # Only check that the cost is always going down when the regularization
@@ -169,7 +169,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
             if dz < eps and du < eps:
                 if verbose == 1:
                     print("")
-                print("[{}:INFO] Converged after {} iteration, (dz, du) "
+                print("[INFO:{}] Converged after {} iteration, (dz, du) "
                       "= {:.3e}, {:.3e}".format(name, ii + 1, dz, du))
                 break
 
@@ -182,7 +182,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
     runtime = np.sum(times)
     _release_workers()
-    print("[{}:INFO] Finished in {:.0f}s".format(name, runtime))
+    print("[INFO:{}] Finished in {:.0f}s".format(name, runtime))
     return pobj, times, D_hat, z_hat
 
 
