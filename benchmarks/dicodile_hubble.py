@@ -2,8 +2,8 @@
 import numpy as np
 from scipy import sparse
 
-from dicodile.data import get_hubble
 from dicodile.dicodile import dicodile
+from dicodile.data.images import get_hubble
 from dicodile.utils.viz import plot_atom_and_coefs
 
 from dicodile.utils.dictionary import init_dictionary
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             for reg in [.1, .3, .05]:
                 for L in [32, 28]:
                     try:
-                        run_func(size, ref, L)
+                        run_func(size, reg, L)
                     except FileNotFoundError:
                         continue
     else:

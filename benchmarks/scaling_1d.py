@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from collections import namedtuple
 
 
-from dicodile import dicod
-from dicodile.data import simulate_data
+from dicodile.update_z.dicod import dicod
 from dicodile.utils import check_random_state
+from dicodile.data.images import simulate_data
 from dicodile.utils.dictionary import get_lambda_max
 
 

@@ -4,7 +4,7 @@ from joblib import Memory
 
 
 from dicodile import dicod
-from dicodile.data import get_mandril
+from dicodile.data.images import get_mandril
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary

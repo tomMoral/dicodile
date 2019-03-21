@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-from dicodile.data import get_hubble
 from dicodile.dicodile import dicodile
+from dicodile.data.images import get_hubble
 from dicodile.utils.viz import median_curve
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary
