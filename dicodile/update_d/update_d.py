@@ -29,9 +29,9 @@ def update_d(X, z, D_hat0, constants=None, step_size=None, max_iter=300,
 
     Parameters
     ----------
-    X : array, shape (n_trials, n_channels, *sig_shape)
+    X : array, shape (n_trials, n_channels, *sig_support)
         The data for sparse coding
-    z : array, shape (n_trials, n_atoms, *valid_shape)
+    z : array, shape (n_trials, n_atoms, *valid_support)
         Can also be a list of n_trials LIL-sparse matrix of shape
             (n_atoms, n_times - n_times_atom + 1)
         The code for which to learn the atoms
@@ -50,7 +50,7 @@ def update_d(X, z, D_hat0, constants=None, step_size=None, max_iter=300,
     D_hat : array, shape (n_atoms, n_channels, n_times_atom)
         The atoms to learn from the data.
     """
-    n_trials, n_channels, *sig_shape = X.shape
+    n_trials, n_channels, *sig_support = X.shape
     n_atoms, n_channels, *atom_support = D_hat0.shape
 
     def objective(D, full=False):

@@ -7,21 +7,21 @@ from dicodile.utils.csc import compute_ztz
 from dicodile.utils import check_random_state
 
 
-@pytest.mark.parametrize('valid_shape, atom_shape', [((500,), (30,)),
-                                                     ((72, 60), (10, 8))])
+@pytest.mark.parametrize('valid_support, atom_support', [((500,), (30,)),
+                                                         ((72, 60), (10, 8))])
 @pytest.mark.parametrize('sparsity', [1, .01])
-def test_ztz(valid_shape, atom_shape, sparsity):
+def test_ztz(valid_support, atom_support, sparsity):
     n_atoms = 7
     n_channels = 5
     random_state = None
 
     rng = check_random_state(random_state)
 
-    z = rng.randn(n_atoms, *valid_shape)
+    z = rng.randn(n_atoms, *valid_support)
     z *= rng.rand(*z.shape) < sparsity
-    D = rng.randn(n_atoms, n_channels, *atom_shape)
+    D = rng.randn(n_atoms, n_channels, *atom_support)
 
-    ztz = compute_ztz(z, atom_shape)
+    ztz = compute_ztz(z, atom_support)
     grad = np.sum([[[fftconvolve(ztz_k0_k, d_kp, mode='valid') for d_kp in d_k]
                     for ztz_k0_k, d_k in zip(ztz_k0, D)]
                    for ztz_k0 in ztz], axis=1)

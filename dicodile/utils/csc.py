@@ -6,26 +6,26 @@ Author : tommoral <thomas.moreau@inria.fr>
 import numpy as np
 from scipy import signal
 
+from .shape_helpers import get_valid_support
 
-def compute_ztz(z, atom_shape, padding_shape=None):
+
+def compute_ztz(z, atom_support, padding_support=None):
     """
-    ztz.shape = n_atoms, n_atoms, 2 * atom_shape - 1
+    ztz.shape = n_atoms, n_atoms, 2 * atom_support - 1
     z.shape = n_atoms, n_times - n_times_atom + 1)
     """
     # TODO: benchmark the cross correlate function of numpy
     n_atoms, *_ = z.shape
-    ztz_shape = (n_atoms, n_atoms) + tuple([
-        2 * size_atom_ax - 1 for size_atom_ax in atom_shape
-    ])
+    ztz_shape = (n_atoms, n_atoms) + tuple(2 * np.array(atom_support) - 1)
 
-    if padding_shape is None:
-        padding_shape = [(size_atom_ax - 1, size_atom_ax - 1)
-                         for size_atom_ax in atom_shape]
+    if padding_support is None:
+        padding_support = [(size_atom_ax - 1, size_atom_ax - 1)
+                           for size_atom_ax in atom_support]
 
-    padding_shape = np.asarray([(0, 0)] + padding_shape, dtype='i')
+    padding_shape = np.asarray([(0, 0)] + padding_support, dtype='i')
     inner_slice = (Ellipsis,) + tuple([
         slice(size_atom_ax - 1, - size_atom_ax + 1)
-        for size_atom_ax in atom_shape])
+        for size_atom_ax in atom_support])
 
     z_pad = np.pad(z, padding_shape, mode='constant')
     z = z_pad[inner_slice]
@@ -38,7 +38,7 @@ def compute_ztz(z, atom_shape, padding_shape=None):
         for k0, *pt in zip(*z_nnz):
             z_pad_slice = tuple([slice(None)] + [
                 slice(v, v + 2 * size_ax - 1)
-                for v, size_ax in zip(pt, atom_shape)])
+                for v, size_ax in zip(pt, atom_support)])
             ztz[k0] += z[(k0, *pt)] * z_pad[z_pad_slice]
     else:
         # compute the cross correlation between z and z_pad
@@ -56,18 +56,16 @@ def compute_ztX(z, X):
     X.shape = n_channels, n_times
     ztX.shape = n_atoms, n_channels, n_times_atom
     """
-    n_atoms, *valid_shape = z.shape
-    n_channels, *sig_shape = X.shape
-    atom_shape = tuple(
-        [size_ax - size_valid_ax + 1
-         for size_ax, size_valid_ax in zip(sig_shape, valid_shape)])
+    n_atoms, *valid_support = z.shape
+    n_channels, *sig_support = X.shape
+    atom_support = get_valid_support(sig_support, valid_support)
 
-    ztX = np.zeros((n_atoms, n_channels, *atom_shape))
+    ztX = np.zeros((n_atoms, n_channels, *atom_support))
     for k, *pt in zip(*z.nonzero()):
         pt = tuple(pt)
         X_slice = (Ellipsis,) + tuple([
             slice(v, v + size_atom_ax)
-            for v, size_atom_ax in zip(pt, atom_shape)
+            for v, size_atom_ax in zip(pt, atom_support)
         ])
         ztX[k] += z[k][pt] * X[X_slice]
 

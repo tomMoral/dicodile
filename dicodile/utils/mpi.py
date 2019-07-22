@@ -2,7 +2,6 @@
 
 Author : tommoral <thomas.moreau@inria.fr>
 """
-import time
 import numpy as np
 from mpi4py import MPI
 
@@ -50,7 +49,6 @@ def wait_message():
     comm.Recv([msg, MPI.INT], source=src, tag=tag)
 
     assert tag == msg[0], "tag and msg should be equal"
-
 
     if tag == constants.TAG_WORKER_STOP:
         shutdown_mpi()

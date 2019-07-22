@@ -14,7 +14,7 @@ from dicodile.utils import constants as constants
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
-from dicodile.utils.shape_helpers import get_full_shape
+from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
@@ -47,7 +47,7 @@ class DICODWorker:
         if isinstance(self.random_state, int):
             self.random_state += self.rank
 
-        self.size_msg = len(params['valid_shape']) + 2
+        self.size_msg = len(params['valid_support']) + 2
 
         # Compute the shape of the worker segment.
         self.D = self.get_D()
@@ -55,14 +55,15 @@ class DICODWorker:
         self.overlap = np.array(atom_support) - 1
         self.workers_segments = Segmentation(
             n_seg=params['workers_topology'],
-            signal_shape=params['valid_shape'],
+            signal_support=params['valid_support'],
             overlap=self.overlap)
 
         # Receive X and z from the master node.
-        worker_shape = self.workers_segments.get_seg_shape(self.rank)
-        X_shape = (n_channels,) + get_full_shape(worker_shape, atom_support)
+        worker_support = self.workers_segments.get_seg_support(self.rank)
+        X_shape = (n_channels,) + get_full_support(worker_support,
+                                                   atom_support)
         if params['has_z0']:
-            z0_shape = (n_atoms,) + worker_shape
+            z0_shape = (n_atoms,) + worker_support
             self.z0 = self.get_signal(z0_shape, params['debug'])
         else:
             self.z0 = None
@@ -73,10 +74,10 @@ class DICODWorker:
         # If n_seg is not specified, compute the shape of the local segments
         # as the size of an interfering zone.
         n_seg = self.n_seg
-        local_seg_shape = None
+        local_seg_support = None
         if self.n_seg == 'auto':
             n_seg = None
-            local_seg_shape = 2 * np.array(atom_support) - 1
+            local_seg_support = 2 * np.array(atom_support) - 1
 
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
@@ -88,14 +89,15 @@ class DICODWorker:
             for bound in np.transpose(inner_bounds)])
 
         self.local_segments = Segmentation(
-            n_seg=n_seg, seg_shape=local_seg_shape, inner_bounds=inner_bounds,
-            full_shape=worker_shape)
+            n_seg=n_seg, seg_support=local_seg_support,
+            inner_bounds=inner_bounds,
+            full_support=worker_support)
 
         # Initialize the solution
         n_atoms = self.D.shape[0]
-        seg_shape = self.workers_segments.get_seg_shape(self.rank)
+        seg_support = self.workers_segments.get_seg_support(self.rank)
         if self.z0 is None:
-            self.z_hat = np.zeros((n_atoms,) + seg_shape)
+            self.z_hat = np.zeros((n_atoms,) + seg_support)
         else:
             self.z_hat = self.z0
 
@@ -118,9 +120,9 @@ class DICODWorker:
 
         # compute the number of coordinates
         n_atoms, *_ = self.D.shape
-        seg_in_shape = self.workers_segments.get_seg_shape(
+        seg_in_support = self.workers_segments.get_seg_support(
             self.rank, inner=True)
-        n_coordinates = n_atoms * np.prod(seg_in_shape)
+        n_coordinates = n_atoms * np.prod(seg_in_support)
 
         self.init_cd_variables()
 
@@ -143,7 +145,7 @@ class DICODWorker:
             try:
                 i_seg = self.local_segments.increment_seg(i_seg)
             except ZeroDivisionError:
-                print(self.local_segments.signal_shape,
+                print(self.local_segments.signal_support,
                       self.local_segments.n_seg_per_axis)
                 raise
             if self.local_segments.is_active_segment(i_seg):
@@ -297,7 +299,7 @@ class DICODWorker:
             self.correct_beta_z0()
 
         if flags.CHECK_WARM_BETA:
-            pt_global = self.workers_segments.get_seg_shape(0, inner=True)
+            pt_global = self.workers_segments.get_seg_support(0, inner=True)
             pt = self.workers_segments.get_local_coordinate(self.rank,
                                                             pt_global)
             if self.workers_segments.is_contained_coordinate(self.rank, pt):
@@ -464,9 +466,10 @@ class DICODWorker:
 
         ztX = compute_ztX(self.z_hat[z_slice], self.X_worker[X_slice])
 
-        padding_shape = self.workers_segments.get_padding_to_overlap(self.rank)
+        padding_support = self.workers_segments.get_padding_to_overlap(
+            self.rank)
         ztz = compute_ztz(self.z_hat, atom_support,
-                          padding_shape=padding_shape)
+                          padding_support=padding_support)
         return np.array(ztz, dtype='d'), np.array(ztX, dtype='d')
 
     def correct_beta_z0(self):
@@ -709,7 +712,8 @@ class DICODWorker:
 
     def shutdown(self):
         if self._backend == "mpi":
-            self._shutdown_mpi()
+            from ..utils.mpi import shutdown_mpi
+            shutdown_mpi()
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -742,16 +746,16 @@ class DICODWorker:
         params = comm.bcast(None, root=0)
         return rank, n_jobs, params
 
-    def _get_signal_mpi(self, sig_shape, debug):
+    def _get_signal_mpi(self, sig_support, debug):
         comm = MPI.Comm.Get_parent()
         rank = comm.Get_rank()
 
-        sig_worker = np.empty(sig_shape, dtype='d')
+        sig_worker = np.empty(sig_support, dtype='d')
         comm.Recv([sig_worker.ravel(), MPI.DOUBLE], source=0,
                   tag=constants.TAG_ROOT + rank)
 
         if debug:
-            X_alpha = 0.25 * np.ones(sig_shape)
+            X_alpha = 0.25 * np.ones(sig_support)
             self.return_array(X_alpha)
 
         return sig_worker
@@ -788,12 +792,6 @@ class DICODWorker:
         comm = MPI.Comm.Get_parent()
         arr = np.array(arr, dtype='d')
         comm.Reduce([arr, MPI.DOUBLE], None, op=MPI.SUM, root=0)
-
-    def _shutdown_mpi(self):
-        comm = MPI.Comm.Get_parent()
-        self.debug("clean shutdown")
-        comm.Barrier()
-        comm.Disconnect()
 
 
 if __name__ == "__main__":

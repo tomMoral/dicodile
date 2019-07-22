@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-from dicodile import dicod
+from dicodile.update_z import dicod
 from dicodile.data.images import get_mandril
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary

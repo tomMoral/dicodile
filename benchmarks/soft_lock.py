@@ -8,7 +8,7 @@ from dicodile.data.images import get_mandril
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary
-from dicodile.utils.shape_helpers import get_valid_shape
+from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.csc import compute_objective, reconstruct
 
 mem = Memory(location='.')
@@ -62,10 +62,10 @@ if __name__ == "__main__":
     np.save(f"benchmarks_results/{file_name}_X_hat.npy", X_hat)
 
     # Compute the worker segmentation for the image,
-    n_channels, *sig_shape = X_hat.shape
-    valid_shape = get_valid_shape(sig_shape, atom_support)
+    n_channels, *sig_support = X_hat.shape
+    valid_support = get_valid_support(sig_support, atom_support)
     workers_segments = Segmentation(n_seg=(w_world, w_world),
-                                    signal_shape=valid_shape,
+                                    signal_support=valid_support,
                                     overlap=0)
 
     fig = plt.figure("recovery")

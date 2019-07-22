@@ -2,9 +2,8 @@
 
 import numpy as np
 from scipy import signal
-from joblib import Parallel, delayed, parallel_backend
 
-from ..utils.shape_helpers import get_valid_shape
+from ..utils.shape_helpers import get_valid_support
 
 
 def compute_objective(D, constants):
@@ -55,9 +54,9 @@ def gradient_d(D=None, X=None, z=None, constants=None,
             n_atoms, _, *ztz_support = constants['ztz'].shape
             atom_support = tuple((np.array(ztz_support) + 1) // 2)
         else:
-            n_trial, n_channels, *sig_shape = X.shape
-            n_trials, n_atoms, *valid_shape = z.shape
-            atom_support = get_valid_shape(sig_shape, valid_shape)
+            n_trial, n_channels, *sig_support = X.shape
+            n_trials, n_atoms, *valid_support = z.shape
+            atom_support = get_valid_support(sig_support, valid_support)
         D = D.reshape((n_atoms, n_channels, *atom_support))
 
     cost, grad_d = _l2_gradient_d(D=D, constants=constants,
@@ -95,8 +94,6 @@ def _l2_objective(D=None, constants=None):
 
     cost += .5 * constants['XtX']
     return cost
-
-
 
 
 def tensordot_convolve(ztz, D):

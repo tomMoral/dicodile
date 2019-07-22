@@ -1,13 +1,14 @@
 import pandas
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-from dicodile import dicod
+from dicodile.update_z import dicod
 from dicodile.data.images import get_mandril
 from dicodile.utils import check_random_state
 from dicodile.utils.dictionary import get_lambda_max
-from dicodile.utils.shape_helpers import get_valid_shape
+from dicodile.utils.shape_helpers import get_valid_support
 
 
 from joblib import Memory
@@ -17,17 +18,20 @@ ResultItem = namedtuple('ResultItem', [
     'n_atoms', 'atom_support', 'reg', 'n_jobs', 'n_seg', 'strategy', 'tol',
     'dicod_kwargs', 'seed', 'sparsity', 'pobj'])
 
+RESULT_DIR = pathlib.Path("benchmark_results")
+PKL_FILENAME = RESULT_DIR / "scaling_n_jobs.pkl"
+
 
 def get_problem(n_atoms, atom_support, seed):
     X = get_mandril()
 
     rng = check_random_state(seed)
 
-    n_channels, *sig_shape = X.shape
-    valid_shape = get_valid_shape(sig_shape, atom_support)
+    n_channels, *sig_support = X.shape
+    valid_support = get_valid_support(sig_support, atom_support)
 
     indices = np.c_[[rng.randint(size_ax, size=(n_atoms))
-                     for size_ax in valid_shape]].T
+                     for size_ax in valid_support]].T
     D = np.empty(shape=(n_atoms, n_channels, *atom_support))
     for k, pt in enumerate(indices):
         D_slice = tuple([Ellipsis] + [
@@ -95,14 +99,14 @@ def run_scaling_benchmark(max_n_jobs, n_rep=1):
                     results.append(res)
 
     df = pandas.DataFrame(results)
-    df.to_pickle("benchmarks_results/scaling_n_jobs.pkl")
+    df.to_pickle(PKL_FILENAME)
 
 
 def plot_scaling_benchmark():
-    df = pandas.read_pickle("benchmarks_results/scaling_n_jobs.pkl")
-    import matplotlib.lines as mlines
+    df = pandas.read_pickle(PKL_FILENAME)
+    import matplotlib.lines as lines
     handles_lmbd = {}
-    handles_strat = {}
+    handles_strategy = {}
     fig = plt.figure(figsize=(6, 3))
     fig.patch.set_alpha(0)
 
@@ -129,12 +133,12 @@ def plot_scaling_benchmark():
                        linestyle=style, c=c)
             plt.fill_between(n_jobs, runtimes - runtime_std,
                              runtimes + runtime_std, alpha=.1)
-            color_handle = mlines.Line2D(
+            color_handle = lines.Line2D(
                 [], [], linestyle='-', c=c, label=f"${reg:.2f}\lambda_\max$")
-            style_handle = mlines.Line2D(
+            style_handle = lines.Line2D(
                 [], [], linestyle=style, c='k', label=f"{strategy}")
             handles_lmbd[reg] = color_handle
-            handles_strat[strategy] = style_handle
+            handles_strategy[strategy] = style_handle
     plt.xlim((1, 400))
     # plt.ylim((1e1, 1e4))
     # plt.xticks(n_jobs, n_jobs, fontsize=14)
@@ -150,7 +154,7 @@ def plot_scaling_benchmark():
     # handles = [handles[k] for k in keys]
     legend_lmbd = plt.legend(handles=handles_lmbd.values(), loc=1,
                              fontsize=14)
-    plt.legend(handles=handles_strat.values(), loc=3, fontsize=14)
+    plt.legend(handles=handles_strategy.values(), loc=3, fontsize=14)
     ax.add_artist(legend_lmbd)
     plt.tight_layout()
     plt.savefig("benchmarks_results/scaling_n_jobs.pdf", dpi=300,

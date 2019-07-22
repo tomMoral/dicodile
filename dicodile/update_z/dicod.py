@@ -13,6 +13,7 @@ from ..utils import debug_flags as flags
 from ..utils.csc import compute_objective
 from ..utils.segmentation import Segmentation
 from .coordinate_descent import coordinate_descent
+from ..utils.shape_helpers import get_valid_support
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 
 from ..workers.reusable_workers import get_reusable_workers
@@ -36,13 +37,13 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     Parameters
     ----------
-    X_i : ndarray, shape (n_channels, *sig_shape)
+    X_i : ndarray, shape (n_channels, *sig_support)
         Image to encode on the dictionary D
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     reg : float
         Regularization parameter
-    z0 : ndarray, shape (n_atoms, *valid_shape) or None
+    z0 : ndarray, shape (n_atoms, *valid_support) or None
         Warm start value for z_hat. If None, z_hat is initialized to 0.
     n_seg : int or { 'auto' }
         Number of segments to use for each dimension. If set to 'auto' use
@@ -83,7 +84,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     Return
     ------
-    z_hat : ndarray, shape (n_atoms, *valid_shape)
+    z_hat : ndarray, shape (n_atoms, *valid_support)
         Activation associated to X_i for the given dictionary D
     """
 
@@ -95,8 +96,8 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
             timing=timing, random_state=random_state, verbose=verbose)
 
     # Parameters validation
-    n_channels, *sig_shape = X_i.shape
-    n_atoms, n_channels, *atom_shape = D.shape
+    n_channels, *sig_support = X_i.shape
+    n_atoms, n_channels, *atom_support = D.shape
     assert D.ndim - 1 == X_i.ndim
 
     assert soft_lock in ['none', 'corner', 'border']
@@ -109,26 +110,24 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support
     )
 
-    params['valid_shape'] = valid_shape = tuple([
-        size_ax - size_atom_ax + 1
-        for size_ax, size_atom_ax in zip(sig_shape, atom_shape)
-    ])
-    overlap = tuple([size_atom_ax - 1 for size_atom_ax in atom_shape])
+    params['valid_support'] = valid_support = get_valid_support(sig_support,
+                                                                atom_support)
+    overlap = tuple(np.array(atom_support) - 1)
 
     if w_world == 'auto':
-        params["workers_topology"] = _find_grid_size(n_jobs, sig_shape)
+        params["workers_topology"] = _find_grid_size(n_jobs, sig_support)
     else:
         assert n_jobs % w_world == 0
         params["workers_topology"] = w_world, n_jobs // w_world
 
     # compute a segmentation for the image,
     workers_segments = Segmentation(n_seg=params['workers_topology'],
-                                    signal_shape=valid_shape,
+                                    signal_support=valid_support,
                                     overlap=overlap)
 
     # Make sure we are not below twice the size of the dictionary
-    worker_valid_shape = workers_segments.get_seg_shape(0, inner=True)
-    for size_atom_ax, size_valid_ax in zip(atom_shape, worker_valid_shape):
+    worker_valid_support = workers_segments.get_seg_support(0, inner=True)
+    for size_atom_ax, size_valid_ax in zip(atom_support, worker_valid_support):
         if 2 * size_atom_ax - 1 >= size_valid_ax:
             raise ValueError("Using too many cores. {}".format(
                 (2 * size_atom_ax - 1, size_valid_ax)))
@@ -148,23 +147,24 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
                                                       verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
-        comm, D.shape, valid_shape, workers_segments, return_ztz=return_ztz,
+        comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
         timing=timing, verbose=verbose)
     comm.Barrier()
 
     if timing:
         p_obj = reconstruct_pobj(X_i, D, reg, _log, t_init, t_reduce,
-                                 n_jobs=n_jobs, valid_shape=valid_shape, z0=z0)
+                                 n_jobs=n_jobs, valid_support=valid_support,
+                                 z0=z0)
     else:
         p_obj = [[n_coordinate_updates, runtime, cost]]
     return z_hat, ztz, ztX, p_obj, cost
 
 
 def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
-                     valid_shape=None, z0=None):
+                     valid_support=None, z0=None):
     n_atoms = D.shape[0]
     if z0 is None:
-        z_hat = np.zeros((n_atoms, *valid_shape))
+        z_hat = np.zeros((n_atoms, *valid_support))
     else:
         z_hat = np.copy(z0)
 
@@ -200,11 +200,11 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
     return np.array(p_obj)
 
 
-def _find_grid_size(n_jobs, sig_shape):
-    if len(sig_shape) == 1:
+def _find_grid_size(n_jobs, sig_support):
+    if len(sig_support) == 1:
         return (n_jobs,)
-    elif len(sig_shape) == 2:
-        height, width = sig_shape
+    elif len(sig_support) == 2:
+        height, width = sig_support
         w_world, h_world = 1, n_jobs
         w_ratio = width * n_jobs / height
         for i in range(2, n_jobs + 1):
@@ -229,7 +229,7 @@ def _spawn_workers(n_jobs, hostfile):
 def _send_task(comm, X, D, reg, z0, workers_segments, params):
     t_start = time.time()
     n_jobs = workers_segments.effective_n_seg
-    n_atoms, n_channels, *atom_shape = D.shape
+    n_atoms, n_channels, *atom_support = D.shape
 
     comm.bcast(params, root=MPI.ROOT)
     broadcast_array(comm, D)
@@ -246,7 +246,7 @@ def _send_task(comm, X, D, reg, z0, workers_segments, params):
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
-            for (start, end), size_atom_ax in zip(seg_bounds, atom_shape)
+            for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
         ])
 
         comm.Send([X[X_worker_slice].ravel(), MPI.DOUBLE],
@@ -262,7 +262,7 @@ def _send_task(comm, X, D, reg, z0, workers_segments, params):
         plt.imshow(np.clip(X_alpha.swapaxes(0, 2), 0, 1))
         plt.show()
         assert (np.sum(X_alpha[0, 0] == 0.5) ==
-                3 * (atom_shape[-1] - 1) *
+                3 * (atom_support[-1] - 1) *
                 (workers_segments.n_seg_per_axis[0] - 1)
                 )
 
@@ -274,7 +274,7 @@ def _send_task(comm, X, D, reg, z0, workers_segments, params):
 def _wait_local_init_end(comm, workers_segments):
     t_start = time.time()
     if flags.CHECK_WARM_BETA:
-        pt_global = workers_segments.get_seg_shape(0, inner=True)
+        pt_global = workers_segments.get_seg_support(0, inner=True)
         sum_beta = np.empty(1, 'd')
         value = []
         for i_worker in range(workers_segments.effective_n_seg):
@@ -303,7 +303,7 @@ def _collect_end_stat(comm, n_jobs, verbose=0):
     return runtime, n_coordinate_updates
 
 
-def _recv_result(comm, D_shape, valid_shape, workers_segments,
+def _recv_result(comm, D_shape, valid_support, workers_segments,
                  return_ztz=False, timing=False, verbose=0):
     n_atoms, n_channels, *atom_support = D_shape
 
@@ -334,14 +334,14 @@ def _recv_result(comm, D_shape, valid_shape, workers_segments,
 
 def recv_z_hat(comm, n_atoms, workers_segments):
 
-    valid_shape = workers_segments.signal_shape
+    valid_support = workers_segments.signal_support
 
     inner = not flags.GET_OVERLAP_Z_HAT
-    z_hat = np.empty((n_atoms, *valid_shape), dtype='d')
+    z_hat = np.empty((n_atoms, *valid_support), dtype='d')
     for i_seg in range(workers_segments.effective_n_seg):
-        worker_shape = workers_segments.get_seg_shape(
+        worker_support = workers_segments.get_seg_support(
             i_seg, inner=inner)
-        z_worker = np.zeros((n_atoms,) + worker_shape, 'd')
+        z_worker = np.zeros((n_atoms,) + worker_support, 'd')
         comm.Recv([z_worker.ravel(), MPI.DOUBLE], source=i_seg,
                   tag=constants.TAG_ROOT + i_seg)
         worker_slice = workers_segments.get_seg_slice(
@@ -351,11 +351,14 @@ def recv_z_hat(comm, n_atoms, workers_segments):
     return z_hat
 
 
+def recv_z_nnz(comm, n_atoms):
+    return recv_reduce_sum_array(comm, n_atoms)
+
+
 def recv_sufficient_statistics(comm, D_shape):
     n_atoms, n_channels, *atom_support = D_shape
-    ztz_shape = tuple([2 * size_atom_ax - 1
-                       for size_atom_ax in atom_support])
-    ztz = recv_reduce_sum_array(comm, (n_atoms, n_atoms, *ztz_shape))
+    ztz_support = tuple(2 * np.array(atom_support) - 1)
+    ztz = recv_reduce_sum_array(comm, (n_atoms, n_atoms, *ztz_support))
     ztX = recv_reduce_sum_array(comm, (n_atoms, n_channels, *atom_support))
     return ztz, ztX
 

@@ -3,7 +3,7 @@ from scipy import signal
 
 from .csc import reconstruct
 from . import check_random_state
-from .shape_helpers import get_valid_shape
+from .shape_helpers import get_valid_support
 
 
 def get_max_error_dict(X, z, D):
@@ -13,9 +13,9 @@ def get_max_error_dict(X, z, D):
 
     Parameters
     ----------
-    X: array, shape (n_channels, *sig_shape)
+    X: array, shape (n_channels, *sig_support)
         Signals encoded in the CSC.
-    z: array, shape (n_atoms, *valid_shape)
+    z: array, shape (n_atoms, *valid_support)
         Current estimate of the coding signals.
     D: array, shape (n_atoms, *atom_support)
         Current estimate of the dictionary.
@@ -52,7 +52,7 @@ def prox_d(D):
 
 def _patch_reconstruction_error(X, z, D):
     """Return the reconstruction error for each patches of size (P, L)."""
-    n_trials, n_channels, *sig_shape = X.shape
+    n_trials, n_channels, *sig_support = X.shape
     atom_support = D.shape[2:]
 
     X_hat = reconstruct(z, D)
@@ -88,11 +88,11 @@ def get_lambda_max(X, D_hat):
 def init_dictionary(X, n_atoms, atom_support, random_state=None):
     rng = check_random_state(random_state)
 
-    n_channels, *sig_shape = X.shape
-    valid_shape = get_valid_shape(sig_shape, atom_support)
+    n_channels, *sig_support = X.shape
+    valid_support = get_valid_support(sig_support, atom_support)
 
     indices = np.c_[[rng.randint(size_ax, size=(n_atoms))
-                     for size_ax in valid_shape]].T
+                     for size_ax in valid_support]].T
     D = np.empty(shape=(n_atoms, n_channels, *atom_support))
     for k, pt in enumerate(indices):
         D_slice = tuple([Ellipsis] + [
@@ -108,7 +108,7 @@ def compute_norm_atoms(D):
 
     Parameters
     ----------
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     """
     # Average over the channels and sum over the size of the atom
@@ -123,7 +123,7 @@ def compute_DtD(D):
 
     Parameters
     ----------
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     """
     # Average over the channels

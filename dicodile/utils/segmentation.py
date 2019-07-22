@@ -9,54 +9,55 @@ class Segmentation:
     n_seg : int or list of int
         Number of segments to use for each dimension. If only one int is
         given, use this same number for all axis.
-    signal_shape : list of int or None
+    signal_support : list of int or None
         Size of the considered signal.
     inner_bounds : list of (int, int) or None
         Outer boundaries of the full signal in case of nested segmentation.
-    full_shape : list of int or None
+    full_support : list of int or None
         Full shape of the underlying signals
     """
 
-    def __init__(self, n_seg=None, seg_shape=None, signal_shape=None,
-                 inner_bounds=None, full_shape=None, overlap=None):
+    def __init__(self, n_seg=None, seg_support=None, signal_support=None,
+                 inner_bounds=None, full_support=None, overlap=None):
 
-        # Get the shape of the signal from signal_shape or inner_bounds
+        # Get the shape of the signal from signal_support or inner_bounds
         if inner_bounds is not None:
-            signal_shape_ = [v[0] for v in np.diff(inner_bounds, axis=1)]
-            assert signal_shape is None or signal_shape == signal_shape_, (
-                "Incoherent shape for inner_bounds and signal_shape. Got "
-                "signal_shape={} and inner_bounds={}".format(
-                    signal_shape, inner_bounds
-                ))
-            signal_shape = signal_shape_
+            signal_support_ = [v[0] for v in np.diff(inner_bounds, axis=1)]
+            if signal_support is not None:
+                assert signal_support == signal_support_, (
+                    "Incoherent shape for inner_bounds and signal_support. Got"
+                    " signal_support={} and inner_bounds={}".format(
+                        signal_support, inner_bounds
+                    ))
+            signal_support = signal_support_
         else:
-            assert signal_shape is not None, (
-                "either signal_shape or inner_bounds should be provided")
-            if isinstance(signal_shape, int):
-                signal_shape = [signal_shape]
-            inner_bounds = [[0, s] for s in signal_shape]
-        self.signal_shape = signal_shape
+            assert signal_support is not None, (
+                "either signal_support or inner_bounds should be provided")
+            if isinstance(signal_support, int):
+                signal_support = [signal_support]
+            inner_bounds = [[0, s] for s in signal_support]
+        self.signal_support = signal_support
         self.inner_bounds = inner_bounds
-        self.n_axis = len(signal_shape)
+        self.n_axis = len(signal_support)
 
-        if full_shape is None:
-            full_shape = [end for _, end in self.inner_bounds]
-        self.full_shape = full_shape
+        if full_support is None:
+            full_support = [end for _, end in self.inner_bounds]
+        self.full_support = full_support
         assert np.all([size_full_ax >= end
-                       for size_full_ax, (_, end) in zip(self.full_shape,
+                       for size_full_ax, (_, end) in zip(self.full_support,
                                                          self.inner_bounds)])
 
         # compute the size of each segments and the number of segments
-        if seg_shape is not None:
-            if isinstance(seg_shape, int):
-                seg_shape = [seg_shape] * self.n_axis
-            self.seg_shape = tuple(seg_shape)
+        if seg_support is not None:
+            if isinstance(seg_support, int):
+                seg_support = [seg_support] * self.n_axis
+            self.seg_support = tuple(seg_support)
             self.compute_n_seg()
         elif n_seg is not None:
             if isinstance(n_seg, int):
                 n_seg = [n_seg] * self.n_axis
             self.n_seg_per_axis = tuple(n_seg)
-            self.compute_seg_shape()
+            self.compute_seg_support()
 
         # Validate the overlap
         if overlap is None:
@@ -74,30 +75,30 @@ class Segmentation:
         # Validate the Segmentation
         if n_seg is not None:
             assert tuple(n_seg) == self.n_seg_per_axis
-        if seg_shape is not None:
-            assert tuple(seg_shape) == self.seg_shape
+        if seg_support is not None:
+            assert tuple(seg_support) == self.seg_support
 
     def compute_n_seg(self):
         """Compute the number of segment for each axis based on their shapes.
         """
         self.effective_n_seg = 1
         self.n_seg_per_axis = []
-        for size_ax, size_seg_ax in zip(self.signal_shape, self.seg_shape):
+        for size_ax, size_seg_ax in zip(self.signal_support, self.seg_support):
             # Make sure that n_seg_ax is of type in (and not np.int*)
             n_seg_ax = max(1, int(size_ax // size_seg_ax))
             self.n_seg_per_axis.append(n_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
-    def compute_seg_shape(self):
+    def compute_seg_support(self):
         """Compute the number of segment for each axis based on their shapes.
         """
         self.effective_n_seg = 1
-        self.seg_shape = []
-        for size_ax, n_seg_ax in zip(self.signal_shape, self.n_seg_per_axis):
+        self.seg_support = []
+        for size_ax, n_seg_ax in zip(self.signal_support, self.n_seg_per_axis):
             # Make sure that n_seg_ax is of type in (and not np.int*)
             size_seg_ax = size_ax // n_seg_ax
             size_seg_ax += (size_ax % n_seg_ax >= n_seg_ax // 2)
-            self.seg_shape.append(size_seg_ax)
+            self.seg_support.append(size_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
     def get_seg_bounds(self, i_seg, inner=False):
@@ -107,7 +108,7 @@ class Segmentation:
         ax_offset = self.effective_n_seg
         for (n_seg_ax, size_seg_ax, size_full_ax,
              (start_in_ax, end_in_ax), overlap_ax) in zip(
-                self.n_seg_per_axis, self.seg_shape, self.full_shape,
+                self.n_seg_per_axis, self.seg_support, self.full_support,
                 self.inner_bounds, self.overlap):
             ax_offset //= n_seg_ax
             ax_i_seg = i_seg // ax_offset
@@ -127,7 +128,7 @@ class Segmentation:
         seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
-    def get_seg_shape(self, i_seg, inner=False):
+    def get_seg_support(self, i_seg, inner=False):
         """Return a segment's shape"""
         seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return tuple(np.diff(seg_bounds, axis=1).squeeze(axis=1))
@@ -153,7 +154,7 @@ class Segmentation:
         i_seg = 0
         axis_offset = self.effective_n_seg
         for x, n_seg_axis, size_seg_axis, (axis_start, axis_end) in zip(
-                pt, self.n_seg_per_axis, self.seg_shape, self.inner_bounds):
+                pt, self.n_seg_per_axis, self.seg_support, self.inner_bounds):
             axis_offset //= n_seg_axis
             axis_i_seg = max(min((x - axis_start) // size_seg_axis,
                                  n_seg_axis - 1), 0)
@@ -186,7 +187,7 @@ class Segmentation:
         if isinstance(radius, int):
             radius = [radius] * self.n_axis
 
-        for r, size_axis in zip(radius, self.seg_shape):
+        for r, size_axis in zip(radius, self.seg_support):
             if r >= size_axis:
                 raise ValueError("Interference radius is too large compared "
                                  "to the segmentation size.")
@@ -321,7 +322,7 @@ class Segmentation:
         """
 
         seg_bounds = self.get_seg_bounds(i_seg)
-        seg_shape = self.get_seg_shape(i_seg)
+        seg_support = self.get_seg_support(i_seg)
         seg_bounds_inner = self.get_seg_bounds(i_seg, inner=True)
 
         update_bounds = [[v - r, v + r + 1] for v, r in zip(pt, radius)]
@@ -329,7 +330,7 @@ class Segmentation:
         for i in range(self.n_axis):
             assert (update_bounds[i][0] >= 0 or
                     seg_bounds[i][0] == seg_bounds_inner[i][0])
-            assert (update_bounds[i][1] <= seg_shape[i]
+            assert (update_bounds[i][1] <= seg_support[i]
                     or seg_bounds[i][1] == seg_bounds_inner[i][1])
 
     def get_touched_overlap_slices(self, i_seg, pt, radius):
@@ -352,12 +353,13 @@ class Segmentation:
             area. The slices can have some overlap
         """
         seg_bounds = self.get_seg_bounds(i_seg)
-        seg_shape = self.get_seg_shape(i_seg)
+        seg_support = self.get_seg_support(i_seg)
         seg_bounds_inner = self.get_seg_bounds(i_seg, inner=True)
 
         update_bounds = [[min(max(0, v - r), size_valid_ax),
                           max(min(v + r + 1, size_valid_ax), 0)]
-                         for v, r, size_valid_ax in zip(pt, radius, seg_shape)]
+                         for v, r, size_valid_ax in zip(pt, radius,
+                                                        seg_support)]
         inner_bounds = [
             [start_in_ax - start_ax, end_in_ax - start_ax]
             for (start_ax, _), (start_in_ax, end_in_ax) in zip(
@@ -389,14 +391,14 @@ class Segmentation:
 
         seg_bounds = self.get_seg_bounds(i_seg)
         seg_inner_bounds = self.get_seg_bounds(i_seg, inner=True)
-        padding_shape = []
+        padding_support = []
         for overlap_ax, (start_ax, end_ax), (start_in_ax, end_in_ax) in zip(
                 self.overlap, seg_bounds, seg_inner_bounds):
-            padding_shape += [
+            padding_support += [
                 (overlap_ax - (start_in_ax - start_ax),
                  overlap_ax - (end_ax - end_in_ax))
             ]
-        return padding_shape
+        return padding_support
 
     def reset(self):
         # Re-activate all the segments

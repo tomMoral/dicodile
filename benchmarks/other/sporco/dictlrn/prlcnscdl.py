@@ -56,14 +56,12 @@ mp_D_U = None    # Lagrange multiplier of D update
 
 def construct_X_multi(Z, D):
     from scipy import signal
-    n_trials, n_atoms, *valid_shape = Z.shape
+    n_trials, n_atoms, *valid_support = Z.shape
     assert n_atoms == D.shape[0]
     _, n_channels, *atom_support = D.shape
-    sig_shape = tuple([size_ax + size_atom_ax - 1
-                       for size_ax, size_atom_ax in zip(valid_shape,
-                                                        atom_support)])
+    sig_support = tuple(np.array(valid_support) + np.array(atom_support) - 1)
 
-    X = np.zeros((n_trials, n_channels, *sig_shape))
+    X = np.zeros((n_trials, n_channels, *sig_support))
     for i in range(n_trials):
         X[i] = np.sum([[signal.fftconvolve(zik, dkp) for dkp in dk]
                        for zik, dk in zip(Z[i], D)], 0)
@@ -561,13 +559,13 @@ class ConvBPDNDictLearn_Consensus(cbpdndl.ConvBPDNDictLearn):
 
         pobjs = []
         X = np.transpose(self.xstep.S.squeeze(), (2, 1, 0))[None]
-        n_trials, n_channels, *sig_shape = X.shape
+        n_trials, n_channels, *sig_support = X.shape
 
         d_hat = np.transpose(self.getdict().squeeze(), (3, 2, 1, 0))
-        n_atoms, n_channels, *atom_shape = d_hat.shape
+        n_atoms, n_channels, *atom_support = d_hat.shape
         z_slice = tuple([None, Ellipsis] + [
             slice(size_ax - size_atom_ax + 1)
-            for size_ax, size_atom_ax in zip(sig_shape, atom_shape)])
+            for size_ax, size_atom_ax in zip(sig_support, atom_support)])
         Z_hat = self.getcoef().squeeze().swapaxes(0, 2)[z_slice]
         pobjs.append(compute_X_and_objective(X, Z_hat, d_hat,
                                              reg=self.xstep.lmbda))

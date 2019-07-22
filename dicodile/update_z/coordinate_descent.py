@@ -13,6 +13,7 @@ from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.csc import compute_ztz, compute_ztX
+from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.csc import compute_objective, soft_thresholding
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
@@ -26,11 +27,11 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     Parameters
     ----------
-    X_i : ndarray, shape (n_channels, *sig_shape)
+    X_i : ndarray, shape (n_channels, *sig_support)
         Image to encode on the dictionary D
-    z_i : ndarray, shape (n_atoms, *valid_shape)
+    z_i : ndarray, shape (n_atoms, *valid_support)
         Warm start value for z_hat
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     reg : float
         Regularization parameter
@@ -61,24 +62,22 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     Return
     ------
-    z_hat : ndarray, shape (n_atoms, *valid_shape)
+    z_hat : ndarray, shape (n_atoms, *valid_support)
         Activation associated to X_i for the given dictionary D
     """
-    n_channels, *sig_shape = X_i.shape
-    n_atoms, n_channels, *atom_shape = D.shape
-    valid_shape = tuple([
-        size_ax - size_atom_ax + 1
-        for size_ax, size_atom_ax in zip(sig_shape, atom_shape)
-    ])
+    n_channels, *sig_support = X_i.shape
+    n_atoms, n_channels, *atom_support = D.shape
+    valid_support = get_valid_support(sig_support, atom_support)
 
-    # compute sizes for the segments for LGCD
+    # compute sizes for the segments for LGCD. Auto gives segments of size
+    # twice the support of the atoms.
     if n_seg == 'auto':
-        n_seg = []
-        for axis_size, atom_size in zip(valid_shape, atom_shape):
-            n_seg.append(max(axis_size // (2 * atom_size - 1), 1))
-    segments = Segmentation(n_seg, signal_shape=valid_shape)
+        n_seg = np.array(valid_support) // (2 * np.array(atom_support) - 1)
+        n_seg = tuple(np.maximum(1, n_seg))
+    segments = Segmentation(n_seg, signal_support=valid_support)
 
-    # Pre-compute some quantities
+    # Pre-compute constants for maintaining the auxillary variable beta and
+    # compute the coordinate update values.
     constants = {}
     constants['norm_atoms'] = compute_norm_atoms(D)
     constants['DtD'] = compute_DtD(D)
@@ -88,7 +87,7 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     p_obj, next_cost = [], 1
     accumulator = 0
     if z0 is None:
-        z_hat = np.zeros((n_atoms,) + valid_shape)
+        z_hat = np.zeros((n_atoms,) + valid_support)
     else:
         z_hat = np.copy(z0)
     n_coordinates = z_hat.size
@@ -139,7 +138,7 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
                 reg=reg, constants=constants, z_positive=z_positive,
                 freezed_support=freezed_support)
             touched_segs = segments.get_touched_segments(
-                pt=pt0, radius=atom_shape)
+                pt=pt0, radius=atom_support)
             n_changed_status = segments.set_active_segments(touched_segs)
 
             if flags.CHECK_ACTIVE_SEGMENTS and n_changed_status:
@@ -184,7 +183,7 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     ztz, ztX = None, None
     if return_ztz:
-        ztz = compute_ztz(z_hat, atom_shape)
+        ztz = compute_ztz(z_hat, atom_support)
         ztX = compute_ztX(z_hat, X_i)
 
     p_obj.append([n_coordinate_updates, t_update, None])
@@ -198,11 +197,11 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
 
     Parameters
     ----------
-    X_i : ndarray, shape (n_channels, *sig_shape)
+    X_i : ndarray, shape (n_channels, *sig_support)
         Image to encode on the dictionary D
-    z_i : ndarray, shape (n_atoms, *valid_shape)
+    z_i : ndarray, shape (n_atoms, *valid_support)
         Warm start value for z_hat
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     reg : float
         Regularization parameter
@@ -255,10 +254,10 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy='greedy',
 
     Parameters
     ----------
-    dz_opt : ndarray, shape (n_atoms, *valid_shape)
+    dz_opt : ndarray, shape (n_atoms, *valid_support)
         Difference between the current value and the optimal value for each
         coordinate.
-    dE : ndarray, shape (n_atoms, *valid_shape) or None
+    dE : ndarray, shape (n_atoms, *valid_support) or None
         Value of the reduction of the cost when moving a given coordinate to
         the optimal value dz_opt. This is only necessary when strategy is
         'gs-q'.
@@ -278,7 +277,7 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy='greedy',
     """
     if strategy == 'random':
         rng = check_random_state(random_state)
-        n_atoms, *valid_shape = dz_opt.shape
+        n_atoms, *valid_support = dz_opt.shape
         inner_bounds = segments.inner_bounds
         k0 = rng.randint(n_atoms)
         pt0 = ()
@@ -319,14 +318,14 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
         Indices of the coordinate updated.
     dz : float
         Value of the update.
-    beta, dz_opt : ndarray, shape (n_atoms, *valid_shape)
+    beta, dz_opt : ndarray, shape (n_atoms, *valid_support)
         Auxillary variables holding the optimal value for the coordinate update
-    dE : ndarray, shape (n_atoms, *valid_shape) or None
+    dE : ndarray, shape (n_atoms, *valid_support) or None
         If not None, dE[i] contains the change in cost value when the
         coordinate i is updated to value dz_opt[i].
-    z_hat : ndarray, shape (n_atoms, *valid_shape)
+    z_hat : ndarray, shape (n_atoms, *valid_support)
         Value of the coordinate.
-    D : ndarray, shape (n_atoms, n_channels, *atom_shape)
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     reg : float
         Regularization parameter
@@ -334,7 +333,7 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
         Pre-computed constants for the computations
     z_positive : boolean
         If set to true, the activations are constrained to be positive.
-    freezed_support : ndarray, shape (n_atoms, *valid_shape)
+    freezed_support : ndarray, shape (n_atoms, *valid_support)
         mask with True in each coordinate fixed to 0.
     coordinate_exist : boolean
         If set to true, the coordinate is located in the updated part of beta.
@@ -343,11 +342,11 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
 
     Return
     ------
-    beta, dz_opt : ndarray, shape (n_atoms, *valid_shape)
+    beta, dz_opt : ndarray, shape (n_atoms, *valid_support)
         Auxillary variables holding the optimal value for the coordinate update
     """
-    n_atoms, *valid_shape = beta.shape
-    n_atoms, n_channels, *atom_shape = D.shape
+    n_atoms, *valid_support = beta.shape
+    n_atoms, n_channels, *atom_support = D.shape
 
     if 'DtD' in constants:
         DtD = constants['DtD']
@@ -360,7 +359,8 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
 
     # define the bounds for the beta update
     update_slice, DtD_slice = (Ellipsis,), (Ellipsis, k0)
-    for v, size_atom_ax, size_valid_ax in zip(pt0, atom_shape, valid_shape):
+    for v, size_atom_ax, size_valid_ax in zip(pt0, atom_support,
+                                              valid_support):
         start_up_ax = max(0, v - size_atom_ax + 1)
         end_up_ax = min(size_valid_ax, v + size_atom_ax)
         update_slice = update_slice + (slice(start_up_ax, end_up_ax),)
@@ -418,7 +418,7 @@ def _check_convergence(segments, tol, iteration, dz_opt, n_coordinates,
         Tolerance for the minimal update size in this algorithm.
     iteration : int
         Current iteration number
-    dz_opt : ndarray, shape (n_atoms, *valid_shape)
+    dz_opt : ndarray, shape (n_atoms, *valid_support)
         Difference between the current value and the optimal value for each
         coordinate.
     n_coordinates : int

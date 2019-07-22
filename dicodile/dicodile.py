@@ -12,6 +12,7 @@ from .update_d.update_d import update_d
 from .utils.segmentation import Segmentation
 from .utils.dictionary import get_lambda_max
 from .utils.dictionary import get_max_error_dict
+from .utils.shape_helpers import get_valid_support
 from .workers.reusable_workers import get_reusable_workers
 from .utils.mpi import broadcast_array, recv_reduce_sum_array
 from .workers.reusable_workers import send_command_to_reusable_workers
@@ -41,43 +42,43 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         random_state=random_state, reg=reg_, verbose=verbose, timing=False,
         soft_lock='border', has_z0=True, return_ztz=False,
         freeze_support=False, debug=False,
-
     ))
 
-    n_channels, *sig_shape = X.shape
-    n_atoms, n_channels, *atom_shape = D_hat.shape
     assert D_hat.ndim - 1 == X.ndim
+    n_channels, *sig_support = X.shape
+    n_atoms, n_channels, *atom_support = D_hat.shape
 
-    params['valid_shape'] = valid_shape = tuple([
-        size_ax - size_atom_ax + 1
-        for size_ax, size_atom_ax in zip(sig_shape, atom_shape)
-    ])
-    overlap = tuple([size_atom_ax - 1 for size_atom_ax in atom_shape])
-    z_size = n_atoms * np.prod(valid_shape)
+    params['valid_support'] = valid_support = get_valid_support(sig_support,
+                                                                atom_support)
+    overlap = tuple(np.array(atom_support) - 1)
+    z_size = n_atoms * np.prod(valid_support)
 
     if w_world == 'auto':
-        params["workers_topology"] = _find_grid_size(n_jobs, sig_shape)
+        params["workers_topology"] = _find_grid_size(n_jobs, sig_support)
     else:
         assert n_jobs % w_world == 0
         params["workers_topology"] = w_world, n_jobs // w_world
 
     # compute a segmentation for the image,
     workers_segments = Segmentation(n_seg=params['workers_topology'],
-                                    signal_shape=valid_shape,
+                                    signal_support=valid_support,
                                     overlap=overlap)
 
-    # Make sure we are not below twice the size of the dictionary
-    worker_valid_shape = workers_segments.get_seg_shape(0, inner=True)
-    for size_atom_ax, size_valid_ax in zip(atom_shape, worker_valid_shape):
+    # Make sure that each worker has at least a segment of twice the size of
+    # the dictionary. If this is not the case, the algorithm is not valid as it
+    # is possible to have interference with workers that are not neighbors.
+    worker_valid_support = workers_segments.get_seg_support(0, inner=True)
+    for size_atom_ax, size_valid_ax in zip(atom_support, worker_valid_support):
         if 2 * size_atom_ax - 1 >= size_valid_ax:
             raise ValueError("Using too many cores.")
 
-    # Initialize constants dictionary
+    # Initialize constants for computations of the dictionary gradient.
     constants = {}
     constants['n_channels'] = X.shape[1]
     constants['XtX'] = np.dot(X.ravel(), X.ravel())
 
-    z0 = np.zeros((n_atoms, *valid_shape))
+    # Initial code
+    z0 = np.zeros((n_atoms, *valid_support))
 
     comm = _request_workers(n_jobs, hostfile)
     t_init = _send_task(comm, X, D_hat, reg_, z0, workers_segments, params)
@@ -85,7 +86,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     # monitor cost function
     tol_, step_size = .2, 1e-4
     times = [t_init]
-    pobj = [compute_cost(comm)]
+    pobj = [get_cost(comm)]
     t_start = time.time()
 
     for ii in range(n_iter):  # outer loop of coordinate descent
@@ -114,7 +115,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
         # monitor cost function
         times.append(time.time() - t_start_update_z)
-        pobj.append(compute_cost(comm))
+        pobj.append(get_cost(comm))
 
         z_nnz = get_z_nnz(comm, n_atoms)
         if verbose > 5 or True:
@@ -139,7 +140,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         update_worker_D(comm, D_hat)
         # monitor cost function
         times.append(time.time() - t_start_update_d)
-        pobj.append(compute_cost(comm))
+        pobj.append(get_cost(comm))
 
         null_atom_indices = np.where(z_nnz == 0)[0]
         if len(null_atom_indices) > 0:
@@ -178,7 +179,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
     update_z(comm, n_jobs, verbose=verbose)
     z_hat = get_z_hat(comm, n_atoms, workers_segments)
-    pobj.append(compute_cost(comm))
+    pobj.append(get_cost(comm))
 
     runtime = np.sum(times)
     _release_workers()
@@ -187,7 +188,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
 
 def check_cost(comm, n_atoms, workers_segments, X, D_hat, reg):
-    cost = compute_cost(comm)
+    cost = get_cost(comm)
     z_hat = get_z_hat(comm, n_atoms, workers_segments)
     cost_2 = compute_objective(X, z_hat, D_hat, reg)
     assert np.isclose(cost, cost_2), (cost, cost_2)
@@ -218,12 +219,12 @@ def update_z(comm, n_jobs, verbose=0):
     send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_Z)
     # Wait first for the end of the initialization
     comm.Barrier()
-    # Then first for the end of the computation
+    # Then wait for the end of the computation
     comm.Barrier()
     _collect_end_stat(comm, n_jobs, verbose=verbose)
 
 
-def compute_cost(comm):
+def get_cost(comm):
     send_command_to_reusable_workers(constants.TAG_DICODILE_GET_COST)
     return recv_cost(comm)
 
