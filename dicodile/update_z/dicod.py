@@ -133,18 +133,20 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
                 (2 * size_atom_ax - 1, size_valid_ax)))
 
     comm = _spawn_workers(n_jobs, hostfile)
-    t_init = _send_task(comm, X_i, D, reg, z0, workers_segments, params)
-    t_init_local = _wait_local_init_end(comm, workers_segments)
+    t_transfert = _send_task(comm, X_i, D, reg, z0, workers_segments, params)
+
+    if flags.CHECK_WARM_BETA:
+        from ..utils.debugs import main_check_warm_beta
+        main_check_warm_beta(comm, workers_segments)
 
     if verbose > 0:
-        print('\r[INFO:DICOD-{}] End initialization - {:.4}s ({:.2}s)'
-              .format(workers_segments.effective_n_seg, t_init_local,
-                      t_init + t_init_local).ljust(80))
+        print('\r[INFO:DICOD-{}] End transfert - {:.4}s'
+              .format(workers_segments.effective_n_seg, t_transfert).ljust(80))
 
     # Wait for the result computation
     comm.Barrier()
-    runtime, n_coordinate_updates = _collect_end_stat(comm, n_jobs,
-                                                      verbose=verbose)
+    n_coordinate_updates, t_local_init, runtime = _gather_run_statistics(
+        comm, n_jobs, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
         comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
@@ -152,7 +154,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     comm.Barrier()
 
     if timing:
-        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_init, t_reduce,
+        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfert, t_reduce,
                                  n_jobs=n_jobs, valid_support=valid_support,
                                  z0=z0)
     else:
@@ -235,8 +237,6 @@ def _send_task(comm, X, D, reg, z0, workers_segments, params):
     broadcast_array(comm, D)
 
     X = np.array(X, dtype='d')
-    if params['debug']:
-        X_alpha = np.zeros(X.shape, 'd')
 
     for i_seg in range(n_jobs):
         if params['has_z0']:
@@ -251,56 +251,22 @@ def _send_task(comm, X, D, reg, z0, workers_segments, params):
 
         comm.Send([X[X_worker_slice].ravel(), MPI.DOUBLE],
                   dest=i_seg, tag=constants.TAG_ROOT + i_seg)
-        if params['debug']:
-            X_worker = np.empty(X_alpha[X_worker_slice].shape, 'd')
-            comm.Recv([X_worker.ravel(), MPI.DOUBLE],
-                      source=i_seg, tag=constants.TAG_ROOT + i_seg)
-            X_alpha[X_worker_slice] += X_worker
-
-    if params['debug']:
-        import matplotlib.pyplot as plt
-        plt.imshow(np.clip(X_alpha.swapaxes(0, 2), 0, 1))
-        plt.show()
-        assert (np.sum(X_alpha[0, 0] == 0.5) ==
-                3 * (atom_support[-1] - 1) *
-                (workers_segments.n_seg_per_axis[0] - 1)
-                )
 
     comm.Barrier()
     t_init = time.time() - t_start
     return t_init
 
 
-def _wait_local_init_end(comm, workers_segments):
-    t_start = time.time()
-    if flags.CHECK_WARM_BETA:
-        pt_global = workers_segments.get_seg_support(0, inner=True)
-        sum_beta = np.empty(1, 'd')
-        value = []
-        for i_worker in range(workers_segments.effective_n_seg):
-
-            pt = workers_segments.get_local_coordinate(i_worker, pt_global)
-            if workers_segments.is_contained_coordinate(i_worker, pt):
-                comm.Recv([sum_beta, MPI.DOUBLE], source=i_worker)
-                value.append(sum_beta[0])
-        if len(value) > 1:
-            assert np.allclose(value[1:], value[0]), value
-
-    comm.Barrier()
-
-    t_init_local = time.time() - t_start
-    return t_init_local
-
-
-def _collect_end_stat(comm, n_jobs, verbose=0):
+def _gather_run_statistics(comm, n_jobs, verbose=0):
     stats = comm.gather(None, root=MPI.ROOT)
     n_coordinate_updates = np.sum(stats, axis=0)[0]
-    runtime = np.max(stats, axis=0)[1]
+    t_local_init = np.max(stats, axis=0)[1]
+    runtime = np.max(stats, axis=0)[2]
     if verbose > 0:
         print("\r[INFO:DICOD-{}] converged in {:.3f}s with {:.0f} coordinate "
               "updates.".format(n_jobs, runtime,
                                 n_coordinate_updates))
-    return runtime, n_coordinate_updates
+    return n_coordinate_updates, t_local_init, runtime
 
 
 def _recv_result(comm, D_shape, valid_support, workers_segments,

@@ -10,7 +10,7 @@ def dicodile_worker():
     tag = wait_message()
     while tag != constants.TAG_DICODILE_STOP:
         if tag == constants.TAG_DICODILE_UPDATE_Z:
-            n_coord_updated, runtime = dicod.compute_z_hat()
+            dicod.compute_z_hat()
         if tag == constants.TAG_DICODILE_UPDATE_D:
             dicod.get_D()
         if tag == constants.TAG_DICODILE_GET_COST:

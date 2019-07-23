@@ -14,6 +14,7 @@ from dicodile.utils import constants as constants
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
+from dicodile.utils.debugs import worker_check_warm_beta
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
@@ -34,6 +35,11 @@ class DICODWorker:
 
     def __init__(self, backend):
         self._backend = backend
+
+    def run(self):
+        self.recv_task()
+        self.compute_z_hat()
+        self.send_result()
 
     def recv_task(self):
         # Retrieve different constants from the base communicator and store
@@ -124,7 +130,7 @@ class DICODWorker:
             self.rank, inner=True)
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
-        self.init_cd_variables()
+        t_local_init = self.init_cd_variables()
 
         diverging = False
         if flags.INTERACTIVE_PROCESSES and self.n_jobs == 1:
@@ -252,15 +258,8 @@ class DICODWorker:
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
 
-        comm = MPI.Comm.Get_parent()
-        comm.gather([n_coordinate_updates, runtime], root=0)
-
-        return n_coordinate_updates, runtime
-
-    def run(self):
-        self.recv_task()
-        n_coordinate_updates, runtime = self.compute_z_hat()
-        self.send_result(n_coordinate_updates, runtime)
+        self.return_run_statistics(n_coordinate_updates=n_coordinate_updates,
+                                   runtime=runtime, t_local_init=t_local_init)
 
     def stop_before_convergence(self, msg, n_coordinate_updates):
         self.info("{}. Done {} coordinate updates. Max of |dz|={}.",
@@ -299,17 +298,8 @@ class DICODWorker:
             self.correct_beta_z0()
 
         if flags.CHECK_WARM_BETA:
-            pt_global = self.workers_segments.get_seg_support(0, inner=True)
-            pt = self.workers_segments.get_local_coordinate(self.rank,
-                                                            pt_global)
-            if self.workers_segments.is_contained_coordinate(self.rank, pt):
-                _, _, *atom_support = self.D.shape
-                beta_slice = (Ellipsis,) + tuple([
-                    slice(v - size_ax + 1, v + size_ax - 1)
-                    for v, size_ax in zip(pt, atom_support)
-                ])
-                sum_beta = np.array(self.beta[beta_slice].sum(), dtype='d')
-                self.return_array(sum_beta)
+            worker_check_warm_beta(self.rank, self.workers_segments, self.beta,
+                                   self.D.shape)
 
         if self.freeze_support:
             assert self.z0 is not None
@@ -318,11 +308,12 @@ class DICODWorker:
         else:
             self.freezed_support = None
 
-        self.synchronize_workers()
+        self.synchronize_workers(main=False)
 
         t_local_init = time.time() - t_start
         self.info("End local initialization in {:.2f}s", t_local_init,
                   global_msg=True)
+        return t_local_init
 
     def coordinate_update(self, k0, pt0, dz, coordinate_exist=True):
         self.beta, self.dz_opt, self.dE = coordinate_update(
@@ -585,6 +576,13 @@ class DICODWorker:
         cost = np.array(cost, dtype='d')
         self.reduce_sum_array(cost)
 
+    def return_run_statistics(self, n_coordinate_updates, runtime,
+                              t_local_init):
+        """Return the # of iteration, the init and the run time for this worker
+        """
+        arr = [n_coordinate_updates, t_local_init, runtime]
+        self.gather_array(arr)
+
     ###########################################################################
     #     Display utilities
     ###########################################################################
@@ -631,9 +629,14 @@ class DICODWorker:
     #     Communication primitives
     ###########################################################################
 
-    def synchronize_workers(self):
+    def synchronize_workers(self, main=True):
+        """Wait for all the workers to reach this point before continuing
+
+        If main is True, this synchronization must also be called in the main
+        program.
+        """
         if self._backend == "mpi":
-            self._synchronize_workers_mpi()
+            self._synchronize_workers_mpi(main=main)
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -679,9 +682,9 @@ class DICODWorker:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
 
-    def send_result(self, iterations, runtime):
+    def send_result(self):
         if self._backend == "mpi":
-            self._send_result_mpi(iterations, runtime)
+            self._send_result_mpi()
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -710,6 +713,13 @@ class DICODWorker:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
 
+    def gather_array(self, arr):
+        if self._backend == "mpi":
+            self._gather_array_mpi(arr)
+        else:
+            raise NotImplementedError("Backend {} is not implemented"
+                                      .format(self._backend))
+
     def shutdown(self):
         if self._backend == "mpi":
             from ..utils.mpi import shutdown_mpi
@@ -722,8 +732,11 @@ class DICODWorker:
     #     mpi4py implementation
     ###########################################################################
 
-    def _synchronize_workers_mpi(self):
-        comm = MPI.Comm.Get_parent()
+    def _synchronize_workers_mpi(self, main=True):
+        if main:
+            comm = MPI.Comm.Get_parent()
+        else:
+            comm = MPI.COMM_WORLD
         comm.Barrier()
 
     def check_no_transitting_message(self, check_incoming=True):
@@ -766,7 +779,7 @@ class DICODWorker:
         else:
             return MPI.COMM_WORLD.Issend([msg, MPI.DOUBLE], i_worker, tag=tag)
 
-    def _send_result_mpi(self, iterations, runtime):
+    def _send_result_mpi(self):
         comm = MPI.Comm.Get_parent()
         self.info("Reducing the distributed results", global_msg=True)
 
@@ -792,6 +805,10 @@ class DICODWorker:
         comm = MPI.Comm.Get_parent()
         arr = np.array(arr, dtype='d')
         comm.Reduce([arr, MPI.DOUBLE], None, op=MPI.SUM, root=0)
+
+    def _gather_array_mpi(self, arr):
+        comm = MPI.Comm.Get_parent()
+        comm.gather(arr, root=0)
 
 
 if __name__ == "__main__":
