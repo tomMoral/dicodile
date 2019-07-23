@@ -3,22 +3,12 @@ import sys
 import time
 import numpy as np
 
-from mpi4py import MPI
 
-
-from .utils import constants
-from .utils.csc import compute_objective
 from .update_d.update_d import update_d
-from .utils.segmentation import Segmentation
 from .utils.dictionary import get_lambda_max
 from .utils.dictionary import get_max_error_dict
-from .utils.shape_helpers import get_valid_support
-from .workers.reusable_workers import get_reusable_workers
-from .utils.mpi import broadcast_array, recv_reduce_sum_array
-from .workers.reusable_workers import send_command_to_reusable_workers
 
-from .update_z.dicod import _send_task, _find_grid_size, _collect_end_stat
-from .update_z.dicod import recv_cost, recv_z_hat, recv_sufficient_statistics
+from .update_z.distributed_sparse_encoder import DistributedSparseEncoder
 
 
 DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), timeout=None)
@@ -44,49 +34,21 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         freeze_support=False, debug=False,
     ))
 
-    assert D_hat.ndim - 1 == X.ndim
-    n_channels, *sig_support = X.shape
-    n_atoms, n_channels, *atom_support = D_hat.shape
+    encoder = DistributedSparseEncoder(n_jobs, w_world=w_world,
+                                       hostfile=hostfile, verbose=verbose)
+    encoder.init_workers(X, D_hat, reg_, params)
 
-    params['valid_support'] = valid_support = get_valid_support(sig_support,
-                                                                atom_support)
-    overlap = tuple(np.array(atom_support) - 1)
-    z_size = n_atoms * np.prod(valid_support)
-
-    if w_world == 'auto':
-        params["workers_topology"] = _find_grid_size(n_jobs, sig_support)
-    else:
-        assert n_jobs % w_world == 0
-        params["workers_topology"] = w_world, n_jobs // w_world
-
-    # compute a segmentation for the image,
-    workers_segments = Segmentation(n_seg=params['workers_topology'],
-                                    signal_support=valid_support,
-                                    overlap=overlap)
-
-    # Make sure that each worker has at least a segment of twice the size of
-    # the dictionary. If this is not the case, the algorithm is not valid as it
-    # is possible to have interference with workers that are not neighbors.
-    worker_valid_support = workers_segments.get_seg_support(0, inner=True)
-    for size_atom_ax, size_valid_ax in zip(atom_support, worker_valid_support):
-        if 2 * size_atom_ax - 1 >= size_valid_ax:
-            raise ValueError("Using too many cores.")
+    n_atoms, n_channels, *_ = D_hat.shape
 
     # Initialize constants for computations of the dictionary gradient.
     constants = {}
-    constants['n_channels'] = X.shape[1]
+    constants['n_channels'] = n_channels
     constants['XtX'] = np.dot(X.ravel(), X.ravel())
-
-    # Initial code
-    z0 = np.zeros((n_atoms, *valid_support))
-
-    comm = _request_workers(n_jobs, hostfile)
-    t_init = _send_task(comm, X, D_hat, reg_, z0, workers_segments, params)
 
     # monitor cost function
     tol_, step_size = .2, 1e-4
-    times = [t_init]
-    pobj = [get_cost(comm)]
+    times = [encoder.t_init]
+    pobj = [encoder.get_cost()]
     t_start = time.time()
 
     for ii in range(n_iter):  # outer loop of coordinate descent
@@ -101,26 +63,21 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         tol_ /= 2
         if tol >= tol_:
             tol_ = tol
-        params['tol'] = tol_
-        update_worker_params(comm, params)
+        encoder.set_worker_params(tol=tol_)
 
         if verbose > 5:
             print('[DEBUG:{}] lambda = {:.3e}'.format(name, reg_))
 
         # Compute z update
         t_start_update_z = time.time()
-        update_z(comm, n_jobs, verbose=verbose)
-        constants['ztz'], constants['ztX'] = get_sufficient_statistics(
-            comm, D_hat.shape)
+        encoder.compute_z_hat()
+        times.append(time.time() - t_start_update_z)
 
         # monitor cost function
-        times.append(time.time() - t_start_update_z)
-        pobj.append(get_cost(comm))
+        pobj.append(encoder.get_cost())
 
-        z_nnz = get_z_nnz(comm, n_atoms)
+        z_nnz = encoder.get_z_nnz()
         if verbose > 5 or True:
-            print("[DEBUG:{}] sparsity: {:.3e}".format(
-                name, z_nnz.sum() / z_size))
             print('[DEBUG:{}] Objective (z) : {:.3e} ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
 
@@ -133,26 +90,31 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
         # Compute D update
         t_start_update_d = time.time()
+        constants['ztz'], constants['ztX'] = \
+            encoder.get_sufficient_statistics()
         step_size *= 100
         D_hat, step_size = update_d(X, None, D_hat, constants=constants,
                                     step_size=step_size, max_iter=5,
                                     eps=1, verbose=verbose, momentum=True)
-        update_worker_D(comm, D_hat)
         # monitor cost function
         times.append(time.time() - t_start_update_d)
-        pobj.append(get_cost(comm))
-
-        null_atom_indices = np.where(z_nnz == 0)[0]
-        if len(null_atom_indices) > 0:
-            k0 = null_atom_indices[0]
-            z_hat = get_z_hat(comm, n_atoms, workers_segments)
-            D_hat[k0] = get_max_error_dict(X, z_hat, D_hat)[0]
-            if verbose > 1:
-                print('[INFO:{}] Resampled atom {}'.format(name, k0))
-
+        pobj.append(encoder.get_cost())
         if verbose > 5 or True:
             print('[DEBUG:{}] Objective (d) : {:.3e}  ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
+
+        # Update the dictionary D_hat in the encoder
+        encoder.set_worker_D(D_hat)
+
+        # If an atom is un-used, replace it by the chunk of the residual with
+        # the largest un-captured variance.
+        null_atom_indices = np.where(z_nnz == 0)[0]
+        if len(null_atom_indices) > 0:
+            k0 = null_atom_indices[0]
+            z_hat = encoder.get_z_hat()
+            D_hat[k0] = get_max_error_dict(X, z_hat, D_hat)[0]
+            if verbose > 1:
+                print('[INFO:{}] Resampled atom {}'.format(name, k0))
 
         # Only check that the cost is always going down when the regularization
         # parameter is fixed.
@@ -177,69 +139,11 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         if stopping_pobj is not None and pobj[-1] < stopping_pobj:
             break
 
-    update_z(comm, n_jobs, verbose=verbose)
-    z_hat = get_z_hat(comm, n_atoms, workers_segments)
-    pobj.append(get_cost(comm))
+    encoder.compute_z_hat()
+    z_hat = encoder.get_z_hat()
+    pobj.append(encoder.get_cost())
 
     runtime = np.sum(times)
-    _release_workers()
+    encoder.release_workers()
     print("[INFO:{}] Finished in {:.0f}s".format(name, runtime))
     return pobj, times, D_hat, z_hat
-
-
-def check_cost(comm, n_atoms, workers_segments, X, D_hat, reg):
-    cost = get_cost(comm)
-    z_hat = get_z_hat(comm, n_atoms, workers_segments)
-    cost_2 = compute_objective(X, z_hat, D_hat, reg)
-    assert np.isclose(cost, cost_2), (cost, cost_2)
-    print("check cost ok", cost, cost_2)
-
-
-def _request_workers(n_jobs, hostfile):
-    comm = get_reusable_workers(n_jobs, hostfile=hostfile)
-    send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE)
-    return comm
-
-
-def _release_workers():
-    send_command_to_reusable_workers(constants.TAG_DICODILE_STOP)
-
-
-def update_worker_D(comm, D):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_D)
-    broadcast_array(comm, D)
-
-
-def update_worker_params(comm, params):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_PARAMS)
-    comm.bcast(params, root=MPI.ROOT)
-
-
-def update_z(comm, n_jobs, verbose=0):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_Z)
-    # Wait first for the end of the initialization
-    comm.Barrier()
-    # Then wait for the end of the computation
-    comm.Barrier()
-    _collect_end_stat(comm, n_jobs, verbose=verbose)
-
-
-def get_cost(comm):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_GET_COST)
-    return recv_cost(comm)
-
-
-def get_z_hat(comm, n_atoms, workers_segments):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_GET_Z_HAT)
-    return recv_z_hat(comm, n_atoms, workers_segments)
-
-
-def get_z_nnz(comm, n_atoms):
-    send_command_to_reusable_workers(constants.TAG_DICODILE_GET_Z_NNZ)
-    return recv_reduce_sum_array(comm, n_atoms)
-
-
-def get_sufficient_statistics(comm, D_shape):
-    send_command_to_reusable_workers(
-        constants.TAG_DICODILE_GET_SUFFICIENT_STAT)
-    return recv_sufficient_statistics(comm, D_shape)
