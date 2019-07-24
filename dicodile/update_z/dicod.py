@@ -13,8 +13,8 @@ from ..utils import debug_flags as flags
 from ..utils.csc import compute_objective
 from ..utils.segmentation import Segmentation
 from .coordinate_descent import coordinate_descent
-from ..utils.shape_helpers import get_valid_support
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
+from ..utils.shape_helpers import get_valid_support, find_grid_size
 
 from ..workers.reusable_workers import get_reusable_workers
 from ..workers.reusable_workers import send_command_to_reusable_workers
@@ -114,7 +114,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     overlap = tuple(np.array(atom_support) - 1)
 
     if w_world == 'auto':
-        params["workers_topology"] = _find_grid_size(n_jobs, sig_support)
+        params["workers_topology"] = find_grid_size(n_jobs, sig_support)
     else:
         assert n_jobs % w_world == 0
         params["workers_topology"] = w_world, n_jobs // w_world
@@ -199,26 +199,6 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
     p_obj.append((up_ii, t_update, final_cost))
     p_obj.append((up_ii, t_init + t_update + t_reduce, final_cost))
     return np.array(p_obj)
-
-
-def _find_grid_size(n_jobs, sig_support):
-    if len(sig_support) == 1:
-        return (n_jobs,)
-    elif len(sig_support) == 2:
-        height, width = sig_support
-        w_world, h_world = 1, n_jobs
-        w_ratio = width * n_jobs / height
-        for i in range(2, n_jobs + 1):
-            if n_jobs % i != 0:
-                continue
-            j = n_jobs // i
-            ratio = width * j / (height * i)
-            if abs(ratio - 1) < abs(w_ratio - 1):
-                w_ratio = ratio
-                w_world, h_world = i, j
-        return w_world, h_world
-    else:
-        raise NotImplementedError("")
 
 
 def _spawn_workers(n_jobs, hostfile):

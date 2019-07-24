@@ -5,13 +5,13 @@ from ..utils import constants
 from ..utils.mpi import broadcast_array
 from ..utils.csc import compute_objective
 from ..utils.segmentation import Segmentation
-from ..utils.shape_helpers import get_valid_support
 from ..workers.reusable_workers import get_reusable_workers
+from ..utils.shape_helpers import get_valid_support, find_grid_size
 from ..workers.reusable_workers import send_command_to_reusable_workers
 
 from .dicod import recv_z_hat, recv_z_nnz
 from .dicod import recv_cost, recv_sufficient_statistics
-from .dicod import _send_task, _send_signal, _find_grid_size
+from .dicod import _send_task, _send_signal
 from .dicod import _gather_run_statistics
 
 
@@ -44,7 +44,7 @@ class DistributedSparseEncoder:
         valid_support = get_valid_support(sig_support, atom_support)
         overlap = tuple(np.array(atom_support) - 1)
         if self.w_world == 'auto':
-            self.workers_topology = _find_grid_size(self.n_jobs, sig_support)
+            self.workers_topology = find_grid_size(self.n_jobs, sig_support)
         else:
             self.workers_topology = self.w_world, self.n_jobs // self.w_world
 
@@ -72,6 +72,8 @@ class DistributedSparseEncoder:
                                  self.workers_segments, self.params)
 
     def set_worker_D(self, D):
+        msg = "The shape of the dictionary cannot be changed on an encoder."
+        assert D.shape == self.D_shape, msg
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
                                          verbose=self.verbose)
         broadcast_array(self.comm, D)
