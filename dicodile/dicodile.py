@@ -30,8 +30,8 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     params.update(dict(
         strategy=strategy, n_seg=n_seg, z_positive=z_positive, tol=tol,
         random_state=random_state, reg=reg_, verbose=verbose, timing=False,
-        soft_lock='border', has_z0=True, return_ztz=False,
-        freeze_support=False, debug=False,
+        soft_lock='border', return_ztz=False, freeze_support=False,
+        debug=False
     ))
 
     encoder = DistributedSparseEncoder(n_jobs, w_world=w_world,
@@ -75,12 +75,11 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
         # monitor cost function
         pobj.append(encoder.get_cost())
-
-        z_nnz = encoder.get_z_nnz()
         if verbose > 5 or True:
             print('[DEBUG:{}] Objective (z) : {:.3e} ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
 
+        z_nnz = encoder.get_z_nnz()
         if np.all(z_nnz == 0):
             import warnings
             warnings.warn("Regularization parameter `reg` is too large "
@@ -96,15 +95,16 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         D_hat, step_size = update_d(X, None, D_hat, constants=constants,
                                     step_size=step_size, max_iter=5,
                                     eps=1, verbose=verbose, momentum=True)
-        # monitor cost function
         times.append(time.time() - t_start_update_d)
+
+        # Update the dictionary D_hat in the encoder
+        encoder.set_worker_D(D_hat)
+
+        # monitor cost function
         pobj.append(encoder.get_cost())
         if verbose > 5 or True:
             print('[DEBUG:{}] Objective (d) : {:.3e}  ({:.0f}s)'
                   .format(name, pobj[-1], times[-1]))
-
-        # Update the dictionary D_hat in the encoder
-        encoder.set_worker_D(D_hat)
 
         # If an atom is un-used, replace it by the chunk of the residual with
         # the largest un-captured variance.

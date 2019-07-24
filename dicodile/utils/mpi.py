@@ -9,26 +9,26 @@ from . import constants
 
 
 def broadcast_array(comm, arr):
+    arr = np.array(arr, dtype='d')
+    N = np.array([arr.ndim], dtype='i')
     arr_shape = np.array(arr.shape, dtype='i')
-    arr = np.array(arr.flatten(), dtype='d')
-    N = np.array([arr.shape[0], len(arr_shape)], dtype='i')
 
     # Send the data and shape of the numpy array
     comm.Bcast([N, MPI.INT], root=MPI.ROOT)
     comm.Bcast([arr_shape, MPI.INT], root=MPI.ROOT)
-    comm.Bcast([arr, MPI.DOUBLE], root=MPI.ROOT)
+    comm.Bcast([arr.ravel(), MPI.DOUBLE], root=MPI.ROOT)
 
 
 def recv_broadcasted_array(comm):
-    N = np.empty(2, dtype='i')
+    N = np.empty(1, dtype='i')
     comm.Bcast([N, MPI.INT], root=0)
 
-    arr_shape = np.empty(N[1], dtype='i')
+    arr_shape = np.empty(N[0], dtype='i')
     comm.Bcast([arr_shape, MPI.INT], root=0)
 
-    arr = np.empty(N[0], dtype='d')
-    comm.Bcast([arr, MPI.DOUBLE], root=0)
-    return arr.reshape(arr_shape)
+    arr = np.empty(arr_shape, dtype='d')
+    comm.Bcast([arr.ravel(), MPI.DOUBLE], root=0)
+    return arr
 
 
 def recv_reduce_sum_array(comm, shape):

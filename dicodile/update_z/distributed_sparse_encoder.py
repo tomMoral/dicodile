@@ -11,7 +11,8 @@ from ..workers.reusable_workers import send_command_to_reusable_workers
 
 from .dicod import recv_z_hat, recv_z_nnz
 from .dicod import recv_cost, recv_sufficient_statistics
-from .dicod import _send_task, _find_grid_size, _gather_run_statistics
+from .dicod import _send_task, _send_signal, _find_grid_size
+from .dicod import _gather_run_statistics
 
 
 class DistributedSparseEncoder:
@@ -64,18 +65,14 @@ class DistributedSparseEncoder:
 
         assert all(np.array(worker_support) >= 2 * np.array(atom_support)), msg
 
-        # Initial code
-        if z0 is None:
-            z0 = np.zeros((n_atoms, *valid_support))
-
         self.params = params.copy()
-        self.params.update(dict(valid_support=valid_support,
-                                workers_topology=self.workers_topology))
-        self.t_init = _send_task(self.comm, X, D_hat, reg, z0,
+        self.params.update(dict(workers_topology=self.workers_topology,
+                                has_z0=z0 is not None))
+        self.t_init = _send_task(self.comm, X, D_hat, z0,
                                  self.workers_segments, self.params)
 
     def set_worker_D(self, D):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_D,
+        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
                                          verbose=self.verbose)
         broadcast_array(self.comm, D)
 
@@ -84,16 +81,24 @@ class DistributedSparseEncoder:
             assert kwargs is not {}
             params = kwargs
         self.params.update(params)
-        send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_PARAMS,
+
+        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_PARAMS,
                                          verbose=self.verbose)
         self.comm.bcast(self.params, root=MPI.ROOT)
 
+    def set_worker_signal(self, X, z0=None):
+        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_SIGNAL,
+                                         verbose=self.verbose)
+        _send_signal(self.comm, self.workers_segments, self.atom_support,
+                     X, z0)
+
     def compute_z_hat(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_UPDATE_Z,
+        send_command_to_reusable_workers(constants.TAG_DICODILE_COMPUTE_Z_HAT,
                                          verbose=self.verbose)
         # Then wait for the end of the computation
         self.comm.Barrier()
-        _gather_run_statistics(self.comm, self.n_jobs, verbose=self.verbose)
+        return _gather_run_statistics(self.comm, self.n_jobs,
+                                      verbose=self.verbose)
 
     def get_cost(self):
         send_command_to_reusable_workers(constants.TAG_DICODILE_GET_COST,

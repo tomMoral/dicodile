@@ -42,77 +42,14 @@ class DICODWorker:
         self.send_result()
 
     def recv_task(self):
-        # Retrieve different constants from the base communicator and store
-        # then in the class.
-        params = self.get_params()
+        # Retrieve the parameter of the algorithm
+        self.recv_params()
 
-        if self.timeout:
-            self.timeout *= 3
+        # Retrieve the dictionary used for coding
+        self.D = self.recv_D()
 
-        self.random_state = params['random_state']
-        if isinstance(self.random_state, int):
-            self.random_state += self.rank
-
-        self.size_msg = len(params['valid_support']) + 2
-
-        # Compute the shape of the worker segment.
-        self.D = self.get_D()
-        n_atoms, n_channels, *atom_support = self.D.shape
-        self.overlap = np.array(atom_support) - 1
-        self.workers_segments = Segmentation(
-            n_seg=params['workers_topology'],
-            signal_support=params['valid_support'],
-            overlap=self.overlap)
-
-        # Receive X and z from the master node.
-        worker_support = self.workers_segments.get_seg_support(self.rank)
-        X_shape = (n_channels,) + get_full_support(worker_support,
-                                                   atom_support)
-        if params['has_z0']:
-            z0_shape = (n_atoms,) + worker_support
-            self.z0 = self.get_signal(z0_shape, params['debug'])
-        else:
-            self.z0 = None
-        self.X_worker = self.get_signal(X_shape, params['debug'])
-
-        # Compute the local segmentation for LGCD algorithm
-
-        # If n_seg is not specified, compute the shape of the local segments
-        # as the size of an interfering zone.
-        n_seg = self.n_seg
-        local_seg_support = None
-        if self.n_seg == 'auto':
-            n_seg = None
-            local_seg_support = 2 * np.array(atom_support) - 1
-
-        # Get local inner bounds. First, compute the seg_bound without overlap
-        # in local coordinates and then convert the bounds in the local
-        # coordinate system.
-        inner_bounds = self.workers_segments.get_seg_bounds(
-            self.rank, inner=True)
-        inner_bounds = np.transpose([
-            self.workers_segments.get_local_coordinate(self.rank, bound)
-            for bound in np.transpose(inner_bounds)])
-
-        self.local_segments = Segmentation(
-            n_seg=n_seg, seg_support=local_seg_support,
-            inner_bounds=inner_bounds,
-            full_support=worker_support)
-
-        # Initialize the solution
-        n_atoms = self.D.shape[0]
-        seg_support = self.workers_segments.get_seg_support(self.rank)
-        if self.z0 is None:
-            self.z_hat = np.zeros((n_atoms,) + seg_support)
-        else:
-            self.z_hat = self.z0
-
-        self.info("Start DICOD with {} workers, strategy '{}', soft_lock"
-                  "={} and n_seg={}({})", self.n_jobs, self.strategy,
-                  self.soft_lock, self.n_seg,
-                  self.local_segments.effective_n_seg, global_msg=True)
-
-        self.synchronize_workers()
+        # Retrieve the signal to encode
+        self.X_worker, self.z0 = self.recv_signal()
 
     def compute_z_hat(self):
 
@@ -254,7 +191,7 @@ class DICODWorker:
             self.stop_before_convergence("Reached max_iter",
                                          n_coordinate_updates)
 
-        self.synchronize_workers()
+        self.synchronize_workers(with_main=True)
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
 
@@ -295,7 +232,10 @@ class DICODWorker:
 
         if self.z0 is not None:
             self.freezed_support = None
+            self.z_hat = self.z0.copy()
             self.correct_beta_z0()
+        else:
+            self.z_hat = np.zeros(self.beta.shape)
 
         if flags.CHECK_WARM_BETA:
             worker_check_warm_beta(self.rank, self.workers_segments, self.beta,
@@ -308,11 +248,16 @@ class DICODWorker:
         else:
             self.freezed_support = None
 
-        self.synchronize_workers(main=False)
+        self.synchronize_workers(with_main=False)
 
         t_local_init = time.time() - t_start
         self.info("End local initialization in {:.2f}s", t_local_init,
                   global_msg=True)
+
+        self.info("Start DICOD with {} workers, strategy '{}', soft_lock"
+                  "={} and n_seg={}({})", self.n_jobs, self.strategy,
+                  self.soft_lock, self.n_seg,
+                  self.local_segments.effective_n_seg, global_msg=True)
         return t_local_init
 
     def coordinate_update(self, k0, pt0, dz, coordinate_exist=True):
@@ -527,7 +472,6 @@ class DICODWorker:
                 time.sleep(.001)
 
     def compute_cost(self):
-        X_hat_worker = reconstruct(self.z_hat, self.D)
         inner_bounds = self.local_segments.inner_bounds
         inner_slice = tuple([Ellipsis] + [
             slice(start_ax, end_ax) for start_ax, end_ax in inner_bounds])
@@ -542,6 +486,12 @@ class DICODWorker:
                 s = inner_slice[ax + 1]
                 X_hat_slice[ax + 1] = slice(s.start, None)
         X_hat_slice = tuple(X_hat_slice)
+
+        if not hasattr(self, 'z_hat'):
+            v = self.X_worker[X_hat_slice]
+            return .5 * np.dot(v.ravel(), v.ravel())
+
+        X_hat_worker = reconstruct(self.z_hat, self.D)
         diff = (X_hat_worker[X_hat_slice] - self.X_worker[X_hat_slice]).ravel()
         cost = .5 * np.dot(diff, diff)
         return cost + self.reg * abs(self.z_hat[inner_slice]).sum()
@@ -629,22 +579,22 @@ class DICODWorker:
     #     Communication primitives
     ###########################################################################
 
-    def synchronize_workers(self, main=True):
+    def synchronize_workers(self, with_main=True):
         """Wait for all the workers to reach this point before continuing
 
         If main is True, this synchronization must also be called in the main
         program.
         """
         if self._backend == "mpi":
-            self._synchronize_workers_mpi(main=main)
+            self._synchronize_workers_mpi(with_main=with_main)
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
 
-    def get_params(self):
+    def recv_params(self):
         """Receive the parameter of the algorithm from the master node."""
         if self._backend == "mpi":
-            self.rank, self.n_jobs, params = self._get_params_mpi()
+            self.rank, self.n_jobs, params = self._recv_params_mpi()
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -653,6 +603,7 @@ class DICODWorker:
         self.reg = params['reg']
         self.n_seg = params['n_seg']
         self.timing = params['timing']
+        self.has_z0 = params['has_z0']
         self.timeout = params['timeout']
         self.verbose = params['verbose']
         self.strategy = params['strategy']
@@ -661,14 +612,88 @@ class DICODWorker:
         self.z_positive = params['z_positive']
         self.return_ztz = params['return_ztz']
         self.freeze_support = params['freeze_support']
+        self.workers_topology = params['workers_topology']
+
+        self.size_msg = len(self.workers_topology) + 2
+
+        # Set the random_state and add salt to avoid collapse between workers
+        if not hasattr(self, 'random_state'):
+            self.random_state = params['random_state']
+            if isinstance(self.random_state, int):
+                self.random_state += self.rank
 
         self.debug("tol updated to {:.2e}", self.tol, global_msg=True)
         return params
 
-    def get_signal(self, X_shape, debug=False):
+    def recv_D(self):
+        """Receive a dictionary D"""
+        if self._backend == "mpi":
+            comm = MPI.Comm.Get_parent()
+            self.D = recv_broadcasted_array(comm)
+            _, _, *atom_support = self.D.shape
+            self.overlap = np.array(atom_support) - 1
+            return self.D
+        else:
+            raise NotImplementedError("Backend {} is not implemented"
+                                      .format(self._backend))
+
+    def recv_signal(self):
+
+        n_atoms, n_channels, *atom_support = self.D.shape
+
+        comm = MPI.Comm.Get_parent()
+        self.valid_support = recv_broadcasted_array(comm).astype(np.int)
+
+        self.workers_segments = Segmentation(
+            n_seg=self.workers_topology,
+            signal_support=self.valid_support,
+            overlap=self.overlap)
+
+        # Receive X and z from the master node.
+        worker_support = self.workers_segments.get_seg_support(self.rank)
+        X_shape = (n_channels,) + get_full_support(worker_support,
+                                                   atom_support)
+        z0_shape = (n_atoms,) + worker_support
+        if self.has_z0:
+            z0 = self.recv_array(z0_shape)
+        else:
+            z0 = None
+        X_worker = self.recv_array(X_shape)
+
+        # Compute the local segmentation for LGCD algorithm
+
+        # If n_seg is not specified, compute the shape of the local segments
+        # as the size of an interfering zone.
+        n_atoms, _, *atom_support = self.D.shape
+        n_seg = self.n_seg
+        local_seg_support = None
+        if self.n_seg == 'auto':
+            n_seg = None
+            local_seg_support = 2 * np.array(atom_support) - 1
+
+        # Get local inner bounds. First, compute the seg_bound without overlap
+        # in local coordinates and then convert the bounds in the local
+        # coordinate system.
+        inner_bounds = self.workers_segments.get_seg_bounds(
+            self.rank, inner=True)
+        inner_bounds = np.transpose([
+            self.workers_segments.get_local_coordinate(self.rank, bound)
+            for bound in np.transpose(inner_bounds)])
+
+        worker_support = self.workers_segments.get_seg_support(self.rank)
+        self.local_segments = Segmentation(
+            n_seg=n_seg, seg_support=local_seg_support,
+            inner_bounds=inner_bounds,
+            full_support=worker_support)
+
+        self.synchronize_workers(with_main=True)
+
+        return X_worker, z0
+
+    def recv_array(self, shape):
         """Receive the part of the signal to encode from the master node."""
         if self._backend == "mpi":
-            return self._get_signal_mpi(X_shape, debug=debug)
+            return self._recv_array_mpi(shape=shape)
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -685,16 +710,6 @@ class DICODWorker:
     def send_result(self):
         if self._backend == "mpi":
             self._send_result_mpi()
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
-
-    def get_D(self):
-        """Receive a dictionary D"""
-        if self._backend == "mpi":
-            comm = MPI.Comm.Get_parent()
-            self.D = recv_broadcasted_array(comm)
-            return self.D
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -732,8 +747,8 @@ class DICODWorker:
     #     mpi4py implementation
     ###########################################################################
 
-    def _synchronize_workers_mpi(self, main=True):
-        if main:
+    def _synchronize_workers_mpi(self, with_main=True):
+        if with_main:
             comm = MPI.Comm.Get_parent()
         else:
             comm = MPI.COMM_WORLD
@@ -751,27 +766,13 @@ class DICODWorker:
         assert len(self.messages) == 0, len(self.messages)
         return True
 
-    def _get_params_mpi(self):
+    def _recv_params_mpi(self):
         comm = MPI.Comm.Get_parent()
 
         rank = comm.Get_rank()
         n_jobs = comm.Get_size()
         params = comm.bcast(None, root=0)
         return rank, n_jobs, params
-
-    def _get_signal_mpi(self, sig_support, debug):
-        comm = MPI.Comm.Get_parent()
-        rank = comm.Get_rank()
-
-        sig_worker = np.empty(sig_support, dtype='d')
-        comm.Recv([sig_worker.ravel(), MPI.DOUBLE], source=0,
-                  tag=constants.TAG_ROOT + rank)
-
-        if debug:
-            X_alpha = 0.25 * np.ones(sig_support)
-            self.return_array(X_alpha)
-
-        return sig_worker
 
     def _send_message_mpi(self, msg, tag, i_worker, wait=False):
         if wait:
@@ -794,6 +795,15 @@ class DICODWorker:
             comm.send(self._log_updates, dest=0)
 
         comm.Barrier()
+
+    def _recv_array_mpi(self, shape):
+        comm = MPI.Comm.Get_parent()
+        rank = comm.Get_rank()
+
+        arr = np.empty(shape, dtype='d')
+        comm.Recv([arr.ravel(), MPI.DOUBLE], source=0,
+                  tag=constants.TAG_ROOT + rank)
+        return arr
 
     def _return_array_mpi(self, arr):
         comm = MPI.Comm.Get_parent()

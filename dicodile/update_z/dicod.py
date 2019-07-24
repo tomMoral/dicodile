@@ -110,8 +110,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support
     )
 
-    params['valid_support'] = valid_support = get_valid_support(sig_support,
-                                                                atom_support)
+    valid_support = get_valid_support(sig_support, atom_support)
     overlap = tuple(np.array(atom_support) - 1)
 
     if w_world == 'auto':
@@ -133,7 +132,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
                 (2 * size_atom_ax - 1, size_valid_ax)))
 
     comm = _spawn_workers(n_jobs, hostfile)
-    t_transfert = _send_task(comm, X_i, D, reg, z0, workers_segments, params)
+    t_transfert = _send_task(comm, X_i, D, z0, workers_segments, params)
 
     if flags.CHECK_WARM_BETA:
         from ..utils.debugs import main_check_warm_beta
@@ -228,33 +227,50 @@ def _spawn_workers(n_jobs, hostfile):
     return comm
 
 
-def _send_task(comm, X, D, reg, z0, workers_segments, params):
+def _send_task(comm, X, D, z0, workers_segments, params):
     t_start = time.time()
-    n_jobs = workers_segments.effective_n_seg
     n_atoms, n_channels, *atom_support = D.shape
 
+    _send_params(comm, params)
+    _send_D(comm, D)
+
+    _send_signal(comm, workers_segments, atom_support, X, z0)
+
+    t_init = time.time() - t_start
+    return t_init
+
+
+def _send_params(comm, params):
     comm.bcast(params, root=MPI.ROOT)
+
+
+def _send_D(comm, D):
     broadcast_array(comm, D)
+
+
+def _send_signal(comm, workers_segments, atom_support, X, z0=None):
+    broadcast_array(comm, workers_segments.signal_support)
 
     X = np.array(X, dtype='d')
 
-    for i_seg in range(n_jobs):
-        if params['has_z0']:
+    for i_seg in range(workers_segments.effective_n_seg):
+        if z0 is not None:
             worker_slice = workers_segments.get_seg_slice(i_seg)
-            comm.Send([z0[worker_slice].ravel(), MPI.DOUBLE],
-                      dest=i_seg, tag=constants.TAG_ROOT + i_seg)
+            _send_array(comm, i_seg, z0[worker_slice])
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
         ])
+        _send_array(comm, i_seg, X[X_worker_slice])
 
-        comm.Send([X[X_worker_slice].ravel(), MPI.DOUBLE],
-                  dest=i_seg, tag=constants.TAG_ROOT + i_seg)
-
+    # Synchronize the multiple send with a Barrier
     comm.Barrier()
-    t_init = time.time() - t_start
-    return t_init
+
+
+def _send_array(comm, dest, arr):
+    comm.Send([arr.ravel(), MPI.DOUBLE],
+              dest=dest, tag=constants.TAG_ROOT + dest)
 
 
 def _gather_run_statistics(comm, n_jobs, verbose=0):

@@ -9,10 +9,8 @@ def dicodile_worker():
 
     tag = wait_message()
     while tag != constants.TAG_DICODILE_STOP:
-        if tag == constants.TAG_DICODILE_UPDATE_Z:
+        if tag == constants.TAG_DICODILE_COMPUTE_Z_HAT:
             dicod.compute_z_hat()
-        if tag == constants.TAG_DICODILE_UPDATE_D:
-            dicod.get_D()
         if tag == constants.TAG_DICODILE_GET_COST:
             dicod.return_cost()
         if tag == constants.TAG_DICODILE_GET_Z_HAT:
@@ -21,6 +19,10 @@ def dicodile_worker():
             dicod.return_z_nnz()
         if tag == constants.TAG_DICODILE_GET_SUFFICIENT_STAT:
             dicod.return_sufficient_statistics()
-        if tag == constants.TAG_DICODILE_UPDATE_PARAMS:
-            dicod.get_params()
+        if tag == constants.TAG_DICODILE_SET_D:
+            dicod.recv_D()
+        if tag == constants.TAG_DICODILE_SET_PARAMS:
+            dicod.recv_params()
+        if tag == constants.TAG_DICODILE_SET_SIGNAL:
+            dicod.recv_signal()
         tag = wait_message()
