@@ -242,11 +242,6 @@ if __name__ == "__main__":
 
     if args.plot:
         list_n_times = [150, 750]
-        strategies = [
-            ('greedy', 'Greedy', 's-'),
-            ('random', 'Random', "h-"),
-            ('lgcd', "LGCD", 'o-')
-        ]
         plot_scaling_1d_benchmark(strategies, list_n_times)
     else:
 

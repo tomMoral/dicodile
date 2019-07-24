@@ -99,6 +99,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     n_channels, *sig_support = X_i.shape
     n_atoms, n_channels, *atom_support = D.shape
     assert D.ndim - 1 == X_i.ndim
+    valid_support = get_valid_support(sig_support, atom_support)
 
     assert soft_lock in ['none', 'corner', 'border']
 
@@ -110,29 +111,9 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support
     )
 
-    valid_support = get_valid_support(sig_support, atom_support)
-    overlap = tuple(np.array(atom_support) - 1)
-
-    if w_world == 'auto':
-        params["workers_topology"] = find_grid_size(n_jobs, sig_support)
-    else:
-        assert n_jobs % w_world == 0
-        params["workers_topology"] = w_world, n_jobs // w_world
-
-    # compute a segmentation for the image,
-    workers_segments = Segmentation(n_seg=params['workers_topology'],
-                                    signal_support=valid_support,
-                                    overlap=overlap)
-
-    # Make sure we are not below twice the size of the dictionary
-    worker_valid_support = workers_segments.get_seg_support(0, inner=True)
-    for size_atom_ax, size_valid_ax in zip(atom_support, worker_valid_support):
-        if 2 * size_atom_ax - 1 >= size_valid_ax:
-            raise ValueError("Using too many cores. {}".format(
-                (2 * size_atom_ax - 1, size_valid_ax)))
-
     comm = _spawn_workers(n_jobs, hostfile)
-    t_transfert = _send_task(comm, X_i, D, z0, workers_segments, params)
+    t_transfert, workers_segments = _send_task(comm, X_i, D, z0, w_world,
+                                               params)
 
     if flags.CHECK_WARM_BETA:
         from ..utils.debugs import main_check_warm_beta
@@ -207,17 +188,17 @@ def _spawn_workers(n_jobs, hostfile):
     return comm
 
 
-def _send_task(comm, X, D, z0, workers_segments, params):
+def _send_task(comm, X, D, z0, w_world, params):
     t_start = time.time()
     n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(comm, params)
     _send_D(comm, D)
 
-    _send_signal(comm, workers_segments, atom_support, X, z0)
+    workers_segments = _send_signal(comm, w_world, atom_support, X, z0)
 
     t_init = time.time() - t_start
-    return t_init
+    return t_init, workers_segments
 
 
 def _send_params(comm, params):
@@ -228,12 +209,42 @@ def _send_D(comm, D):
     broadcast_array(comm, D)
 
 
-def _send_signal(comm, workers_segments, atom_support, X, z0=None):
-    broadcast_array(comm, workers_segments.signal_support)
+def _send_signal(comm, w_world, atom_support, X, z0=None):
+    n_jobs = comm.Get_remote_size()
+    n_channels, *full_support = X.shape
+    valid_support = get_valid_support(full_support, atom_support)
+    overlap = tuple(np.array(atom_support) - 1)
+
+    X_info = dict(has_z0=z0 is not None)
+
+    X_info['valid_support'] = get_valid_support(full_support, atom_support)
+
+    if w_world == 'auto':
+        X_info["workers_topology"] = find_grid_size(n_jobs, full_support)
+    else:
+        assert n_jobs % w_world == 0
+        X_info["workers_topology"] = w_world, n_jobs // w_world
+
+    # compute a segmentation for the image,
+    workers_segments = Segmentation(n_seg=X_info['workers_topology'],
+                                    signal_support=valid_support,
+                                    overlap=overlap)
+
+    # Make sure that each worker has at least a segment of twice the size of
+    # the dictionary. If this is not the case, the algorithm is not valid as it
+    # is possible to have interference with workers that are not neighbors.
+    worker_support = workers_segments.get_seg_support(0, inner=True)
+    msg = ("The size of the support in each worker is smaller than twice the "
+           "size of the atom support. The algorithm is does not converge in "
+           "this condition. Reduce the number of cores.")
+    assert all(np.array(worker_support) >= 2 * np.array(atom_support)), msg
+
+    # Broadcast the info about this signal to the
+    comm.bcast(X_info, root=MPI.ROOT)
 
     X = np.array(X, dtype='d')
 
-    for i_seg in range(workers_segments.effective_n_seg):
+    for i_seg in range(n_jobs):
         if z0 is not None:
             worker_slice = workers_segments.get_seg_slice(i_seg)
             _send_array(comm, i_seg, z0[worker_slice])
@@ -246,6 +257,7 @@ def _send_signal(comm, workers_segments, atom_support, X, z0=None):
 
     # Synchronize the multiple send with a Barrier
     comm.Barrier()
+    return workers_segments
 
 
 def _send_array(comm, dest, arr):

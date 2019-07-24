@@ -1,12 +1,11 @@
+import weakref
 import numpy as np
 from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.mpi import broadcast_array
 from ..utils.csc import compute_objective
-from ..utils.segmentation import Segmentation
 from ..workers.reusable_workers import get_reusable_workers
-from ..utils.shape_helpers import get_valid_support, find_grid_size
 from ..workers.reusable_workers import send_command_to_reusable_workers
 
 from .dicod import recv_z_hat, recv_z_nnz
@@ -41,35 +40,9 @@ class DistributedSparseEncoder:
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
 
-        valid_support = get_valid_support(sig_support, atom_support)
-        overlap = tuple(np.array(atom_support) - 1)
-        if self.w_world == 'auto':
-            self.workers_topology = find_grid_size(self.n_jobs, sig_support)
-        else:
-            self.workers_topology = self.w_world, self.n_jobs // self.w_world
-
-        # compute a segmentation for the signal to encode
-        self.workers_segments = Segmentation(n_seg=self.workers_topology,
-                                             signal_support=valid_support,
-                                             overlap=overlap)
-
-        # Make sure that each worker has at least a segment of twice the size
-        # of the dictionary. If this is not the case, the algorithm is not
-        # valid as it is possible to have interference with workers that are
-        # not neighbors.
-        worker_support = self.workers_segments.get_seg_support(
-            0, inner=True)
-        msg = ("The size of the support in each worker is smaller than twice "
-               "the size of the atom support. The algorithm is does not "
-               "converge in this condition. Reduce the number of cores.")
-
-        assert all(np.array(worker_support) >= 2 * np.array(atom_support)), msg
-
         self.params = params.copy()
-        self.params.update(dict(workers_topology=self.workers_topology,
-                                has_z0=z0 is not None))
-        self.t_init = _send_task(self.comm, X, D_hat, z0,
-                                 self.workers_segments, self.params)
+        self.t_init, self.workers_segments = _send_task(
+            self.comm, X, D_hat, z0, self.w_world, self.params)
 
     def set_worker_D(self, D):
         msg = "The shape of the dictionary cannot be changed on an encoder."
@@ -89,10 +62,15 @@ class DistributedSparseEncoder:
         self.comm.bcast(self.params, root=MPI.ROOT)
 
     def set_worker_signal(self, X, z0=None):
+
+        if self.is_same_signal(X):
+            return
+
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_SIGNAL,
                                          verbose=self.verbose)
-        _send_signal(self.comm, self.workers_segments, self.atom_support,
-                     X, z0)
+        self.workers_segments = _send_signal(
+            self.comm, self.w_world, self.atom_support, X, z0)
+        self._ref_X = weakref.ref(X)
 
     def compute_z_hat(self):
         send_command_to_reusable_workers(constants.TAG_DICODILE_COMPUTE_Z_HAT,
@@ -132,3 +110,8 @@ class DistributedSparseEncoder:
         cost_2 = compute_objective(X, z_hat, D_hat, reg)
         assert np.isclose(cost, cost_2), (cost, cost_2)
         print("check cost ok", cost, cost_2)
+
+    def is_same_signal(self, X):
+        if not hasattr(self, '_ref_X') or self._ref_X() is not X:
+            return False
+        return True

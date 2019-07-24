@@ -603,7 +603,6 @@ class DICODWorker:
         self.reg = params['reg']
         self.n_seg = params['n_seg']
         self.timing = params['timing']
-        self.has_z0 = params['has_z0']
         self.timeout = params['timeout']
         self.verbose = params['verbose']
         self.strategy = params['strategy']
@@ -612,9 +611,6 @@ class DICODWorker:
         self.z_positive = params['z_positive']
         self.return_ztz = params['return_ztz']
         self.freeze_support = params['freeze_support']
-        self.workers_topology = params['workers_topology']
-
-        self.size_msg = len(self.workers_topology) + 2
 
         # Set the random_state and add salt to avoid collapse between workers
         if not hasattr(self, 'random_state'):
@@ -642,7 +638,11 @@ class DICODWorker:
         n_atoms, n_channels, *atom_support = self.D.shape
 
         comm = MPI.Comm.Get_parent()
-        self.valid_support = recv_broadcasted_array(comm).astype(np.int)
+        X_info = comm.bcast(None, root=0)
+        self.has_z0 = X_info['has_z0']
+        self.valid_support = X_info['valid_support']
+        self.workers_topology = X_info['workers_topology']
+        self.size_msg = len(self.workers_topology) + 2
 
         self.workers_segments = Segmentation(
             n_seg=self.workers_topology,
