@@ -1,5 +1,4 @@
 import pandas
-import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
@@ -14,7 +13,8 @@ mem = Memory(location='.')
 
 ResultItem = namedtuple('ResultItem', [
     'n_atoms', 'atom_support', 'reg', 'n_jobs', 'grid', 'tol', 'random_state',
-    'sparsity', 'pobj'])
+    'sparsity', 'iterations', 'runtime', 't_init', 't_run', 'n_updates',
+    't_select', 't_update'])
 
 
 @mem.cache(ignore=['verbose'])
@@ -32,7 +32,7 @@ def run_one_grid(n_atoms, atom_support, reg, n_jobs, grid, tol, random_state,
 
     dicod_kwargs = dict(z_positive=False, soft_lock='corner', timeout=None,
                         max_iter=int(1e8))
-    z_hat, *_, pobj, _ = dicod(
+    z_hat, *_, run_statistics = dicod(
         X, D, reg=reg_, n_seg='auto', strategy='greedy', w_world=w_world,
         n_jobs=n_jobs, timing=True, tol=tol, verbose=verbose, **dicod_kwargs)
 
@@ -40,16 +40,17 @@ def run_one_grid(n_atoms, atom_support, reg, n_jobs, grid, tol, random_state,
 
     return ResultItem(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
                       n_jobs=n_jobs, grid=grid, tol=tol,
-                      random_state=random_state, sparsity=sparsity, pobj=pobj)
+                      random_state=random_state, sparsity=sparsity,
+                      **run_statistics)
 
 
 def run_scaling_grid(n_rep=1):
-    tol = 5e-3
+    tol = 1e-8
     n_atoms = 5
     atom_support = (8, 8)
 
-    reg_list = np.logspace(-3, np.log10(.5), 10)[::-1][2:3]
-    list_n_jobs = [1, 4, 9, 16, 25, 30, 49, 64, 100, 225]
+    reg_list = [1e-1, 2e-2, 5e-1]
+    list_n_jobs = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 144, 225]
 
     results = []
     for reg in reg_list:
@@ -72,21 +73,16 @@ def run_scaling_grid(n_rep=1):
 
 
 def plot_scaling_benchmark():
-    df = pandas.read_pickle("benchmarks_results/scaling_grid.pkl")
+    full_df = pandas.read_pickle("benchmarks_results/scaling_grid.pkl")
 
     fig = plt.figure(figsize=(6, 3))
     fig.patch.set_alpha(0)
     for name, use_grid in [("Linear Split", False),
                            ("Grid Split", True)]:
         curve = []
-        res = df[df['grid'] == use_grid]
-        n_jobs = res['n_jobs'].unique()
-        for n in n_jobs:
-            this_res = res[res['n_jobs'] == n]
-            runtimes = [p[-1][1] for p in this_res['pobj']]
-            curve.append((n, np.mean(runtimes)))
-        curve = np.array(curve).T
-        plt.semilogx(curve[0], curve[1], label=name)
+        df = full_df[full_df.grid == use_grid]
+        curve = df.groupby('n_jobs').runtime.mean()
+        plt.semilogx(curve.index, curve, label=name)
 
     ylim = (0, 250)
     plt.vlines(512 / (8 * 4), *ylim, colors='g', linestyles='-.')

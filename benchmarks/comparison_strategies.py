@@ -160,7 +160,7 @@ def plot_comparison_strategies(strategies):
             handles = []
             xticks.append(((i + .5) * (n_bar + 1)) * width)
             labels.append(f"$T = {n_times}L$")
-            for j, (strategy, name, style) in enumerate(strategies):
+            for j, (strategy, name) in enumerate(strategies):
                 this_df = df[df.strategy == strategy]
                 this_df = this_df[this_df.n_times == n_times]
                 this_df = this_df[this_df.reg == reg]
@@ -180,7 +180,7 @@ def plot_comparison_strategies(strategies):
         ax_bar.set_xticklabels(labels, fontsize=18)
         ax_bar.set_ylim(ylim[0] / 5, 5 * ylim[1])
         ax_bar.legend(bbox_to_anchor=(.02, 1.02, 1., .3), loc="lower left",
-                      handles=handles, ncol=2, borderaxespad=0.)
+                      handles=handles, ncol=3, borderaxespad=0.)
         fig.tight_layout()
         reg = str(reg).replace('.', ',')
         for ext in ['pdf', 'png']:
@@ -206,10 +206,10 @@ if __name__ == "__main__":
     random_state = 422742
 
     strategies = [
-        ('cyclic', 'Cyclic', "^-"),
+        ('cyclic', 'Cyclic'),
         # ('cyclic-r', 'Shuffle', "h-"),
-        ('lgcd', "LGCD", 'o-'),
-        ('greedy', 'Greedy', 's-'),
+        ('lgcd', "LGCD"),
+        ('greedy', 'Greedy'),
         # ('random', 'Random', ">-"),
     ]
 

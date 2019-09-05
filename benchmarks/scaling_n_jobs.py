@@ -16,16 +16,17 @@ mem = Memory(location='.')
 
 ResultItem = namedtuple('ResultItem', [
     'n_atoms', 'atom_support', 'reg', 'n_jobs', 'n_seg', 'strategy', 'tol',
-    'dicod_kwargs', 'seed', 'sparsity', 'pobj'])
+    'dicod_kwargs', 'random_state', 'sparsity', 'iterations', 'runtime',
+    't_init', 't_run', 'n_updates', 't_select', 't_update'])
 
 RESULT_DIR = pathlib.Path("benchmark_results")
 PKL_FILENAME = RESULT_DIR / "scaling_n_jobs.pkl"
 
 
-def get_problem(n_atoms, atom_support, seed):
+def get_problem(n_atoms, atom_support, random_state):
     X = get_mandril()
 
-    rng = check_random_state(seed)
+    rng = check_random_state(random_state)
 
     n_channels, *sig_support = X.shape
     valid_support = get_valid_support(sig_support, atom_support)
@@ -44,10 +45,10 @@ def get_problem(n_atoms, atom_support, seed):
 
 
 @mem.cache(ignore=['timeout', 'max_iter', 'verbose'])
-def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, seed,
+def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, random_state,
             timeout, max_iter, verbose, dicod_kwargs):
     # Generate a problem
-    X, D = get_problem(n_atoms, atom_support, seed)
+    X, D = get_problem(n_atoms, atom_support, random_state)
     lmbd = reg * get_lambda_max(X[None], D).max()
 
     if strategy == 'lgcd':
@@ -59,7 +60,7 @@ def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, seed,
     else:
         raise NotImplementedError(f"Bad strategy name {strategy}")
 
-    z_hat, *_, pobj, _ = dicod(
+    z_hat, *_, run_statistics = dicod(
         X, D, reg=lmbd, n_seg=n_seg, strategy=effective_strategy,
         n_jobs=n_jobs, timing=True, tol=tol, timeout=timeout,
         max_iter=max_iter, verbose=verbose, **dicod_kwargs)
@@ -68,8 +69,8 @@ def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, seed,
 
     return ResultItem(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
                       n_jobs=n_jobs, n_seg=n_seg, strategy=strategy,
-                      tol=tol, dicod_kwargs=dicod_kwargs, seed=seed,
-                      sparsity=sparsity, pobj=pobj)
+                      tol=tol, dicod_kwargs=dicod_kwargs, sparsity=sparsity,
+                      random_state=random_state, **run_statistics)
 
 
 def run_scaling_benchmark(max_n_jobs, n_rep=1):
@@ -92,10 +93,10 @@ def run_scaling_benchmark(max_n_jobs, n_rep=1):
     for reg in reg_list:
         for n_jobs in list_n_jobs:
             for strategy in ['greedy', 'lgcd']:  # , 'random']:
-                for seed in range(n_rep):
+                for random_state in range(n_rep):
                     res = run_one(n_atoms, atom_support, reg, n_jobs, strategy,
-                                  tol, seed, timeout, max_iter, verbose,
-                                  dicod_kwargs)
+                                  tol, random_state, timeout, max_iter,
+                                  verbose, dicod_kwargs)
                     results.append(res)
 
     df = pandas.DataFrame(results)
@@ -113,26 +114,20 @@ def plot_scaling_benchmark():
     ax = plt.subplot()
 
     colors = ['C0', 'C1', 'C2']
-    n_jobs = df['n_jobs'].unique()
     regs = df['reg'].unique()
     regs.sort()
     for reg, c in zip(regs, colors):
         for strategy, style in [('Greedy', '--'), ('LGCD', '-')]:
             s = strategy.lower()
-            this_res = df[(df['reg'] == reg) & (df['strategy'] == s)]
-            runtimes = []
-            runtime_std = []
-            for n in n_jobs:
-                pobj = this_res[this_res['n_jobs'] == n]['pobj'].values
-                end_times = [rt[-1][1] for rt in pobj if rt is not None]
-                runtimes.append(np.mean(end_times))
-                runtime_std.append(np.std(end_times))
-            runtimes, runtime_std = np.array(runtimes), np.array(runtime_std)
+            this_df = df[(df.reg == reg) & (df.strategy == s)]
+            curve = this_df.groupby('n_jobs').runtime
+            runtimes = curve.mean()
+            runtime_std = curve.std()
 
-            plt.loglog(n_jobs, runtimes, label=f"{strategy}_{reg:.2f}",
-                       linestyle=style, c=c)
-            plt.fill_between(n_jobs, runtimes - runtime_std,
+            plt.fill_between(runtimes.index, runtimes - runtime_std,
                              runtimes + runtime_std, alpha=.1)
+            plt.loglog(runtimes.index, runtimes, label=f"{strategy}_{reg:.2f}",
+                       linestyle=style, c=c)
             color_handle = lines.Line2D(
                 [], [], linestyle='-', c=c, label=f"${reg:.2f}\lambda_\max$")
             style_handle = lines.Line2D(
