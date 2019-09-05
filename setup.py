@@ -6,7 +6,7 @@ setup(name='dicodile',
       packages=find_packages(),
       install_requires=[
           'numpy',
-          'numba'
+          'numba',
           'scipy',
           'matplotlib',
           'mpi4py',
