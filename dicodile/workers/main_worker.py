@@ -2,10 +2,15 @@
 
 Author : tommoral <thomas.moreau@inria.fr>
 """
+
 from dicodile.utils import constants
 from dicodile.workers.dicod_worker import DICODWorker
 from dicodile.workers.dicodile_worker import dicodile_worker
 from dicodile.utils.mpi import wait_message, sync_workers, shutdown_mpi
+
+
+from threadpoolctl import threadpool_limits
+threadpool_limits(1)
 
 
 def main():

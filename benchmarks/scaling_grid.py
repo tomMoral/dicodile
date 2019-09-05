@@ -32,7 +32,7 @@ def run_one_grid(n_atoms, atom_support, reg, n_jobs, grid, tol, random_state,
 
     dicod_kwargs = dict(z_positive=False, soft_lock='corner', timeout=None,
                         max_iter=int(1e8))
-    z_hat, *_, pobj, cost = dicod(
+    z_hat, *_, pobj, _ = dicod(
         X, D, reg=reg_, n_seg='auto', strategy='greedy', w_world=w_world,
         n_jobs=n_jobs, timing=True, tol=tol, verbose=verbose, **dicod_kwargs)
 

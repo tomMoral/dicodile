@@ -4,25 +4,26 @@ from dicodile.utils.mpi import wait_message
 
 
 def dicodile_worker():
-    dicod = DICODWorker(backend='mpi')
-    dicod.recv_task()
+    dicod_worker = DICODWorker(backend='mpi')
 
     tag = wait_message()
     while tag != constants.TAG_DICODILE_STOP:
         if tag == constants.TAG_DICODILE_COMPUTE_Z_HAT:
-            dicod.compute_z_hat()
+            dicod_worker.compute_z_hat()
         if tag == constants.TAG_DICODILE_GET_COST:
-            dicod.return_cost()
+            dicod_worker.return_cost()
         if tag == constants.TAG_DICODILE_GET_Z_HAT:
-            dicod.return_z_hat()
+            dicod_worker.return_z_hat()
         if tag == constants.TAG_DICODILE_GET_Z_NNZ:
-            dicod.return_z_nnz()
+            dicod_worker.return_z_nnz()
         if tag == constants.TAG_DICODILE_GET_SUFFICIENT_STAT:
-            dicod.return_sufficient_statistics()
+            dicod_worker.return_sufficient_statistics()
         if tag == constants.TAG_DICODILE_SET_D:
-            dicod.recv_D()
+            dicod_worker.recv_D()
         if tag == constants.TAG_DICODILE_SET_PARAMS:
-            dicod.recv_params()
+            dicod_worker.recv_params()
         if tag == constants.TAG_DICODILE_SET_SIGNAL:
-            dicod.recv_signal()
+            dicod_worker.recv_signal()
+        if tag == constants.TAG_DICODILE_SET_TASK:
+            dicod_worker.recv_task()
         tag = wait_message()

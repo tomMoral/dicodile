@@ -2,8 +2,8 @@ import numpy as np
 
 
 def simulate_data(n_times, n_times_atom, n_atoms, n_channels, noise_level,
-                  seed=None):
-    rng = np.random.RandomState(seed)
+                  random_state=None):
+    rng = np.random.RandomState(random_state)
     rho = n_atoms / (n_channels * n_times_atom)
     D = rng.normal(scale=10.0, size=(n_atoms, n_channels, n_times_atom))
     D = np.array(D)

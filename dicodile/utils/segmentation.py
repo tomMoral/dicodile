@@ -242,7 +242,7 @@ class Segmentation:
     def set_inactive_segments(self, indices):
         """Deactivate segments indices and return the number of changed status.
         """
-        if isinstance(indices, int):
+        if not np.iterable(indices):
             indices = [indices]
 
         n_changed_status = 0

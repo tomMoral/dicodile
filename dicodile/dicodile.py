@@ -70,7 +70,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
 
         # Compute z update
         t_start_update_z = time.time()
-        encoder.compute_z_hat()
+        encoder.process_z_hat()
         times.append(time.time() - t_start_update_z)
 
         # monitor cost function
@@ -139,7 +139,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         if stopping_pobj is not None and pobj[-1] < stopping_pobj:
             break
 
-    encoder.compute_z_hat()
+    encoder.process_z_hat()
     z_hat = encoder.get_z_hat()
     pobj.append(encoder.get_cost())
 

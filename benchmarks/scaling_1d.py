@@ -1,6 +1,6 @@
-import os
+import time
 import pandas
-import datetime
+import itertools
 import numpy as np
 from joblib import Memory
 import matplotlib.pyplot as plt
@@ -17,20 +17,50 @@ MAX_INT = 4294967295
 COLOR = ['C2', 'C1', 'C0']
 SAVE_DIR = "benchmarks_results"
 
-mem = Memory(location='.')
+mem = Memory(location='.', verbose=0)
 
 
+###################################
+# Helper function for outputs
+###################################
+
+# Constants for logging in console.
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(30, 38)
+
+
+# Add color output to consol logging.
+def colorify(message, color=BLUE):
+    """Change color of the standard output"""
+    return ("\033[1;%dm" % color) + message + "\033[0m"
+
+
+# Result item to create the DataFrame in a consistent way.
 ResultItem = namedtuple('ResultItem', [
-    'reg', 'n_jobs', 'strategy', 'tol', 'seed', 'pobj'])
+    'n_jobs', 'strategy', 'reg', 'n_times', 'tol', 'soft_lock',
+    'meta', 'random_state', 'iterations', 'runtime', 't_init', 't_run',
+    'n_updates', 't_select', 't_update'])
 
 
-@mem.cache(ignore=['common_args'])
-def run_one(T, L, K, d, noise_level, seed_pb, n_jobs, reg, tol, strategy,
-            common_args):
+###############################################
+# Helper function to cache computations
+# and make the benchmark robust to failures
+###############################################
 
-    X, D_hat = simulate_data(T, L, K, d, noise_level, seed=seed_pb)
+@mem.cache(ignore=['dicod_args'])
+def run_one(n_jobs, strategy, reg, n_times, tol, soft_lock, dicod_args,
+            n_times_atom, n_atoms, n_channels, noise_level, random_state):
+
+    tag = f"[{strategy} - {n_times} - {reg:.0e} - {random_state}]"
+
+    t_start_generation = time.time()
+    print(colorify(f"{tag} Signal generation..."), end='', flush=True)
+    X, D_hat = simulate_data(n_times=n_times, n_times_atom=n_times_atom,
+                             n_atoms=n_atoms, n_channels=n_channels,
+                             noise_level=noise_level,
+                             random_state=random_state)
     lmbd_max = get_lambda_max(X, D_hat)
     reg_ = reg * lmbd_max
+    print(colorify(f"done ({time.time() - t_start_generation:.3f}s)."))
 
     n_seg = 1
     strategy_ = strategy
@@ -38,16 +68,26 @@ def run_one(T, L, K, d, noise_level, seed_pb, n_jobs, reg, tol, strategy,
         n_seg = 'auto'
         strategy_ = "greedy"
 
-    *_, pobj, _ = dicod(X, D_hat, reg_, n_jobs=n_jobs, tol=tol,
-                        strategy=strategy_, n_seg=n_seg, **common_args)
-    print(pobj)
+    *_, run_statistics = dicod(X, D_hat, reg_, n_jobs=n_jobs, tol=tol,
+                               strategy=strategy_, n_seg=n_seg,
+                               soft_lock=soft_lock, **dicod_args)
+    meta = dicod_args.copy()
+    meta.update(n_atoms=n_atoms, n_times_atom=n_times_atom,
+                n_channels=n_channels, noise_level=noise_level)
+    runtime = run_statistics['runtime']
 
-    return ResultItem(reg=reg, n_jobs=n_jobs, strategy=strategy, tol=tol,
-                      seed=seed_pb, pobj=pobj)
+    print(colorify('=' * 79 +
+                   f"\n{tag} End with {n_jobs} jobs in {runtime:.1e}\n" +
+                   "=" * 79, color=GREEN))
+
+    return ResultItem(n_jobs=n_jobs, strategy=strategy, reg=reg,
+                      n_times=n_times, tol=tol, soft_lock=soft_lock, meta=meta,
+                      random_state=random_state, **run_statistics)
 
 
-def run_scaling_1d_benchmark(strategies, T, list_reg=[1e-3], list_tol=[1e-3],
-                             list_seeds=range(5), max_jobs=75, timeout=7200):
+def run_scaling_1d_benchmark(strategies, n_rep=10, max_jobs=75, timeout=7200,
+                             soft_lock='none', list_n_times=[151, 750],
+                             list_reg=[2e-1, 5e-1], random_state=None):
     '''Run DICOD strategy for a certain problem with different value
     for n_jobs and store the runtime in csv files if given a save_dir.
 
@@ -55,60 +95,55 @@ def run_scaling_1d_benchmark(strategies, T, list_reg=[1e-3], list_tol=[1e-3],
     ----------
     strategies: list of str in { 'greedy', 'lgcd', 'random' }
         Algorithm to run the benchmark for
-    T: int
+    n_rep: int (default: 10)
+        Number of repetition to average the results.
+    max_jobs: int (default: 75)
+        The strategy will be run on problems with a number
+        of cores varying from 1 to max_jobs in a log2 scale
+    soft_lock: str in {'none', 'border'}
+        Soft-lock mechanism to use in dicod
+    timeout: int (default: 7200)
+        maximal running time for DICOD. The default timeout
+        is 2 hours
+    list_n_times: list of int
         Size of the generated problems
     list_reg: list of float
         Regularization parameter of the considered problem
     list_tol: list of float
         Tolerance parameter used in DICOD.
-    list_seed: list of int
-       List of seed for the generated problems
-    max_jobs: int, optional (default: 75)
-        The strategy will be run on problems with a number
-        of cores varying from 1 to max_jobs in a log2 scale
-    timeout: int, optional (default: 7200)
-        maximal running time for DICOD. The default timeout
-        is 2 hours
+    random_state: None or int or RandomState
+        Seed for the random number generator.
     '''
+    rng = check_random_state(random_state)
 
-    L = 150
-    K = 10
-    d = 7
+    # Parameters to generate the simulated problems
+    n_times_atom = 250
+    n_atoms = 25
+    n_channels = 7
     noise_level = 1
 
-    file_name = os.path.join(SAVE_DIR, "runtimes_scaling_1d.csv")
-    if not os.path.exists(file_name):
-        with open(file_name, "w") as f:
-            f.write("T, reg, tol, seed_pb, strategy, n_jobs, runtime\n")
+    # Parameters for the algorithm
+    tol = 1e-8
+    dicod_args = dict(timing=False, timeout=7200,
+                      max_iter=int(5e8), verbose=2)
 
-    common_args = dict(timing=False, timeout=timeout, max_iter=int(5e8),
-                       verbose=2)
+    # Get the list of parameter to call
+    list_n_jobs = np.unique(np.logspace(0, np.log10(max_jobs), 15, dtype=int))
+    list_n_jobs = list_n_jobs[::-1]
+    list_seeds = [rng.randint(MAX_INT) for _ in range(n_rep)]
+    strategies = [s[0] for s in strategies]
+    list_args = itertools.product(list_n_jobs, strategies, list_reg,
+                                  list_n_times, list_seeds)
 
-    n_jobs = np.logspace(0, np.log2(max_jobs), 10, base=2)
-    n_jobs = [int(round(nj)) for nj in n_jobs if nj <= max_jobs]
-    n_jobs = np.unique(n_jobs)
-    n_jobs = n_jobs[::-1]
+    # Run the computation
+    results = [run_one(n_jobs=n_jobs, strategy=strategy, reg=reg,
+                       n_times=n_times, tol=tol, soft_lock=soft_lock,
+                       dicod_args=dicod_args, n_times_atom=n_times_atom,
+                       n_atoms=n_atoms, n_channels=n_channels,
+                       noise_level=noise_level, random_state=random_state)
+               for n_jobs, strategy, reg, n_times, random_state in list_args]
 
-    results = []
-
-    for j, seed_pb in enumerate(list_seeds):
-        for nj in n_jobs:
-            for reg in list_reg:
-                for tol in list_tol:
-                    for strategy, *_ in strategies:
-                        res = run_one(T, L, K, d, noise_level, seed_pb, nj,
-                                      reg, tol, strategy, common_args)
-                        runtime = res.pobj[-1][1]
-                        print('=' * 79)
-                        print('[{}] PB{}: End process with {} jobs  in {:.2f}s'
-                              .format(datetime.datetime.now()
-                                      .strftime("%I:%M"), j, nj, runtime))
-                        print('\n' + '=' * 79)
-                        results.append(res)
-                        with open(file_name, 'a') as f:
-                            f.write(
-                                f"{T}, {reg}, {tol}, {seed_pb}, {strategy}, "
-                                f"{nj}, {runtime}\n")
+    # Save the results as a DataFrame
     results = pandas.DataFrame(results)
     results.to_pickle("benchmarks_results/scaling_1d.pkl")
 
@@ -221,33 +256,73 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
     plt.show()
 
 
+def quick_plot():
+    full_df = pandas.read_pickle("benchmarks_results/scaling_1d.pkl")
+    list_n_times = full_df.n_times.unique()
+    for T in list_n_times:
+        T_df = full_df[full_df.n_times == T]
+        plt.figure()
+        list_reg = T_df.reg.unique()
+        for reg in list_reg:
+            df = T_df[T_df.reg == reg]
+            # T = full_df['T'].unique()
+
+            curve_greedy = df[df.strategy == 'greedy'].groupby('n_jobs').mean()
+            plt.loglog(curve_greedy.index, curve_greedy.runtime, 'C0')
+            plt.loglog(curve_greedy.index, curve_greedy.t_run, 'C0--')
+            curve_lgcd = df[df.strategy == 'lgcd'].groupby('n_jobs').mean()
+            plt.loglog(curve_lgcd.index, curve_lgcd.runtime, 'C1')
+            plt.loglog(curve_lgcd.index, curve_lgcd.t_run, 'C1--')
+            curve_lgcd = df[df.strategy == 'lgcd'].groupby('n_jobs').mean()
+            plt.loglog(curve_lgcd.index, curve_lgcd.runtime, 'C1')
+            plt.loglog(curve_lgcd.index, curve_lgcd.t_run, 'C1--')
+            for strategy in ['cyclic']:  # ['cyclic', 'random']:
+                curve = df[df.strategy == strategy].groupby('n_jobs').mean()
+                plt.loglog(curve.index, curve.runtime, 'C1')
+                plt.loglog(curve.index, curve.t_run, 'C1--')
+            # plt.loglog(t, t_random)
+
+            t = df.n_jobs.unique()
+            plt.plot(t, np.max(curve_greedy.runtime) / t ** 2, 'k--')
+            plt.plot(t, np.max(curve_lgcd.runtime) / t, 'k--')
+        plt.xlim(t.min(), t.max())
+        plt.savefig(f'test_{T}.pdf')
+        plt.close('all')
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser('')
     parser.add_argument('--plot', action="store_true",
                         help='Plot the results of the benchmarl')
+    parser.add_argument('--qp', action="store_true",
+                        help='Plot the results of the benchmarl')
     parser.add_argument('--n-rep', type=int, default=5,
                         help='Number of repetition to average to compute the '
                         'average running time.')
+    parser.add_argument('--max-jobs', type=int, default=75,
+                        help='Maximal number of workers used.')
     args = parser.parse_args()
 
-    seed = 422742
-    rng = check_random_state(seed)
+    random_state = 422742
 
+    soft_lock = 'none'
     strategies = [
         ('greedy', 'Greedy', 's-'),
-        ('random', 'Random', "h-"),
+        # ('cyclic', 'Cyclic', "h-"),
         ('lgcd', "LGCD", 'o-')
     ]
+    list_reg = [2e-1, 5e-1]
+    # list_reg = [5e-1]
+    # list_n_times = [151, 750]
+    list_n_times = [201, 500, 1000]
 
     if args.plot:
-        list_n_times = [150, 750]
         plot_scaling_1d_benchmark(strategies, list_n_times)
+    elif args.qp:
+        quick_plot()
     else:
-
-        strategies = [
-            ('greedy', 'Greedy', 's-'),
-            ('lgcd', "LGCD", 'o-')
-        ]
-        list_seeds = [rng.randint(MAX_INT) for _ in range(args.n_rep)]
-        run_scaling_1d_benchmark(strategies, T=151)
+        run_scaling_1d_benchmark(
+            strategies, n_rep=args.n_rep, max_jobs=args.max_jobs,
+            soft_lock=soft_lock, list_n_times=list_n_times, list_reg=list_reg,
+            random_state=random_state)

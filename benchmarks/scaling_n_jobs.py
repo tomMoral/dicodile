@@ -59,7 +59,7 @@ def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, seed,
     else:
         raise NotImplementedError(f"Bad strategy name {strategy}")
 
-    z_hat, *_, pobj, cost = dicod(
+    z_hat, *_, pobj, _ = dicod(
         X, D, reg=lmbd, n_seg=n_seg, strategy=effective_strategy,
         n_jobs=n_jobs, timing=True, tol=tol, timeout=timeout,
         max_iter=max_iter, verbose=verbose, **dicod_kwargs)

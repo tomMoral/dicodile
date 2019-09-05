@@ -28,28 +28,32 @@ class DistributedSparseEncoder:
         self.hostfile = hostfile
         self.verbose = verbose
 
-    def init_workers(self, X, D_hat, reg, params, z0=None):
-
         # Create the workers with MPI
         self.comm = get_reusable_workers(self.n_jobs, hostfile=self.hostfile)
         send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
                                          verbose=self.verbose)
 
+    def init_workers(self, X, D_hat, reg, params, z0=None):
+
         # compute the partition fo the signals
-        assert D_hat.ndim - 1 == X.ndim
+        assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
 
         self.params = params.copy()
+
+        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_TASK,
+                                         verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
             self.comm, X, D_hat, z0, self.w_world, self.params)
 
     def set_worker_D(self, D):
-        msg = "The shape of the dictionary cannot be changed on an encoder."
-        assert D.shape == self.D_shape, msg
+        msg = "The support of the dictionary cannot be changed on an encoder."
+        assert D.shape[1:] == self.D_shape[1:], msg
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
                                          verbose=self.verbose)
         broadcast_array(self.comm, D)
+        self.D_shape = D.shape
 
     def set_worker_params(self, params=None, **kwargs):
         if params is None:
@@ -63,16 +67,17 @@ class DistributedSparseEncoder:
 
     def set_worker_signal(self, X, z0=None):
 
+        n_atoms, n_channels, *atom_support = self.D_shape
         if self.is_same_signal(X):
             return
 
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_SIGNAL,
                                          verbose=self.verbose)
         self.workers_segments = _send_signal(
-            self.comm, self.w_world, self.atom_support, X, z0)
+            self.comm, self.w_world, atom_support, X, z0)
         self._ref_X = weakref.ref(X)
 
-    def compute_z_hat(self):
+    def process_z_hat(self):
         send_command_to_reusable_workers(constants.TAG_DICODILE_COMPUTE_Z_HAT,
                                          verbose=self.verbose)
         # Then wait for the end of the computation

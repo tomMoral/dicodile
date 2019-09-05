@@ -7,10 +7,12 @@ import time
 import logging
 import numpy as np
 from mpi4py import MPI
+from warnings import warn
 
 from ..utils import constants
 from ..utils import debug_flags as flags
 from ..utils.csc import compute_objective
+from .coordinate_descent import STRATEGIES
 from ..utils.segmentation import Segmentation
 from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
@@ -45,19 +47,19 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         Regularization parameter
     z0 : ndarray, shape (n_atoms, *valid_support) or None
         Warm start value for z_hat. If None, z_hat is initialized to 0.
-    n_seg : int or { 'auto' }
+    n_seg : int or {{ 'auto' }}
         Number of segments to use for each dimension. If set to 'auto' use
         segments of twice the size of the dictionary.
-    strategy : str in { 'greedy' | 'random' }
+    strategy : str in {}
         Coordinate selection scheme for the coordinate descent. If set to
         'greedy', the coordinate with the largest value for dz_opt is selected.
         If set to 'random, the coordinate is chosen uniformly on the segment.
-    soft_lock : str in { 'none', 'corner', 'border' }
+    soft_lock : str in {{ 'none', 'corner', 'border' }}
         If set to true, use the soft-lock in LGCD.
     n_jobs : int
         Number of workers used to compute the convolutional sparse coding
         solution.
-    w_world : int or {'auto'}
+    w_world : int or {{'auto'}}
         Number of jobs used per row in the splitting grid. This should divide
         n_jobs.
     hostfile : str
@@ -87,13 +89,11 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     z_hat : ndarray, shape (n_atoms, *valid_support)
         Activation associated to X_i for the given dictionary D
     """
-
-    if n_jobs == 1 and False:
-        return coordinate_descent(
-            X_i, D, reg, z0=z0, n_seg=n_seg, strategy=strategy, tol=tol,
-            max_iter=max_iter, timeout=timeout, z_positive=z_positive,
-            freeze_support=freeze_support, return_ztz=return_ztz,
-            timing=timing, random_state=random_state, verbose=verbose)
+    if strategy == 'lgcd':
+        strategy = 'greedy'
+        if n_seg == 1:
+            warn("Falling back to the greedy strategy with strategy='lgcd' "
+                 "and n_seg=1.")
 
     # Parameters validation
     n_channels, *sig_support = X_i.shape
@@ -102,6 +102,14 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     valid_support = get_valid_support(sig_support, atom_support)
 
     assert soft_lock in ['none', 'corner', 'border']
+    assert strategy in ['greedy', 'random', 'cyclic', 'cyclic-r']
+
+    if n_jobs == 1:
+        return coordinate_descent(
+            X_i, D, reg, z0=z0, n_seg=n_seg, strategy=strategy, tol=tol,
+            max_iter=max_iter, timeout=timeout, z_positive=z_positive,
+            freeze_support=freeze_support, return_ztz=return_ztz,
+            timing=timing, random_state=random_state, verbose=verbose)
 
     params = dict(
         strategy=strategy, tol=tol, max_iter=max_iter, timeout=timeout,
@@ -125,7 +133,7 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     # Wait for the result computation
     comm.Barrier()
-    n_coordinate_updates, t_local_init, runtime = _gather_run_statistics(
+    run_statistics = _gather_run_statistics(
         comm, n_jobs, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
@@ -138,8 +146,10 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
                                  n_jobs=n_jobs, valid_support=valid_support,
                                  z0=z0)
     else:
-        p_obj = [[n_coordinate_updates, runtime, cost]]
-    return z_hat, ztz, ztX, p_obj, cost
+        p_obj = [[run_statistics['n_updates'],
+                  run_statistics['runtime'],
+                  cost]]
+    return z_hat, ztz, ztX, p_obj, run_statistics
 
 
 def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
@@ -168,7 +178,7 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
         if up_ii >= next_ii_cost:
             p_obj.append((up_ii, t_update + t_init,
                           compute_objective(X, z_hat, D, reg)))
-            next_ii_cost = next_ii_cost * 2
+            next_ii_cost = next_ii_cost * 1.3
             print("\rReconstructing cost {:7.2%}"
                   .format(np.log2(up_ii)/np.log2(max_ii)), end='', flush=True)
         elif i + 1 % 1000:
@@ -193,6 +203,7 @@ def _send_task(comm, X, D, z0, w_world, params):
     n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(comm, params)
+
     _send_D(comm, D)
 
     workers_segments = _send_signal(comm, w_world, atom_support, X, z0)
@@ -267,14 +278,21 @@ def _send_array(comm, dest, arr):
 
 def _gather_run_statistics(comm, n_jobs, verbose=0):
     stats = comm.gather(None, root=MPI.ROOT)
-    n_coordinate_updates = np.sum(stats, axis=0)[0]
-    t_local_init = np.max(stats, axis=0)[1]
-    runtime = np.max(stats, axis=0)[2]
+    iterations, n_coordinate_updates = np.sum(stats, axis=0)[:2]
+    runtime, t_local_init, t_run = np.max(stats, axis=0)[2:5]
+    t_select, t_update = np.mean(stats, axis=0)[-2:]
     if verbose > 0:
-        print("\r[INFO:DICOD-{}] converged in {:.3f}s with {:.0f} coordinate "
-              "updates.".format(n_jobs, runtime,
-                                n_coordinate_updates))
-    return n_coordinate_updates, t_local_init, runtime
+        print("\r[INFO:DICOD-{}] converged in {:.3f}s ({:.3f}s) with "
+              "{:.0f} iterations ({:.0f} updates).".format(
+                  n_jobs, runtime, t_run, iterations, n_coordinate_updates))
+        print(f"\r[INFO:DICOD-{n_jobs}] t_select={t_select:.3e}s "
+              f"t_update={t_update:.3e}s")
+    run_statistics = dict(
+        iterations=iterations, runtime=runtime, t_init=t_local_init,
+        t_run=t_run, n_updates=n_coordinate_updates, t_select=t_select,
+        t_update=t_update
+    )
+    return run_statistics
 
 
 def _recv_result(comm, D_shape, valid_support, workers_segments,
@@ -340,3 +358,7 @@ def recv_sufficient_statistics(comm, D_shape):
 def recv_cost(comm):
     cost = recv_reduce_sum_array(comm, 1)
     return cost[0]
+
+
+# Update the docstring
+dicod.__doc__.format(STRATEGIES)

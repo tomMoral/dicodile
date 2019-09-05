@@ -16,6 +16,7 @@ from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.debugs import worker_check_warm_beta
 from dicodile.utils.shape_helpers import get_full_support
+from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
@@ -53,26 +54,35 @@ class DICODWorker:
 
     def compute_z_hat(self):
 
-        # Initialization of the algorithm variables
-        random_state = check_random_state(self.random_state)
-        i_seg = -1
-        n_coordinate_updates = 0
-        accumulator = 0
-        k0, pt0 = 0, None
-        self.n_paused_worker = 0
-
         # compute the number of coordinates
         n_atoms, *_ = self.D.shape
         seg_in_support = self.workers_segments.get_seg_support(
             self.rank, inner=True)
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
+        # Initialization of the algorithm variables
+        rng = check_random_state(self.random_state)
+        order = None
+        if self.strategy in ['cyclic', 'cyclic-r', 'random']:
+            offset = np.r_[0, self.local_segments.inner_bounds[:, 0]]
+            order = get_order_iterator(
+                (n_atoms, *seg_in_support), strategy=self.strategy,
+                random_state=rng, offset=offset)
+
+        i_seg = -1
+        n_coordinate_updates = 0
+        accumulator = 0
+        k0, pt0 = 0, None
+        self.n_paused_worker = 0
         t_local_init = self.init_cd_variables()
 
         diverging = False
         if flags.INTERACTIVE_PROCESSES and self.n_jobs == 1:
             import ipdb; ipdb.set_trace()  # noqa: E702
+
         self.t_start = t_start = time.time()
+        t_run = 0
+        t_select_coord, t_update_coord = [], []
         if self.timeout is not None:
             deadline = t_start + self.timeout
         else:
@@ -85,19 +95,15 @@ class DICODWorker:
             self.process_messages()
 
             # Increment the segment and select the coordinate to update
-            try:
-                i_seg = self.local_segments.increment_seg(i_seg)
-            except ZeroDivisionError:
-                print(self.local_segments.signal_support,
-                      self.local_segments.n_seg_per_axis)
-                raise
+            i_seg = self.local_segments.increment_seg(i_seg)
             if self.local_segments.is_active_segment(i_seg):
+                t_start_selection = time.time()
                 k0, pt0, dz = _select_coordinate(
                     self.dz_opt, self.dE, self.local_segments, i_seg,
-                    strategy=self.strategy, random_state=random_state)
-
-                assert self.workers_segments.is_contained_coordinate(
-                    self.rank, pt0, inner=True), pt0
+                    strategy=self.strategy, order=order)
+                selection_duration = time.time() - t_start_selection
+                t_select_coord.append(selection_duration)
+                t_run += selection_duration
             else:
                 k0, pt0, dz = None, None, 0
 
@@ -130,7 +136,7 @@ class DICODWorker:
             # worker. If the update is not in the worker, this will
             # effectively work has a soft lock to prevent interferences.
             if abs(dz) > self.tol and not soft_locked:
-                n_coordinate_updates += 1
+                t_start_update = time.time()
 
                 # update the selected coordinate and beta
                 self.coordinate_update(k0, pt0, dz)
@@ -145,9 +151,14 @@ class DICODWorker:
 
                 self.notify_neighbors(msg, workers)
 
+                # Logging of the time and the cost function if necessary
+                update_duration = time.time() - t_start_update
+                n_coordinate_updates += 1
+                t_run += update_duration
+                t_update_coord.append(update_duration)
+
                 if self.timing:
-                    t_update = time.time() - t_start
-                    self._log_updates.append((t_update, ii, self.rank,
+                    self._log_updates.append((t_run, ii, self.rank,
                                               k0, pt_global, dz))
 
             # Inactivate the current segment if the magnitude of the update is
@@ -178,29 +189,34 @@ class DICODWorker:
                 if self.check_no_transitting_message():
                     status = self.wait_status_changed()
                     if status == constants.STATUS_STOP:
-                        self.debug("LGCD converged with {} coordinate "
-                                   "updates", n_coordinate_updates)
+                        self.debug("LGCD converged with {} iterations ({} "
+                                   "updates)", ii + 1, n_coordinate_updates)
                         break
+                # else:
+                #     time.sleep(.001)
 
             # Check is we reach the timeout
             if deadline is not None and time.time() >= deadline:
                 self.stop_before_convergence("Reached timeout",
-                                             n_coordinate_updates)
+                                             ii + 1, n_coordinate_updates)
                 break
         else:
             self.stop_before_convergence("Reached max_iter",
-                                         n_coordinate_updates)
+                                         ii + 1, n_coordinate_updates)
 
         self.synchronize_workers(with_main=True)
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
 
-        self.return_run_statistics(n_coordinate_updates=n_coordinate_updates,
-                                   runtime=runtime, t_local_init=t_local_init)
+        self.return_run_statistics(ii=ii, t_run=t_run,
+                                   n_coordinate_updates=n_coordinate_updates,
+                                   runtime=runtime, t_local_init=t_local_init,
+                                   t_select_coord=np.mean(t_select_coord),
+                                   t_update_coord=np.mean(t_update_coord))
 
-    def stop_before_convergence(self, msg, n_coordinate_updates):
-        self.info("{}. Done {} coordinate updates. Max of |dz|={}.",
-                  msg, n_coordinate_updates, abs(self.dz_opt).max())
+    def stop_before_convergence(self, msg, ii, n_coordinate_updates):
+        self.info("{}. Done {} iterations ({} updates). Max of |dz|={}.",
+                  msg, ii, n_coordinate_updates, abs(self.dz_opt).max())
         self.wait_status_changed(status=constants.STATUS_FINISHED)
 
     def init_cd_variables(self):
@@ -222,10 +238,9 @@ class DICODWorker:
         self._last_progress = 0
 
         # Initialization of the auxillary variable for LGCD
-        return_dE = self.strategy == "gs-q"
         self.beta, self.dz_opt, self.dE = _init_beta(
             self.X_worker, self.D, self.reg, z_i=self.z0, constants=constants,
-            z_positive=self.z_positive, return_dE=return_dE)
+            z_positive=self.z_positive, return_dE=self.strategy == "gs-q")
 
         # Make sure all segments are activated
         self.local_segments.reset()
@@ -526,11 +541,13 @@ class DICODWorker:
         cost = np.array(cost, dtype='d')
         self.reduce_sum_array(cost)
 
-    def return_run_statistics(self, n_coordinate_updates, runtime,
-                              t_local_init):
+    def return_run_statistics(self, ii, n_coordinate_updates, runtime,
+                              t_local_init, t_run, t_select_coord,
+                              t_update_coord):
         """Return the # of iteration, the init and the run time for this worker
         """
-        arr = [n_coordinate_updates, t_local_init, runtime]
+        arr = [ii, n_coordinate_updates, runtime, t_local_init, t_run,
+               t_select_coord, t_update_coord]
         self.gather_array(arr)
 
     ###########################################################################
@@ -543,7 +560,7 @@ class DICODWorker:
             return
         self._last_progress = t_progress
         self._log("{:.0f}s - progress : {:7.2%} {}",
-                  time.time() - self.t_start,
+                  t_progress - self.t_start,
                   ii / max_ii, unit, level=1, level_name="PROGRESS",
                   global_msg=True, endline=False)
 

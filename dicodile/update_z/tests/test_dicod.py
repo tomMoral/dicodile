@@ -143,8 +143,8 @@ def test_cost(valid_support, atom_support):
 
     X = rng.randn(n_channels, *sig_support)
 
-    z_hat, *_, cost = dicod(X, D, reg, z0=z, tol=tol, n_jobs=N_WORKERS,
-                            max_iter=1000, freeze_support=True,
-                            verbose=VERBOSE)
-
+    z_hat, *_, pobj, _ = dicod(X, D, reg, z0=z, tol=tol, n_jobs=N_WORKERS,
+                               max_iter=1000, freeze_support=True,
+                               verbose=VERBOSE)
+    cost = pobj[-1][2]
     assert np.isclose(cost, compute_objective(X, z_hat, D, reg))

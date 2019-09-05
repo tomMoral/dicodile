@@ -1,3 +1,4 @@
+from numba import njit
 
 
 def get_full_support(valid_support, atom_support):
@@ -15,7 +16,7 @@ def get_valid_support(sig_support, atom_support):
 
 
 def find_grid_size(n_jobs, sig_support):
-    """Given a signal support and a number of jobs, find asuitable grid shape
+    """Given a signal support and a number of jobs, find a suitable grid shape
 
     If the signal has a 1D support, (n_jobs,) is returned.
 
@@ -46,3 +47,21 @@ def find_grid_size(n_jobs, sig_support):
         return w_world, h_world
     else:
         raise NotImplementedError("")
+
+
+@njit(cache=True)
+def fast_unravel(i, shape):
+    pt = []
+    for v in shape[::-1]:
+        pt.insert(0, i % v)
+        i //= v
+    return pt
+
+
+@njit(cache=True)
+def fast_unravel_offset(i, shape, offset):
+    pt = []
+    for v, offset_axis in zip(shape[::-1], offset[::-1]):
+        pt.insert(0, i % v + offset_axis)
+        i //= v
+    return pt
