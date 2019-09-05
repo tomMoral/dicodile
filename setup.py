@@ -10,6 +10,7 @@ setup(name='dicodile',
           'scipy',
           'matplotlib',
           'mpi4py',
+          'threadpoolctl',
           'joblib'
       ],
       )
