@@ -22,9 +22,9 @@ from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
 STRATEGIES = {'greedy', 'random', 'cyclic', 'cyclic-r', 'gs-r', 'gs-q'}
 
 
-def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
-                       tol=1e-5, max_iter=100000, timeout=None,
-                       z_positive=False, freeze_support=False,
+def coordinate_descent(X_i, D, reg, z0=None, DtD=None, n_seg='auto',
+                       strategy='greedy', tol=1e-5, max_iter=100000,
+                       timeout=None, z_positive=False, freeze_support=False,
                        return_ztz=False, timing=False,
                        random_state=None, verbose=0):
     """Coordinate Descent Algorithm for 2D convolutional sparse coding.
@@ -33,17 +33,17 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     ----------
     X_i : ndarray, shape (n_channels, *sig_support)
         Image to encode on the dictionary D
-    z_i : ndarray, shape (n_atoms, *valid_support)
-        Warm start value for z_hat
     D : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current dictionary for the sparse coding
     reg : float
         Regularization parameter
+    z0 : ndarray, shape (n_atoms, *valid_support) or None
+        Warm start value for z_hat. If not present, z_hat is initialized to 0.
+    DtD : ndarray, shape (n_atoms, n_atoms, 2 * valid_support - 1) or None
+        Warm start value for DtD. If not present, it is computed on init.
     n_seg : int or 'auto'
         Number of segments to use for each dimension. If set to 'auto' use
         segments of twice the size of the dictionary.
-    tol : float
-        Tolerance for the minimal update size in this algorithm.
     strategy : str in {strategies}
         Coordinate selection scheme for the coordinate descent. If set to
         'greedy'|'gs-r', the coordinate with the largest value for dz_opt is
@@ -51,12 +51,16 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         segment. If set to 'gs-q', the value that reduce the most the cost
         function is selected. In this case, dE must holds the value of this
         cost reduction.
+    tol : float
+        Tolerance for the minimal update size in this algorithm.
     max_iter : int
         Maximal number of iteration run by this algorithm.
     z_positive : boolean
         If set to true, the activations are constrained to be positive.
     freeze_support : boolean
         If set to True, only update the coefficient that are non-zero in z0.
+    return_ztz : boolean
+        If True, returns the constants ztz and ztX, used to compute D-updates.
     timing : boolean
         If set to True, log the cost and timing information.
     random_state : None or int or RandomState
@@ -88,7 +92,10 @@ def coordinate_descent(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
     # compute the coordinate update values.
     constants = {}
     constants['norm_atoms'] = compute_norm_atoms(D)
-    constants['DtD'] = compute_DtD(D)
+    if DtD is None:
+        constants['DtD'] = compute_DtD(D)
+    else:
+        constants['DtD'] = DtD
 
     # Initialization of the algorithm variables
     i_seg = -1

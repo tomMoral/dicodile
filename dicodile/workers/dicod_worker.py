@@ -225,7 +225,10 @@ class DICODWorker:
         # Pre-compute some quantities
         constants = {}
         constants['norm_atoms'] = compute_norm_atoms(self.D)
-        constants['DtD'] = compute_DtD(self.D)
+        if self.precomputed_DtD:
+            constants['DtD'] = self.DtD
+        else:
+            constants['DtD'] = compute_DtD(self.D)
         self.constants = constants
 
         # List of all pending messages sent
@@ -628,6 +631,7 @@ class DICODWorker:
         self.z_positive = params['z_positive']
         self.return_ztz = params['return_ztz']
         self.freeze_support = params['freeze_support']
+        self.precomputed_DtD = params['precomputed_DtD']
 
         # Set the random_state and add salt to avoid collapse between workers
         if not hasattr(self, 'random_state'):
@@ -645,6 +649,8 @@ class DICODWorker:
             self.D = recv_broadcasted_array(comm)
             _, _, *atom_support = self.D.shape
             self.overlap = np.array(atom_support) - 1
+            if self.precomputed_DtD:
+                self.DtD = recv_broadcasted_array(comm)
             return self.D
         else:
             raise NotImplementedError("Backend {} is not implemented"

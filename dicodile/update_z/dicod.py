@@ -30,7 +30,7 @@ interactive_exec = "xterm"
 interactive_args = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
-def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
+def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
           soft_lock='border', n_jobs=1, w_world='auto', hostfile=None,
           tol=1e-5, max_iter=100000, timeout=None, z_positive=False,
           return_ztz=False, freeze_support=False, timing=False,
@@ -47,6 +47,8 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         Regularization parameter
     z0 : ndarray, shape (n_atoms, *valid_support) or None
         Warm start value for z_hat. If None, z_hat is initialized to 0.
+    DtD : ndarray, shape (n_atoms, n_atoms, 2 valid_support - 1) or None
+        Warm start value for DtD. If None, it is computed in each worker.
     n_seg : int or {{ 'auto' }}
         Number of segments to use for each dimension. If set to 'auto' use
         segments of twice the size of the dictionary.
@@ -106,8 +108,8 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
 
     if n_jobs == 1:
         return coordinate_descent(
-            X_i, D, reg, z0=z0, n_seg=n_seg, strategy=strategy, tol=tol,
-            max_iter=max_iter, timeout=timeout, z_positive=z_positive,
+            X_i, D, reg, z0=z0, DtD=DtD, n_seg=n_seg, strategy=strategy,
+            tol=tol, max_iter=max_iter, timeout=timeout, z_positive=z_positive,
             freeze_support=freeze_support, return_ztz=return_ztz,
             timing=timing, random_state=random_state, verbose=verbose)
 
@@ -116,11 +118,11 @@ def dicod(X_i, D, reg, z0=None, n_seg='auto', strategy='greedy',
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
         soft_lock=soft_lock, has_z0=z0 is not None,
-        freeze_support=freeze_support
+        precomputed_DtD=DtD is not None, freeze_support=freeze_support
     )
 
     comm = _spawn_workers(n_jobs, hostfile)
-    t_transfert, workers_segments = _send_task(comm, X_i, D, z0, w_world,
+    t_transfert, workers_segments = _send_task(comm, X_i, D, z0, DtD, w_world,
                                                params)
 
     if flags.CHECK_WARM_BETA:
@@ -198,13 +200,13 @@ def _spawn_workers(n_jobs, hostfile):
     return comm
 
 
-def _send_task(comm, X, D, z0, w_world, params):
+def _send_task(comm, X, D, z0, DtD, w_world, params):
     t_start = time.time()
     n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(comm, params)
 
-    _send_D(comm, D)
+    _send_D(comm, D, DtD)
 
     workers_segments = _send_signal(comm, w_world, atom_support, X, z0)
 
@@ -216,8 +218,10 @@ def _send_params(comm, params):
     comm.bcast(params, root=MPI.ROOT)
 
 
-def _send_D(comm, D):
+def _send_D(comm, D, DtD=None):
     broadcast_array(comm, D)
+    if DtD is not None:
+        broadcast_array(DtD)
 
 
 def _send_signal(comm, w_world, atom_support, X, z0=None):

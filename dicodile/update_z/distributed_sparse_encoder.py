@@ -3,15 +3,14 @@ import numpy as np
 from mpi4py import MPI
 
 from ..utils import constants
-from ..utils.mpi import broadcast_array
 from ..utils.csc import compute_objective
 from ..workers.reusable_workers import get_reusable_workers
 from ..workers.reusable_workers import send_command_to_reusable_workers
 
 from .dicod import recv_z_hat, recv_z_nnz
-from .dicod import recv_cost, recv_sufficient_statistics
-from .dicod import _send_task, _send_signal
 from .dicod import _gather_run_statistics
+from .dicod import _send_task, _send_D, _send_signal
+from .dicod import recv_cost, recv_sufficient_statistics
 
 
 class DistributedSparseEncoder:
@@ -33,7 +32,7 @@ class DistributedSparseEncoder:
         send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
                                          verbose=self.verbose)
 
-    def init_workers(self, X, D_hat, reg, params, z0=None):
+    def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
 
         # compute the partition fo the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
@@ -45,15 +44,16 @@ class DistributedSparseEncoder:
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_TASK,
                                          verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.comm, X, D_hat, z0, self.w_world, self.params)
+            self.comm, X, D_hat, z0, DtD, self.w_world, self.params)
 
-    def set_worker_D(self, D):
+    def set_worker_D(self, D, DtD=None):
         msg = "The support of the dictionary cannot be changed on an encoder."
         assert D.shape[1:] == self.D_shape[1:], msg
+        self.D_shape = D.shape
+
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
                                          verbose=self.verbose)
-        broadcast_array(self.comm, D)
-        self.D_shape = D.shape
+        _send_D(self.comm, D, DtD)
 
     def set_worker_params(self, params=None, **kwargs):
         if params is None:
