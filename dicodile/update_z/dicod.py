@@ -117,8 +117,8 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         strategy=strategy, tol=tol, max_iter=max_iter, timeout=timeout,
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
-        soft_lock=soft_lock, has_z0=z0 is not None,
-        precomputed_DtD=DtD is not None, freeze_support=freeze_support
+        soft_lock=soft_lock, precomputed_DtD=DtD is not None,
+        freeze_support=freeze_support
     )
 
     comm = _spawn_workers(n_jobs, hostfile)
@@ -221,7 +221,7 @@ def _send_params(comm, params):
 def _send_D(comm, D, DtD=None):
     broadcast_array(comm, D)
     if DtD is not None:
-        broadcast_array(DtD)
+        broadcast_array(comm, DtD)
 
 
 def _send_signal(comm, w_world, atom_support, X, z0=None):
