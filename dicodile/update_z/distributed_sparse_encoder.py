@@ -40,6 +40,7 @@ class DistributedSparseEncoder:
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
 
         self.params = params.copy()
+        self.params['precomputed_DtD'] = DtD is not None
 
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_TASK,
                                          verbose=self.verbose)
