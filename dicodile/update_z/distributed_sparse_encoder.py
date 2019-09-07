@@ -52,6 +52,10 @@ class DistributedSparseEncoder:
         assert D.shape[1:] == self.D_shape[1:], msg
         self.D_shape = D.shape
 
+        if self.params['precomputed_DtD'] and DtD is None:
+            raise ValueError("The pre-computed value DtD need to be passed "
+                             "each time D is updated.")
+
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
                                          verbose=self.verbose)
         _send_D(self.comm, D, DtD)
@@ -74,8 +78,8 @@ class DistributedSparseEncoder:
 
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_SIGNAL,
                                          verbose=self.verbose)
-        self.workers_segments = _send_signal(
-            self.comm, self.w_world, atom_support, X, z0)
+        self.workers_segments = _send_signal(self.comm, self.w_world,
+                                             atom_support, X, z0)
         self._ref_X = weakref.ref(X)
 
     def process_z_hat(self):
