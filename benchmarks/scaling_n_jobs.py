@@ -15,12 +15,12 @@ from joblib import Memory
 mem = Memory(location='.')
 
 ResultItem = namedtuple('ResultItem', [
-    'n_atoms', 'atom_support', 'reg', 'n_jobs', 'n_seg', 'strategy', 'tol',
+    'n_atoms', 'atom_support', 'reg', 'n_workers', 'n_seg', 'strategy', 'tol',
     'dicod_kwargs', 'random_state', 'sparsity', 'iterations', 'runtime',
     't_init', 't_run', 'n_updates', 't_select', 't_update'])
 
 RESULT_DIR = pathlib.Path("benchmark_results")
-PKL_FILENAME = RESULT_DIR / "scaling_n_jobs.pkl"
+PKL_FILENAME = RESULT_DIR / "scaling_n_workers.pkl"
 
 
 def get_problem(n_atoms, atom_support, random_state):
@@ -45,7 +45,7 @@ def get_problem(n_atoms, atom_support, random_state):
 
 
 @mem.cache(ignore=['timeout', 'max_iter', 'verbose'])
-def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, random_state,
+def run_one(n_atoms, atom_support, reg, n_workers, strategy, tol, random_state,
             timeout, max_iter, verbose, dicod_kwargs):
     # Generate a problem
     X, D = get_problem(n_atoms, atom_support, random_state)
@@ -62,18 +62,18 @@ def run_one(n_atoms, atom_support, reg, n_jobs, strategy, tol, random_state,
 
     z_hat, *_, run_statistics = dicod(
         X, D, reg=lmbd, n_seg=n_seg, strategy=effective_strategy,
-        n_jobs=n_jobs, timing=True, tol=tol, timeout=timeout,
+        n_workers=n_workers, timing=True, tol=tol, timeout=timeout,
         max_iter=max_iter, verbose=verbose, **dicod_kwargs)
 
     sparsity = len(z_hat.nonzero()[0]) / z_hat.size
 
     return ResultItem(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
-                      n_jobs=n_jobs, n_seg=n_seg, strategy=strategy,
+                      n_workers=n_workers, n_seg=n_seg, strategy=strategy,
                       tol=tol, dicod_kwargs=dicod_kwargs, sparsity=sparsity,
                       random_state=random_state, **run_statistics)
 
 
-def run_scaling_benchmark(max_n_jobs, n_rep=1):
+def run_scaling_benchmark(max_n_workers, n_rep=1):
     tol = 1e-3
     n_atoms = 5
     atom_support = (8, 8)
@@ -86,17 +86,19 @@ def run_scaling_benchmark(max_n_jobs, n_rep=1):
 
     reg_list = np.logspace(-3, np.log10(.5), 10)[::-1][:3]
 
-    list_n_jobs = np.round(np.logspace(0, np.log10(20), 10)).astype(int)
-    list_n_jobs = [int(v * v) for v in np.unique(list_n_jobs)[::-1]]
+    list_n_workers = np.round(np.logspace(0, np.log10(20), 10)).astype(int)
+    list_n_workers = [int(v * v) for v in np.unique(list_n_workers)[::-1]]
 
     results = []
     for reg in reg_list:
-        for n_jobs in list_n_jobs:
+        for n_workers in list_n_workers:
             for strategy in ['greedy', 'lgcd']:  # , 'random']:
                 for random_state in range(n_rep):
-                    res = run_one(n_atoms, atom_support, reg, n_jobs, strategy,
-                                  tol, random_state, timeout, max_iter,
-                                  verbose, dicod_kwargs)
+                    res = run_one(
+                        n_atoms=n_atoms, atom_support=atom_support, reg=reg,
+                        n_workers=n_workers, strategy=strategy, tol=tol,
+                        timeout=timeout, max_iter=max_iter, verbose=verbose,
+                        dicod_kwargs=dicod_kwargs, random_state=random_state)
                     results.append(res)
 
     df = pandas.DataFrame(results)
@@ -120,7 +122,7 @@ def plot_scaling_benchmark():
         for strategy, style in [('Greedy', '--'), ('LGCD', '-')]:
             s = strategy.lower()
             this_df = df[(df.reg == reg) & (df.strategy == s)]
-            curve = this_df.groupby('n_jobs').runtime
+            curve = this_df.groupby('n_workers').runtime
             runtimes = curve.mean()
             runtime_std = curve.std()
 
@@ -129,14 +131,14 @@ def plot_scaling_benchmark():
             plt.loglog(runtimes.index, runtimes, label=f"{strategy}_{reg:.2f}",
                        linestyle=style, c=c)
             color_handle = lines.Line2D(
-                [], [], linestyle='-', c=c, label=f"${reg:.2f}\lambda_\max$")
+                [], [], linestyle='-', c=c, label=f"${reg:.2f}\\lambda_\\max$")
             style_handle = lines.Line2D(
                 [], [], linestyle=style, c='k', label=f"{strategy}")
             handles_lmbd[reg] = color_handle
             handles_strategy[strategy] = style_handle
     plt.xlim((1, 400))
     # plt.ylim((1e1, 1e4))
-    # plt.xticks(n_jobs, n_jobs, fontsize=14)
+    # plt.xticks(n_workers, n_workers, fontsize=14)
     # plt.yticks(fontsize=14)
     # plt.minorticks_off(axis='y')
     plt.xlabel("# workers $W$", fontsize=12)
@@ -152,7 +154,7 @@ def plot_scaling_benchmark():
     plt.legend(handles=handles_strategy.values(), loc=3, fontsize=14)
     ax.add_artist(legend_lmbd)
     plt.tight_layout()
-    plt.savefig("benchmarks_results/scaling_n_jobs.pdf", dpi=300,
+    plt.savefig("benchmarks_results/scaling_n_workers.pdf", dpi=300,
                 bbox_inches='tight', pad_inches=0)
     plt.show()
 
@@ -167,4 +169,4 @@ if __name__ == "__main__":
     if args.plot:
         plot_scaling_benchmark()
     else:
-        run_scaling_benchmark(max_n_jobs=400, n_rep=5)
+        run_scaling_benchmark(max_n_workers=400, n_rep=5)

@@ -36,7 +36,7 @@ def colorify(message, color=BLUE):
 
 # Result item to create the DataFrame in a consistent way.
 ResultItem = namedtuple('ResultItem', [
-    'n_jobs', 'strategy', 'reg', 'n_times', 'tol', 'soft_lock',
+    'n_workers', 'strategy', 'reg', 'n_times', 'tol', 'soft_lock',
     'meta', 'random_state', 'iterations', 'runtime', 't_init', 't_run',
     'n_updates', 't_select', 't_update'])
 
@@ -47,7 +47,7 @@ ResultItem = namedtuple('ResultItem', [
 ###############################################
 
 @mem.cache(ignore=['dicod_args'])
-def run_one(n_jobs, strategy, reg, n_times, tol, soft_lock, dicod_args,
+def run_one(n_workers, strategy, reg, n_times, tol, soft_lock, dicod_args,
             n_times_atom, n_atoms, n_channels, noise_level, random_state):
 
     tag = f"[{strategy} - {n_times} - {reg:.0e} - {random_state}]"
@@ -68,7 +68,7 @@ def run_one(n_jobs, strategy, reg, n_times, tol, soft_lock, dicod_args,
         n_seg = 'auto'
         strategy_ = "greedy"
 
-    *_, run_statistics = dicod(X, D_hat, reg_, n_jobs=n_jobs, tol=tol,
+    *_, run_statistics = dicod(X, D_hat, reg_, n_workers=n_workers, tol=tol,
                                strategy=strategy_, n_seg=n_seg,
                                soft_lock=soft_lock, **dicod_args)
     meta = dicod_args.copy()
@@ -77,19 +77,19 @@ def run_one(n_jobs, strategy, reg, n_times, tol, soft_lock, dicod_args,
     runtime = run_statistics['runtime']
 
     print(colorify('=' * 79 +
-                   f"\n{tag} End with {n_jobs} jobs in {runtime:.1e}\n" +
+                   f"\n{tag} End with {n_workers} workers in {runtime:.1e}\n" +
                    "=" * 79, color=GREEN))
 
-    return ResultItem(n_jobs=n_jobs, strategy=strategy, reg=reg,
+    return ResultItem(n_workers=n_workers, strategy=strategy, reg=reg,
                       n_times=n_times, tol=tol, soft_lock=soft_lock, meta=meta,
                       random_state=random_state, **run_statistics)
 
 
-def run_scaling_1d_benchmark(strategies, n_rep=10, max_jobs=75, timeout=7200,
+def run_scaling_1d_benchmark(strategies, n_rep=1, max_workers=75, timeout=None,
                              soft_lock='none', list_n_times=[151, 750],
                              list_reg=[2e-1, 5e-1], random_state=None):
     '''Run DICOD strategy for a certain problem with different value
-    for n_jobs and store the runtime in csv files if given a save_dir.
+    for n_workers and store the runtime in csv files if given a save_dir.
 
     Parameters
     ----------
@@ -97,12 +97,12 @@ def run_scaling_1d_benchmark(strategies, n_rep=10, max_jobs=75, timeout=7200,
         Algorithm to run the benchmark for
     n_rep: int (default: 10)
         Number of repetition to average the results.
-    max_jobs: int (default: 75)
+    max_workers: int (default: 75)
         The strategy will be run on problems with a number
-        of cores varying from 1 to max_jobs in a log2 scale
+        of cores varying from 1 to max_workers in a log2 scale
     soft_lock: str in {'none', 'border'}
         Soft-lock mechanism to use in dicod
-    timeout: int (default: 7200)
+    timeout: int (default: None)
         maximal running time for DICOD. The default timeout
         is 2 hours
     list_n_times: list of int
@@ -128,20 +128,22 @@ def run_scaling_1d_benchmark(strategies, n_rep=10, max_jobs=75, timeout=7200,
                       max_iter=int(5e8), verbose=2)
 
     # Get the list of parameter to call
-    list_n_jobs = np.unique(np.logspace(0, np.log10(max_jobs), 15, dtype=int))
-    list_n_jobs = list_n_jobs[::-1]
+    list_n_workers = np.unique(np.logspace(0, np.log10(max_workers), 15,
+                               dtype=int))
+    list_n_workers = list_n_workers[::-1]
     list_seeds = [rng.randint(MAX_INT) for _ in range(n_rep)]
     strategies = [s[0] for s in strategies]
-    list_args = itertools.product(list_n_jobs, strategies, list_reg,
+    list_args = itertools.product(list_n_workers, strategies, list_reg,
                                   list_n_times, list_seeds)
 
     # Run the computation
-    results = [run_one(n_jobs=n_jobs, strategy=strategy, reg=reg,
+    results = [run_one(n_workers=n_workers, strategy=strategy, reg=reg,
                        n_times=n_times, tol=tol, soft_lock=soft_lock,
                        dicod_args=dicod_args, n_times_atom=n_times_atom,
                        n_atoms=n_atoms, n_channels=n_channels,
                        noise_level=noise_level, random_state=random_state)
-               for n_jobs, strategy, reg, n_times, random_state in list_args]
+               for (n_workers, strategy, reg,
+                    n_times, random_state) in list_args]
 
     # Save the results as a DataFrame
     results = pandas.DataFrame(results)
@@ -167,8 +169,8 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
         xticks.append(((i + .5) * (n_bar + 1)) * width)
         labels.append(f"$T = {n_times}L$")
         for j, (strategy, name, style) in enumerate(strategies):
-            col_name = ['pb', 'n_jobs', 'runtime', 'runtime1']
-            csv_name = (f"benchmarks_results/runtimes_n_jobs_"
+            col_name = ['pb', 'n_workers', 'runtime', 'runtime1']
+            csv_name = (f"benchmarks_results/runtimes_n_workers_"
                         f"{n_times}_{strategy}.csv")
 
             try:
@@ -177,7 +179,7 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
                 print(f"Not found {csv_name}")
                 continue
 
-            runtimes_1 = df[df['n_jobs'] == 1]['runtime'].values
+            runtimes_1 = df[df['n_workers'] == 1]['runtime'].values
 
             position = (i * (n_bar + 1) + j + 1) * width
 
@@ -190,18 +192,18 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
                 np.ones_like(runtimes_1) * position,
                 runtimes_1, '_', color='k')
 
-            n_jobs = df['n_jobs'].unique()
-            n_jobs.sort()
+            n_workers = df['n_workers'].unique()
+            n_workers.sort()
 
             runtimes_scale = []
             runtimes_scale_mean = []
-            for n in n_jobs:
-                runtimes_scale.append(df[df['n_jobs'] == n]['runtime'].values)
+            for n in n_workers:
+                runtimes_scale.append(df[df['n_workers'] == n].runtime.values)
                 runtimes_scale_mean.append(np.mean(runtimes_scale[-1]))
             runtimes_scale_mean = np.array(runtimes_scale_mean)
             if strategy != 'random':
 
-                t = np.logspace(0, np.log2(2 * n_jobs.max()), 3, base=2)
+                t = np.logspace(0, np.log2(2 * n_workers.max()), 3, base=2)
                 R0 = runtimes_scale_mean.max()
 
                 # Linear and quadratic lines
@@ -217,9 +219,9 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
                     ax_scaling.text(tt, 1.4 * R0 / tt**2, "quadratic",
                                     rotation=-25, bbox=bbox, fontsize=12)
                     name_ = "DICOD"
-                ax_scaling.plot(n_jobs, runtimes_scale_mean, style,
+                ax_scaling.plot(n_workers, runtimes_scale_mean, style,
                                 label=name_, zorder=10, markersize=8)
-                # for i, n in enumerate(n_jobs):
+                # for i, n in enumerate(n_workers):
                 #     x = np.array(runtimes_scale[i])
                 #     ax_scaling.plot(np.ones(value.shape) * n, value, 'k_')
 
@@ -234,8 +236,8 @@ def plot_scaling_1d_benchmark(strategies, list_n_times):
         ax_scaling.set_xlim((1, 75))
         ax_scaling.grid(True, which='both', axis='x', alpha=.5)
         ax_scaling.grid(True, which='major', axis='y', alpha=.5)
-        # ax_scaling.set_xticks(n_jobs)
-        # ax_scaling.set_xticklabels(n_jobs, fontsize=12)
+        # ax_scaling.set_xticks(n_workers)
+        # ax_scaling.set_xticklabels(n_workers, fontsize=12)
         ax_scaling.set_ylabel("Runtime [sec]", fontsize=12)
         ax_scaling.set_xlabel("# workers $W$", fontsize=12)
         ax_scaling.legend(fontsize=14)
@@ -267,23 +269,20 @@ def quick_plot():
             df = T_df[T_df.reg == reg]
             # T = full_df['T'].unique()
 
-            curve_greedy = df[df.strategy == 'greedy'].groupby('n_jobs').mean()
-            plt.loglog(curve_greedy.index, curve_greedy.runtime, 'C0')
-            plt.loglog(curve_greedy.index, curve_greedy.t_run, 'C0--')
-            curve_lgcd = df[df.strategy == 'lgcd'].groupby('n_jobs').mean()
-            plt.loglog(curve_lgcd.index, curve_lgcd.runtime, 'C1')
-            plt.loglog(curve_lgcd.index, curve_lgcd.t_run, 'C1--')
-            curve_lgcd = df[df.strategy == 'lgcd'].groupby('n_jobs').mean()
+            curve_gcd = df[df.strategy == 'greedy'].groupby('n_workers').mean()
+            plt.loglog(curve_gcd.index, curve_gcd.runtime, 'C0')
+            plt.loglog(curve_gcd.index, curve_gcd.t_run, 'C0--')
+            curve_lgcd = df[df.strategy == 'lgcd'].groupby('n_workers').mean()
             plt.loglog(curve_lgcd.index, curve_lgcd.runtime, 'C1')
             plt.loglog(curve_lgcd.index, curve_lgcd.t_run, 'C1--')
             for strategy in ['cyclic']:  # ['cyclic', 'random']:
-                curve = df[df.strategy == strategy].groupby('n_jobs').mean()
+                curve = df[df.strategy == strategy].groupby('n_workers').mean()
                 plt.loglog(curve.index, curve.runtime, 'C1')
                 plt.loglog(curve.index, curve.t_run, 'C1--')
             # plt.loglog(t, t_random)
 
-            t = df.n_jobs.unique()
-            plt.plot(t, np.max(curve_greedy.runtime) / t ** 2, 'k--')
+            t = df.n_workers.unique()
+            plt.plot(t, np.max(curve_gcd.runtime) / t ** 2, 'k--')
             plt.plot(t, np.max(curve_lgcd.runtime) / t, 'k--')
         plt.xlim(t.min(), t.max())
         plt.savefig(f'test_{T}.pdf')
@@ -294,13 +293,13 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser('')
     parser.add_argument('--plot', action="store_true",
-                        help='Plot the results of the benchmarl')
+                        help='Plot the results of the benchmark')
     parser.add_argument('--qp', action="store_true",
-                        help='Plot the results of the benchmarl')
-    parser.add_argument('--n-rep', type=int, default=5,
+                        help='Plot the results of the benchmark')
+    parser.add_argument('--n-rep', type=int, default=10,
                         help='Number of repetition to average to compute the '
                         'average running time.')
-    parser.add_argument('--max-jobs', type=int, default=75,
+    parser.add_argument('--max-workers', type=int, default=75,
                         help='Maximal number of workers used.')
     args = parser.parse_args()
 
@@ -323,6 +322,6 @@ if __name__ == "__main__":
         quick_plot()
     else:
         run_scaling_1d_benchmark(
-            strategies, n_rep=args.n_rep, max_jobs=args.max_jobs,
+            strategies, n_rep=args.n_rep, max_workers=args.max_workers,
             soft_lock=soft_lock, list_n_times=list_n_times, list_reg=list_reg,
             random_state=random_state)

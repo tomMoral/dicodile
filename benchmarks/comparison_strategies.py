@@ -1,3 +1,7 @@
+"""Compare the coordinate selection strategies for Coordinate descent on CSC.
+
+Author: tommoral <thomas.moreau@inria.fr>
+"""
 import os
 import time
 import pandas
@@ -16,6 +20,8 @@ from dicodile.update_z.dicod import dicod
 from dicodile.utils import check_random_state
 from dicodile.data.simulate import simulate_data
 from dicodile.utils.dictionary import get_lambda_max
+
+from dicodile.utils.plot_config import get_style
 
 
 MAX_INT = 4294967295
@@ -68,7 +74,7 @@ def run_one(n_times, n_times_atom, n_atoms, n_channels, noise_level,
     if strategy == 'lgcd':
         n_seg = 'auto'
 
-    *_, pobj, run_statistics = dicod(X, D_hat, reg_, n_jobs=1, tol=tol,
+    *_, pobj, run_statistics = dicod(X, D_hat, reg_, n_workers=1, tol=tol,
                                      strategy=strategy, n_seg=n_seg,
                                      **dicod_args)
     meta = dicod_args.copy()
@@ -85,11 +91,11 @@ def run_one(n_times, n_times_atom, n_atoms, n_channels, noise_level,
                       **run_statistics)
 
 
-def compare_strategies(strategies, n_rep=10, n_jobs=4, timeout=7200,
+def compare_strategies(strategies, n_rep=10, n_workers=4, timeout=7200,
                        list_n_times=[150, 750], list_reg=[1e-1, 5e-1],
                        random_state=None):
     '''Run DICOD strategy for a certain problem with different value
-    for n_jobs and store the runtime in csv files if given a save_dir.
+    for n_workers and store the runtime in csv files if given a save_dir.
 
     Parameters
     ----------
@@ -97,7 +103,7 @@ def compare_strategies(strategies, n_rep=10, n_jobs=4, timeout=7200,
         Algorithm to run the benchmark for
     n_rep: int (default: 10)
        Number of repetition for each strategy to average.
-    n_jobs: int (default: 4)
+    n_workers: int (default: 4)
         Number of jobs to run strategies in parallel.
     timeout: int (default: 7200)
         maximal runtime for each strategy. The default timeout
@@ -129,7 +135,7 @@ def compare_strategies(strategies, n_rep=10, n_jobs=4, timeout=7200,
                                   list_seeds)
 
     # Run the computation
-    results = Parallel(n_jobs=n_jobs)(
+    results = Parallel(n_workers=n_workers)(
         delayed(run_one)(n_times, n_times_atom, n_atoms, n_channels,
                          noise_level, random_state, reg, tol, strategy,
                          dicod_args)
@@ -141,51 +147,66 @@ def compare_strategies(strategies, n_rep=10, n_jobs=4, timeout=7200,
 
 
 def plot_comparison_strategies(strategies):
-    df = pandas.read_pickle(SAVE_FILE_NAME.format('.pkl'))
+    full_df = pandas.read_pickle(SAVE_FILE_NAME.format('.pkl'))
 
-    list_n_times = df.n_times.unique()
-    list_regs = df.reg.unique()
+    list_n_times = full_df.n_times.unique()
+    list_regs = full_df.reg.unique()[1:]
 
     # compute the width of the bars
     n_group = len(list_n_times)
     n_bar = len(strategies)
     width = 1 / ((n_bar + 1) * n_group - 1)
 
-    for reg in list_regs:
-        fig = plt.figure(f"comparison CD -- reg={reg}", figsize=(6, 3.5))
-        ax_bar = fig.subplots()
-        xticks, labels = [], []
-        ylim = (1e10, 0)
-        for i, n_times in enumerate(list_n_times):
-            handles = []
-            xticks.append(((i + .5) * (n_bar + 1)) * width)
-            labels.append(f"$T = {n_times}L$")
-            for j, (strategy, name) in enumerate(strategies):
-                this_df = df[df.strategy == strategy]
-                this_df = this_df[this_df.n_times == n_times]
-                this_df = this_df[this_df.reg == reg]
-                position = (i * (n_bar + 1) + j + 1) * width
+    configs = [
+        {'outer': ('reg', list_regs, r'\lambda', r'\lambda_{max}'),
+         'inner': ('n_times', list_n_times, 'T', 'L')},
+        {'outer': ('n_times', list_n_times, 'T', 'L'),
+         'inner': ('reg', list_regs, r'\lambda', r'\lambda_{max}')}
+    ]
 
-                t_run = this_df.t_run.to_numpy()
-                handles.append(ax_bar.bar(
-                    position, height=np.median(t_run), width=width,
-                    facecolor=COLOR[j], label=name,
-                    hatch='//' if strategy == 'lgcd' else '')
-                )
-                ax_bar.plot(np.ones_like(t_run) * position, t_run, 'k_')
-                ylim = (min(ylim[0], t_run.min()), max(ylim[1], t_run.max()))
-        ax_bar.set_ylabel("Runtime [sec]")
-        ax_bar.set_yscale('log')
-        ax_bar.set_xticks(xticks)
-        ax_bar.set_xticklabels(labels, fontsize=18)
-        ax_bar.set_ylim(ylim[0] / 5, 5 * ylim[1])
-        ax_bar.legend(bbox_to_anchor=(.02, 1.02, 1., .3), loc="lower left",
-                      handles=handles, ncol=3, borderaxespad=0.)
-        fig.tight_layout()
-        reg = str(reg).replace('.', ',')
-        for ext in ['pdf', 'png']:
-            fig.savefig(SAVE_FILE_NAME.format(f"_reg={reg}.{ext}"), dpi=300,
-                        bbox_inches='tight', pad_inches=0)
+    for config in configs:
+        out_name, out_list, *_ = config['outer']
+        in_name, in_list, label, unit = config['inner']
+        for out in out_list:
+            fig = plt.figure(f"comparison CD -- {out_name}={out}",
+                             figsize=(6, 3.5))
+            ax_bar = fig.subplots()
+            xticks, labels = [], []
+            ylim = (1e10, 0)
+            for i, in_ in enumerate(in_list):
+                handles = []
+                xticks.append(((i + .5) * (n_bar + 1)) * width)
+                labels.append(f"${label} = {in_}{unit}$")
+                for j, (strategy, name) in enumerate(strategies):
+                    df = full_df[full_df[out_name] == out]
+                    df = df[df[in_name] == in_]
+                    df = df[df.strategy == strategy]
+                    position = (i * (n_bar + 1) + j + 1) * width
+
+                    t_run = df.t_run.to_numpy()
+                    handles.append(ax_bar.bar(
+                        position, height=np.median(t_run), width=width,
+                        **get_style(strategy, 'hatch')
+                        # facecolor=COLOR[j], label=name,
+                        # hatch='//' if strategy == 'lgcd' else '')
+                    ))
+                    ax_bar.plot(np.ones_like(t_run) * position, t_run, 'k_')
+                    ylim = (min(ylim[0], t_run.min()),
+                            max(ylim[1], t_run.max()))
+            ax_bar.set_ylabel("Runtime [sec]")
+            ax_bar.set_yscale('log')
+            ax_bar.set_xticks(xticks)
+            ax_bar.set_xticklabels(labels, fontsize=18)
+            # ax_bar.set_ylim(ylim[0] / 5, 5 * ylim[1])
+            ax_bar.set_ylim(.1, 1e5)
+            ax_bar.legend(bbox_to_anchor=(-.1, 1.1, 1., .3), loc="lower left",
+                          handles=handles, ncol=3, borderaxespad=0.,
+                          fontsize=16)
+            fig.tight_layout()
+            out = str(out).replace('.', ',')
+            for ext in ['png']:
+                fig.savefig(SAVE_FILE_NAME.format(f"_{out_name}={out}.{ext}"),
+                            dpi=300, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 
@@ -199,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument('--n-rep', type=int, default=5,
                         help='Number of repetition to average to compute the '
                         'average running time.')
-    parser.add_argument('--n-jobs', type=int, default=4,
+    parser.add_argument('--n-workers', type=int, default=4,
                         help='Number of worker to run the script.')
     args = parser.parse_args()
 
@@ -218,6 +239,7 @@ if __name__ == "__main__":
     else:
         list_n_times = [200, 500, 1000]
         list_reg = [5e-2, 1e-1, 2e-1, 5e-1]
-        compare_strategies(strategies, n_rep=args.n_rep, n_jobs=args.n_jobs,
-                           timeout=None, list_n_times=list_n_times,
-                           list_reg=list_reg, random_state=random_state)
+        compare_strategies(
+            strategies, n_rep=args.n_rep, n_workers=args.n_workers,
+            timeout=None, list_n_times=list_n_times, list_reg=list_reg,
+            random_state=random_state)

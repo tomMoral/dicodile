@@ -1,4 +1,9 @@
+"""Compare scaling of DICOD and DiCoDiLe_Z on a grid vs scaling in 1D.
+
+Author: tommoral <thomas.moreau@inria.fr>
+"""
 import pandas
+import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
@@ -9,17 +14,17 @@ from dicodile.utils.dictionary import init_dictionary
 
 
 from joblib import Memory
-mem = Memory(location='.')
+mem = Memory(location='.', verbose=0)
 
 ResultItem = namedtuple('ResultItem', [
-    'n_atoms', 'atom_support', 'reg', 'n_jobs', 'grid', 'tol', 'random_state',
-    'sparsity', 'iterations', 'runtime', 't_init', 't_run', 'n_updates',
-    't_select', 't_update'])
+    'n_atoms', 'atom_support', 'reg', 'n_workers', 'grid', 'tol',
+    'random_state', 'sparsity', 'iterations', 'runtime', 't_init', 't_run',
+    'n_updates', 't_select', 't_update'])
 
 
 @mem.cache(ignore=['verbose'])
-def run_one_grid(n_atoms, atom_support, reg, n_jobs, grid, tol, random_state,
-                 verbose):
+def run_one_grid(n_atoms, atom_support, reg, n_workers, grid, tol,
+                 random_state, verbose):
     # Generate a problem
     X = get_mandril()
     D = init_dictionary(X, n_atoms, atom_support, random_state=random_state)
@@ -28,18 +33,19 @@ def run_one_grid(n_atoms, atom_support, reg, n_jobs, grid, tol, random_state,
     if grid:
         w_world = 'auto'
     else:
-        w_world = n_jobs
+        w_world = n_workers
 
     dicod_kwargs = dict(z_positive=False, soft_lock='corner', timeout=None,
                         max_iter=int(1e8))
     z_hat, *_, run_statistics = dicod(
         X, D, reg=reg_, n_seg='auto', strategy='greedy', w_world=w_world,
-        n_jobs=n_jobs, timing=True, tol=tol, verbose=verbose, **dicod_kwargs)
+        n_workers=n_workers, timing=True, tol=tol, verbose=verbose,
+        **dicod_kwargs)
 
     sparsity = len(z_hat.nonzero()[0]) / z_hat.size
 
     return ResultItem(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
-                      n_jobs=n_jobs, grid=grid, tol=tol,
+                      n_workers=n_workers, grid=grid, tol=tol,
                       random_state=random_state, sparsity=sparsity,
                       **run_statistics)
 
@@ -50,18 +56,19 @@ def run_scaling_grid(n_rep=1):
     atom_support = (8, 8)
 
     reg_list = [1e-1, 2e-2, 5e-1]
-    list_n_jobs = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 144, 225]
+    list_n_workers = np.unique(np.logspace(0, np.log10(15), 20, dtype=int))
+    list_n_workers **= 2
 
     results = []
     for reg in reg_list:
         for grid in [True, False]:
-            for n_jobs in list_n_jobs:
-                if grid and n_jobs == 30:
-                    n_jobs = 36
+            for n_workers in list_n_workers:
+                if grid and n_workers == 30:
+                    n_workers = 36
                 for random_state in range(n_rep):
                     try:
                         args = (n_atoms, atom_support, reg,
-                                n_jobs, grid, tol, random_state, 1)
+                                n_workers, grid, tol, random_state, 1)
                         res = run_one_grid(*args)
                         results.append(res)
                     except ValueError as e:
@@ -81,14 +88,14 @@ def plot_scaling_benchmark():
                            ("Grid Split", True)]:
         curve = []
         df = full_df[full_df.grid == use_grid]
-        curve = df.groupby('n_jobs').runtime.mean()
+        curve = df.groupby('n_workers').runtime.mean()
         plt.semilogx(curve.index, curve, label=name)
 
     ylim = (0, 250)
     plt.vlines(512 / (8 * 4), *ylim, colors='g', linestyles='-.')
     plt.ylim(ylim)
     plt.legend(fontsize=14)
-    # plt.xticks(n_jobs, n_jobs)
+    # plt.xticks(n_workers, n_workers)
     plt.grid(which='both')
     plt.xlim((1, 225))
     plt.ylabel("Runtime [sec]", fontsize=12)

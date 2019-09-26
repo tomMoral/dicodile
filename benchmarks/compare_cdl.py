@@ -18,12 +18,12 @@ mem = Memory(location='.')
 
 
 ResultItem = namedtuple('ResultItem', [
-    'n_atoms', 'atom_support', 'reg', 'n_jobs', 'random_state', 'method',
+    'n_atoms', 'atom_support', 'reg', 'n_workers', 'random_state', 'method',
     'z_positive', 'times', 'pobj'])
 
 
 @mem.cache
-def run_one(method, n_atoms, atom_support, reg, z_positive, n_jobs, n_iter,
+def run_one(method, n_atoms, atom_support, reg, z_positive, n_workers, n_iter,
             tol, eps, random_state):
 
     X = get_hubble()[:, 512:1024, 512:1024]
@@ -53,7 +53,7 @@ def run_one(method, n_atoms, atom_support, reg, z_positive, n_jobs, n_iter,
             }
         opt = ConvBPDNDictLearn_Consensus.Options(options)
         cdl = ConvBPDNDictLearn_Consensus(
-            D_init_, X_, lmbda=reg_, nproc=n_jobs, opt=opt, dimK=1, dimN=2)
+            D_init_, X_, lmbda=reg_, nproc=n_workers, opt=opt, dimK=1, dimN=2)
 
         _, pobj = cdl.solve()
         print(pobj)
@@ -64,7 +64,7 @@ def run_one(method, n_atoms, atom_support, reg, z_positive, n_jobs, n_iter,
     elif method == "dicodile":
         pobj, times, D_hat, z_hat = dicodile(
             X, D_init, reg=reg, z_positive=z_positive, n_iter=n_iter, eps=eps,
-            n_jobs=n_jobs, verbose=2, tol=tol)
+            n_workers=n_workers, verbose=2, tol=tol)
         pobj = pobj[::2]
         times = np.cumsum(times)[::2]
 
@@ -72,22 +72,22 @@ def run_one(method, n_atoms, atom_support, reg, z_positive, n_jobs, n_iter,
         raise NotImplementedError()
 
     return ResultItem(
-        n_atoms=n_atoms, atom_support=atom_support, reg=reg, n_jobs=n_jobs,
-        random_state=random_state, method=method, z_positive=z_positive,
-        times=times, pobj=pobj)
+        n_atoms=n_atoms, atom_support=atom_support, reg=reg,
+        n_workers=n_workers, random_state=random_state, method=method,
+        z_positive=z_positive, times=times, pobj=pobj)
 
 
 def run_benchmark(methods=['wohlberg', 'dicodile'],
                   runs=range(5)):
     n_iter = 501
-    n_jobs = 36
+    n_workers = 36
     reg = .1
     tol = 1e-3
     eps = 1e-4
     n_atoms = 36
     atom_support = (28, 28)
     z_positive = True
-    args = (n_atoms, atom_support, reg, z_positive, n_jobs)
+    args = (n_atoms, atom_support, reg, z_positive, n_workers)
 
     results = []
     # rng = check_random_state(42)

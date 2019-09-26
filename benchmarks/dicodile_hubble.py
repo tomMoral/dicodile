@@ -21,7 +21,7 @@ def run_dicodile_hubble(size, reg, L):
 
     dicod_kwargs = dict(soft_lock='border')
     pobj, times, D_hat, z_hat = dicodile(
-        X, D_init, reg=reg, z_positive=True, n_iter=100, n_jobs=400,
+        X, D_init, reg=reg, z_positive=True, n_iter=100, n_workers=400,
         eps=1e-5, tol=1e-3, verbose=2, dicod_kwargs=dicod_kwargs)
 
     # Save the atoms

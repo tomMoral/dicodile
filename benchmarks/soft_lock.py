@@ -16,7 +16,7 @@ mem = Memory(location='.')
 
 @mem.cache
 def run_without_soft_lock(n_atoms=25, atom_support=(12, 12), reg=.01,
-                          tol=5e-2, n_jobs=100, random_state=60):
+                          tol=5e-2, n_workers=100, random_state=60):
     rng = np.random.RandomState(random_state)
 
     X = get_mandril()
@@ -25,8 +25,9 @@ def run_without_soft_lock(n_atoms=25, atom_support=(12, 12), reg=.01,
     reg_ = reg * lmbd_max
 
     z_hat, *_ = dicod(
-        X, D_init, reg_, max_iter=1000000, n_jobs=n_jobs, strategy='greedy',
-        tol=tol, verbose=1, soft_lock='none', z_positive=False, timing=False)
+        X, D_init, reg_, max_iter=1000000, n_workers=n_workers, tol=tol,
+        strategy='greedy', verbose=1, soft_lock='none', z_positive=False,
+        timing=False)
     pobj = compute_objective(X, z_hat, D_init, reg_)
     z_hat = np.clip(z_hat, -1e3, 1e3)
     print("[DICOD] final cost : {}".format(pobj))
@@ -48,17 +49,17 @@ if __name__ == "__main__":
     tol = 5e-2
     n_atoms = 25
     w_world = 7
-    n_jobs = w_world * w_world
+    n_workers = w_world * w_world
     random_state = 60
     atom_support = (16, 16)
 
-    run_args = (n_atoms, atom_support, reg, tol, n_jobs, random_state)
+    run_args = (n_atoms, atom_support, reg, tol, n_workers, random_state)
     if args.no_cache:
         X_hat, pobj = run_without_soft_lock.call(*run_args)
     else:
         X_hat, pobj = run_without_soft_lock(*run_args)
 
-    file_name = f"soft_lock_M{n_jobs}_support{atom_support[0]}"
+    file_name = f"soft_lock_M{n_workers}_support{atom_support[0]}"
     np.save(f"benchmarks_results/{file_name}_X_hat.npy", X_hat)
 
     # Compute the worker segmentation for the image,
