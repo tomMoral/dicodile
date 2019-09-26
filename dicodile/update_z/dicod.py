@@ -31,7 +31,7 @@ interactive_args = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
 def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
-          soft_lock='border', n_jobs=1, w_world='auto', hostfile=None,
+          soft_lock='border', n_workers=1, w_world='auto', hostfile=None,
           tol=1e-5, max_iter=100000, timeout=None, z_positive=False,
           return_ztz=False, freeze_support=False, timing=False,
           random_state=None, verbose=0, debug=False):
@@ -58,12 +58,12 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         If set to 'random, the coordinate is chosen uniformly on the segment.
     soft_lock : str in {{ 'none', 'corner', 'border' }}
         If set to true, use the soft-lock in LGCD.
-    n_jobs : int
+    n_workers : int
         Number of workers used to compute the convolutional sparse coding
         solution.
     w_world : int or {{'auto'}}
         Number of jobs used per row in the splitting grid. This should divide
-        n_jobs.
+        n_workers.
     hostfile : str
         File containing the cluster information. See MPI documentation to have
         the format of this file.
@@ -106,7 +106,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     assert soft_lock in ['none', 'corner', 'border']
     assert strategy in ['greedy', 'random', 'cyclic', 'cyclic-r']
 
-    if n_jobs == 1:
+    if n_workers == 1:
         return coordinate_descent(
             X_i, D, reg, z0=z0, DtD=DtD, n_seg=n_seg, strategy=strategy,
             tol=tol, max_iter=max_iter, timeout=timeout, z_positive=z_positive,
@@ -121,7 +121,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support
     )
 
-    comm = _spawn_workers(n_jobs, hostfile)
+    comm = _spawn_workers(n_workers, hostfile)
     t_transfert, workers_segments = _send_task(comm, X_i, D, z0, DtD, w_world,
                                                params)
 
@@ -136,7 +136,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     # Wait for the result computation
     comm.Barrier()
     run_statistics = _gather_run_statistics(
-        comm, n_jobs, verbose=verbose)
+        comm, n_workers, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
         comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
@@ -145,8 +145,8 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
 
     if timing:
         p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfert, t_reduce,
-                                 n_jobs=n_jobs, valid_support=valid_support,
-                                 z0=z0)
+                                 n_workers=n_workers,
+                                 valid_support=valid_support, z0=z0)
     else:
         p_obj = [[run_statistics['n_updates'],
                   run_statistics['runtime'],
@@ -154,7 +154,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     return z_hat, ztz, ztX, p_obj, run_statistics
 
 
-def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
+def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_workers,
                      valid_support=None, z0=None):
     n_atoms = D.shape[0]
     if z0 is None:
@@ -164,7 +164,7 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
 
     # Re-order the updates
     _log.sort()
-    max_ii = [0] * n_jobs
+    max_ii = [0] * n_workers
     for _, ii, rank, *_ in _log:
         max_ii[rank] = max(max_ii[rank], ii)
     max_ii = np.sum(max_ii)
@@ -172,7 +172,7 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
     up_ii = 0
     p_obj = [(up_ii, t_init, compute_objective(X, z_hat, D, reg))]
     next_ii_cost = 1
-    last_ii = [0] * n_jobs
+    last_ii = [0] * n_workers
     for i, (t_update, ii, rank, k0, pt0, dz) in enumerate(_log):
         z_hat[k0][tuple(pt0)] += dz
         up_ii += ii - last_ii[rank]
@@ -194,8 +194,8 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_jobs,
     return np.array(p_obj)
 
 
-def _spawn_workers(n_jobs, hostfile):
-    comm = get_reusable_workers(n_jobs, hostfile=hostfile)
+def _spawn_workers(n_workers, hostfile):
+    comm = get_reusable_workers(n_workers, hostfile=hostfile)
     send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICOD)
     return comm
 
@@ -225,7 +225,7 @@ def _send_D(comm, D, DtD=None):
 
 
 def _send_signal(comm, w_world, atom_support, X, z0=None):
-    n_jobs = comm.Get_remote_size()
+    n_workers = comm.Get_remote_size()
     n_channels, *full_support = X.shape
     valid_support = get_valid_support(full_support, atom_support)
     overlap = tuple(np.array(atom_support) - 1)
@@ -235,10 +235,10 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
     X_info['valid_support'] = get_valid_support(full_support, atom_support)
 
     if w_world == 'auto':
-        X_info["workers_topology"] = find_grid_size(n_jobs, full_support)
+        X_info["workers_topology"] = find_grid_size(n_workers, full_support)
     else:
-        assert n_jobs % w_world == 0
-        X_info["workers_topology"] = w_world, n_jobs // w_world
+        assert n_workers % w_world == 0
+        X_info["workers_topology"] = w_world, n_workers // w_world
 
     # compute a segmentation for the image,
     workers_segments = Segmentation(n_seg=X_info['workers_topology'],
@@ -259,7 +259,7 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
 
     X = np.array(X, dtype='d')
 
-    for i_seg in range(n_jobs):
+    for i_seg in range(n_workers):
         if z0 is not None:
             worker_slice = workers_segments.get_seg_slice(i_seg)
             _send_array(comm, i_seg, z0[worker_slice])
@@ -280,7 +280,7 @@ def _send_array(comm, dest, arr):
               dest=dest, tag=constants.TAG_ROOT + dest)
 
 
-def _gather_run_statistics(comm, n_jobs, verbose=0):
+def _gather_run_statistics(comm, n_workers, verbose=0):
     stats = comm.gather(None, root=MPI.ROOT)
     iterations, n_coordinate_updates = np.sum(stats, axis=0)[:2]
     runtime, t_local_init, t_run = np.max(stats, axis=0)[2:5]
@@ -288,8 +288,8 @@ def _gather_run_statistics(comm, n_jobs, verbose=0):
     if verbose > 0:
         print("\r[INFO:DICOD-{}] converged in {:.3f}s ({:.3f}s) with "
               "{:.0f} iterations ({:.0f} updates).".format(
-                  n_jobs, runtime, t_run, iterations, n_coordinate_updates))
-        print(f"\r[INFO:DICOD-{n_jobs}] t_select={t_select:.3e}s "
+                  n_workers, runtime, t_run, iterations, n_coordinate_updates))
+        print(f"\r[INFO:DICOD-{n_workers}] t_select={t_select:.3e}s "
               f"t_update={t_update:.3e}s")
     run_statistics = dict(
         iterations=iterations, runtime=runtime, t_init=t_local_init,

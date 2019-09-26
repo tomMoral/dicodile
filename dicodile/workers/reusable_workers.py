@@ -26,18 +26,18 @@ INTERACTIVE_EXEC = "xterm"
 INTERACTIVE_ARGS = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
-def get_reusable_workers(n_jobs=4, hostfile=None):
+def get_reusable_workers(n_workers=4, hostfile=None):
 
     global _worker_comm, _n_workers
     if _worker_comm is None:
-        _n_workers = n_jobs
-        _worker_comm = _spawn_workers(n_jobs, hostfile)
+        _n_workers = n_workers
+        _worker_comm = _spawn_workers(n_workers, hostfile)
         util.Finalize(None, shutdown_reusable_workers, exitpriority=20)
     else:
-        if _n_workers != n_jobs:
+        if _n_workers != n_workers:
             warnings.warn("You should not require different size")
             shutdown_reusable_workers()
-            return get_reusable_workers(n_jobs=n_jobs, hostfile=hostfile)
+            return get_reusable_workers(n_workers=n_workers, hostfile=hostfile)
 
     return _worker_comm
 
@@ -64,7 +64,7 @@ def shutdown_reusable_workers():
         _worker_comm = None
 
 
-def _spawn_workers(n_jobs, hostfile=None):
+def _spawn_workers(n_workers, hostfile=None):
     t_start = time.time()
     info = MPI.Info.Create()
     if hostfile is None:
@@ -73,12 +73,12 @@ def _spawn_workers(n_jobs, hostfile=None):
         info.Set("hostfile", hostfile)
 
     # Pass some environment variable to the child process
-    envstr = ''
+    env_str = ''
     for key in ['TESTING_DICOD']:
         if key in os.environ:
-            envstr += f"{key}={os.environ[key]}\n"
-    if envstr != '':
-        info.Set("env", envstr)
+            env_str += f"{key}={os.environ[key]}\n"
+    if env_str != '':
+        info.Set("env", env_str)
 
     # Spawn the workers
     script_name = os.path.join(os.path.dirname(__file__),
@@ -86,11 +86,12 @@ def _spawn_workers(n_jobs, hostfile=None):
     if flags.INTERACTIVE_PROCESSES:
         comm = MPI.COMM_SELF.Spawn(
             INTERACTIVE_EXEC, args=INTERACTIVE_ARGS + [script_name],
-            maxprocs=n_jobs, info=info)
+            maxprocs=n_workers, info=info)
 
     else:
         comm = MPI.COMM_SELF.Spawn(sys.executable, args=[script_name],
-                                   maxprocs=n_jobs, info=info)
+                                   maxprocs=n_workers, info=info)
     comm.Barrier()
-    print("Started {} workers in {:.3}s".format(n_jobs, time.time() - t_start))
+    duration = time.time() - t_start
+    print("Started {} workers in {:.3}s".format(n_workers, duration))
     return comm

@@ -28,7 +28,7 @@ def test_distributed_sparse_encoder():
     D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
     DtD = compute_DtD(D)
 
-    encoder = DistributedSparseEncoder(n_jobs=2)
+    encoder = DistributedSparseEncoder(n_workers=2)
 
     encoder.init_workers(X, D, reg, params, DtD=DtD)
 

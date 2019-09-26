@@ -77,7 +77,7 @@ class DICODWorker:
         t_local_init = self.init_cd_variables()
 
         diverging = False
-        if flags.INTERACTIVE_PROCESSES and self.n_jobs == 1:
+        if flags.INTERACTIVE_PROCESSES and self.n_workers == 1:
             import ipdb; ipdb.set_trace()  # noqa: E702
 
         self.t_start = t_start = time.time()
@@ -273,7 +273,7 @@ class DICODWorker:
                   global_msg=True)
 
         self.info("Start DICOD with {} workers, strategy '{}', soft_lock"
-                  "={} and n_seg={}({})", self.n_jobs, self.strategy,
+                  "={} and n_seg={}({})", self.n_workers, self.strategy,
                   self.soft_lock, self.n_seg,
                   self.local_segments.effective_n_seg, global_msg=True)
         return t_local_init
@@ -312,7 +312,7 @@ class DICODWorker:
                 worker_status = constants.STATUS_STOP
             elif tag == constants.TAG_DICOD_PAUSED_WORKER:
                 self.n_paused_worker += 1
-                assert self.n_paused_worker <= self.n_jobs
+                assert self.n_paused_worker <= self.n_workers
             elif tag == constants.TAG_DICOD_RUNNING_WORKER:
                 self.n_paused_worker -= 1
                 assert self.n_paused_worker >= 0
@@ -323,7 +323,7 @@ class DICODWorker:
             if tag == constants.TAG_DICOD_UPDATE_BETA:
                 self.message_update_beta(msg)
 
-        if self.n_paused_worker == self.n_jobs:
+        if self.n_paused_worker == self.n_workers:
             worker_status = constants.STATUS_STOP
         return worker_status
 
@@ -363,7 +363,7 @@ class DICODWorker:
         if self.rank == 0 and i_worker == 0:
             if tag == constants.TAG_DICOD_PAUSED_WORKER:
                 self.n_paused_worker += 1
-                assert self.n_paused_worker <= self.n_jobs
+                assert self.n_paused_worker <= self.n_workers
             elif tag == constants.TAG_DICOD_RUNNING_WORKER:
                 self.n_paused_worker -= 1
                 assert self.n_paused_worker >= 0
@@ -393,11 +393,11 @@ class DICODWorker:
             time.sleep(.005)
             status = self.process_messages(worker_status=status)
             if (count % 500) == 0:
-                self.progress(self.n_paused_worker, max_ii=self.n_jobs,
+                self.progress(self.n_paused_worker, max_ii=self.n_workers,
                               unit="done workers")
 
         if self.rank == 0 and status == constants.STATUS_STOP:
-            for i_worker in range(1, self.n_jobs):
+            for i_worker in range(1, self.n_workers):
                 self.notify_worker_status(constants.TAG_DICOD_STOP, i_worker,
                                           wait=True)
         elif status == constants.STATUS_RUNNING:
@@ -429,7 +429,7 @@ class DICODWorker:
     def correct_beta_z0(self):
         # Send coordinate updates to neighbors for all nonzero coordinates in
         # z0
-        msg_send, msg_recv = [0] * self.n_jobs, [0] * self.n_jobs
+        msg_send, msg_recv = [0] * self.n_workers, [0] * self.n_workers
         for k0, *pt0 in zip(*self.z0.nonzero()):
             # Notify neighboring workers of the update if needed.
             pt_global = self.workers_segments.get_global_coordinate(
@@ -447,8 +447,8 @@ class DICODWorker:
         no_msg, init_done = False, False
         mpi_status = MPI.Status()
         while not init_done:
-            if n_init_done == self.n_jobs:
-                for i_worker in range(1, self.n_jobs):
+            if n_init_done == self.n_workers:
+                for i_worker in range(1, self.n_workers):
                     self.notify_worker_status(constants.TAG_DICOD_INIT_DONE,
                                               i_worker=i_worker)
                 init_done = True
@@ -582,7 +582,7 @@ class DICODWorker:
                 if self.rank != 0:
                     return
                 msg_fmt = constants.GLOBAL_OUTPUT_TAG + msg
-                identity = self.n_jobs
+                identity = self.n_workers
             else:
                 msg_fmt = constants.WORKER_OUTPUT_TAG + msg
                 identity = self.rank
@@ -614,7 +614,7 @@ class DICODWorker:
     def recv_params(self):
         """Receive the parameter of the algorithm from the master node."""
         if self._backend == "mpi":
-            self.rank, self.n_jobs, params = self._recv_params_mpi()
+            self.rank, self.n_workers, params = self._recv_params_mpi()
         else:
             raise NotImplementedError("Backend {} is not implemented"
                                       .format(self._backend))
@@ -793,9 +793,9 @@ class DICODWorker:
         comm = MPI.Comm.Get_parent()
 
         rank = comm.Get_rank()
-        n_jobs = comm.Get_size()
+        n_workers = comm.Get_size()
         params = comm.bcast(None, root=0)
-        return rank, n_jobs, params
+        return rank, n_workers, params
 
     def _send_message_mpi(self, msg, tag, i_worker, wait=False):
         if wait:

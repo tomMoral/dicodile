@@ -14,21 +14,22 @@ from .dicod import recv_cost, recv_sufficient_statistics
 
 
 class DistributedSparseEncoder:
-    def __init__(self, n_jobs, w_world='auto', hostfile=None, verbose=0):
+    def __init__(self, n_workers, w_world='auto', hostfile=None, verbose=0):
         # check the parameters
         if w_world != 'auto':
-            assert n_jobs % w_world == 0, (
-                "`w_world={}` should divide the number of jobs `n_jobs={}` "
-                "used.".format(w_world, n_jobs))
+            assert n_workers % w_world == 0, (
+                "`w_world={}` should divide the number of jobs `n_workers={}` "
+                "used.".format(w_world, n_workers))
 
         # Store the parameters
-        self.n_jobs = n_jobs
+        self.n_workers = n_workers
         self.w_world = w_world
         self.hostfile = hostfile
         self.verbose = verbose
 
         # Create the workers with MPI
-        self.comm = get_reusable_workers(self.n_jobs, hostfile=self.hostfile)
+        self.comm = get_reusable_workers(self.n_workers,
+                                         hostfile=self.hostfile)
         send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
                                          verbose=self.verbose)
 
@@ -88,7 +89,7 @@ class DistributedSparseEncoder:
                                          verbose=self.verbose)
         # Then wait for the end of the computation
         self.comm.Barrier()
-        return _gather_run_statistics(self.comm, self.n_jobs,
+        return _gather_run_statistics(self.comm, self.n_workers,
                                       verbose=self.verbose)
 
     def get_cost(self):

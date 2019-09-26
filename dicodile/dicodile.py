@@ -16,7 +16,7 @@ DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), timeout=None)
 
 def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
              n_seg='auto', tol=1e-1, dicod_kwargs={}, stopping_pobj=None,
-             w_world='auto', n_jobs=4, hostfile=None, eps=1e-5,
+             w_world='auto', n_workers=4, hostfile=None, eps=1e-5,
              raise_on_increase=True, random_state=None, name="DICODILE",
              verbose=0):
 
@@ -34,7 +34,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         debug=False
     ))
 
-    encoder = DistributedSparseEncoder(n_jobs, w_world=w_world,
+    encoder = DistributedSparseEncoder(n_workers, w_world=w_world,
                                        hostfile=hostfile, verbose=verbose)
     encoder.init_workers(X, D_hat, reg_, params)
 

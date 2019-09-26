@@ -16,8 +16,8 @@ N_WORKERS = 4
 @pytest.mark.filterwarnings("ignore", message="require different size")
 @pytest.mark.parametrize('signal_support, atom_support',
                          [((800,), (50,)), ((100, 100), (10, 8))])
-@pytest.mark.parametrize('n_jobs', [2, 6, N_WORKERS])
-def test_stopping_criterion(n_jobs, signal_support, atom_support):
+@pytest.mark.parametrize('n_workers', [2, 6, N_WORKERS])
+def test_stopping_criterion(n_workers, signal_support, atom_support):
     tol = 1
     reg = 1
     n_atoms = 10
@@ -30,7 +30,7 @@ def test_stopping_criterion(n_jobs, signal_support, atom_support):
     sum_axis = tuple(range(1, D.ndim))
     D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
 
-    z_hat, *_ = dicod(X, D, reg, tol=tol, n_jobs=n_jobs, verbose=VERBOSE)
+    z_hat, *_ = dicod(X, D, reg, tol=tol, n_workers=n_workers, verbose=VERBOSE)
 
     beta, dz_opt, _ = _init_beta(X, D, reg, z_i=z_hat)
     assert abs(dz_opt).max() < tol
@@ -53,7 +53,7 @@ def test_ztz(valid_support, atom_support):
     D = rng.randn(n_atoms, n_channels, *atom_support)
     D /= np.sqrt(np.sum(D * D, axis=(1, 2), keepdims=True))
 
-    z_hat, ztz, ztX, *_ = dicod(X, D, reg, tol=tol, n_jobs=N_WORKERS,
+    z_hat, ztz, ztX, *_ = dicod(X, D, reg, tol=tol, n_workers=N_WORKERS,
                                 return_ztz=True, verbose=VERBOSE)
 
     ztz_full = compute_ztz(z_hat, atom_support)
@@ -80,13 +80,13 @@ def test_warm_start(valid_support, atom_support, reg):
 
     X = reconstruct(z, D)
 
-    z_hat, *_ = dicod(X, D, reg=0, z0=z, tol=tol, n_jobs=N_WORKERS,
+    z_hat, *_ = dicod(X, D, reg=0, z0=z, tol=tol, n_workers=N_WORKERS,
                       max_iter=10000, verbose=VERBOSE)
     assert np.allclose(z_hat, z)
 
     X = rng.randn(*X.shape)
 
-    z_hat, *_ = dicod(X, D, reg, z0=z, tol=tol, n_jobs=N_WORKERS,
+    z_hat, *_ = dicod(X, D, reg, z0=z, tol=tol, n_workers=N_WORKERS,
                       max_iter=100000, verbose=VERBOSE)
     beta, dz_opt, _ = _init_beta(X, D, reg, z_i=z_hat)
     assert np.all(dz_opt <= tol)
@@ -112,11 +112,11 @@ def test_freeze_support(valid_support, atom_support):
 
     X = rng.randn(n_channels, *sig_support)
 
-    z_hat, *_ = dicod(X, D, reg, z0=0 * z, tol=tol, n_jobs=N_WORKERS,
+    z_hat, *_ = dicod(X, D, reg, z0=0 * z, tol=tol, n_workers=N_WORKERS,
                       max_iter=1000, freeze_support=True, verbose=VERBOSE)
     assert np.all(z_hat == 0)
 
-    z_hat, *_ = dicod(X, D, reg, z0=z, tol=tol, n_jobs=N_WORKERS,
+    z_hat, *_ = dicod(X, D, reg, z0=z, tol=tol, n_workers=N_WORKERS,
                       max_iter=1000, freeze_support=True, verbose=VERBOSE)
 
     assert np.all(z_hat[z == 0] == 0)
@@ -143,7 +143,7 @@ def test_cost(valid_support, atom_support):
 
     X = rng.randn(n_channels, *sig_support)
 
-    z_hat, *_, pobj, _ = dicod(X, D, reg, z0=z, tol=tol, n_jobs=N_WORKERS,
+    z_hat, *_, pobj, _ = dicod(X, D, reg, z0=z, tol=tol, n_workers=N_WORKERS,
                                max_iter=1000, freeze_support=True,
                                verbose=VERBOSE)
     cost = pobj[-1][2]
