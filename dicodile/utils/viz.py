@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.text as mpl_text
+import matplotlib.transforms as mpl_transforms
 
 from .csc import reconstruct
 
@@ -74,3 +76,55 @@ def median_curve(times, pobj):
             curve.append(value)
         curves.append(curve)
     return t, np.median(curves, axis=0)
+
+
+class RotationAwareAnnotation(mpl_text.Annotation):
+    """Text along a line that self adapt to rotation in the figure.
+
+    this class is derived from the SO answer:
+    https://stackoverflow.com/questions/19907140/keeps-text-rotated-in-data-coordinate-system-after-resizing#53111799
+
+    Parameters
+    ----------
+    text: str
+        Text to display on the figure
+    anchor_point: 2-tuple
+        Position of this text in the figure. The system of coordinates used to
+        translate this position is controlled by the parameter ``xycoords``.
+    next_point: 2-tuple
+        Another point of the curve to follow. The annotation will be written
+        along the line of slope dy/dx where dx = next_pt[0] - anchor_pt[0] and
+        dy = next_pt[1] - anchor_pt[1].
+    ax: Artiste or None
+        The Artiste in which the
+    **kwargs: dict
+        Key-word arguments for the Annotation. List of available kwargs:
+        https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.annotate.html
+    """
+    def __init__(self, text, anchor_pt, next_pt, ax=None, **kwargs):
+        # Get the Artiste to draw on
+        self.ax = ax or plt.gca()
+
+        # Save the anchor point
+        self.anchor_pt = np.array(anchor_pt)[None]
+
+        # Compute the slope of the text in data coordinate system.
+        dx = next_pt[0]-anchor_pt[0]
+        dy = next_pt[1]-anchor_pt[1]
+        ang = np.arctan2(dy, dx)
+        self.angle_data = np.rad2deg(ang)
+
+        # Create the text objects and display it
+        kwargs.update(rotation_mode=kwargs.get("rotation_mode", "anchor"))
+        super().__init__(text, anchor_pt, **kwargs)
+        self.set_transform(mpl_transforms.IdentityTransform())
+        self.ax._add_text(self)
+
+    def _get_rotation(self):
+        return self.ax.transData.transform_angles(
+            np.array((self.angle_data,)), self.anchor_pt)[0]
+
+    def _set_rotation(self, rotation):
+        pass
+
+    _rotation = property(_get_rotation, _set_rotation)
