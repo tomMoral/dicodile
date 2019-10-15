@@ -12,22 +12,30 @@ from collections import namedtuple
 from dicodile.update_z.dicod import dicod
 from dicodile.utils import check_random_state
 from dicodile.data.simulate import simulate_data
-from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.viz import RotationAwareAnnotation
 
 
 MAX_INT = 4294967295
-COLOR = ['C2', 'C1', 'C0']
+
+
+#################################################
+# Helper functions and constants for outputs
+#################################################
+
+# File names constants to save the results
 SAVE_DIR = Path("benchmarks_results")
 BASE_FILE_NAME = os.path.basename(__file__)
-SAVE_FILE_NAME = str(SAVE_DIR / BASE_FILE_NAME.replace('.py', '{}'))
-
-mem = Memory(location='.', verbose=0)
+SAVE_FILE_BASENAME = SAVE_DIR / BASE_FILE_NAME.replace('.py', '{}')
 
 
-###################################
-# Helper function for outputs
-###################################
+def get_save_file_name(ext='pkl', **kwargs):
+    file_name = str(SAVE_FILE_BASENAME).format("{suffix}.{ext}")
+    suffix = ""
+    for k, v in kwargs.items():
+        suffix += f"_{k}={str(v).replace('.', '-')}"
+
+    return file_name.format(suffix=suffix, ext=ext)
+
 
 # Constants for logging in console.
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(30, 38)
@@ -39,6 +47,17 @@ def colorify(message, color=BLUE):
     return ("\033[1;%dm" % color) + message + "\033[0m"
 
 
+###############################################
+# Helper function to cache computations
+# and make the benchmark robust to failures
+###############################################
+
+# Caching utility from joblib
+mem = Memory(location='.', verbose=0)
+
+# Cache this as it can be long for very large problems
+simulate_data = mem.cache(simulate_data)
+
 # Result item to create the DataFrame in a consistent way.
 ResultItem = namedtuple('ResultItem', [
     'n_workers', 'strategy', 'reg', 'n_times', 'tol', 'soft_lock',
@@ -46,36 +65,26 @@ ResultItem = namedtuple('ResultItem', [
     'n_updates', 't_select', 't_update'])
 
 
-###############################################
-# Helper function to cache computations
-# and make the benchmark robust to failures
-###############################################
-
 @mem.cache(ignore=['dicod_args'])
 def run_one(n_workers, strategy, reg, n_times, tol, soft_lock, dicod_args,
             n_times_atom, n_atoms, n_channels, noise_level, random_state):
 
-    tag = f"[{strategy} - {n_times} - {reg:.0e} - {random_state}]"
+    tag = f"[{strategy} - {n_times} - {reg:.0e} - {random_state[0]}]"
+    random_state = random_state[1]
 
+    # Generate a problem
     t_start_generation = time.time()
     print(colorify(f"{tag} Signal generation..."), end='', flush=True)
-    X, D_hat = simulate_data(n_times=n_times, n_times_atom=n_times_atom,
-                             n_atoms=n_atoms, n_channels=n_channels,
-                             noise_level=noise_level,
-                             random_state=random_state)
-    lmbd_max = get_lambda_max(X, D_hat)
+    X, D_hat, lmbd_max = simulate_data(
+        n_times=n_times, n_times_atom=n_times_atom, n_atoms=n_atoms,
+        n_channels=n_channels, noise_level=noise_level,
+        random_state=random_state)
     reg_ = reg * lmbd_max
     print(colorify(f"done ({time.time() - t_start_generation:.3f}s)."))
 
-    n_seg = 1
-    strategy_ = strategy
-    if strategy == 'lgcd':
-        n_seg = 'auto'
-        strategy_ = "greedy"
-
     *_, run_statistics = dicod(X, D_hat, reg_, n_workers=n_workers, tol=tol,
-                               strategy=strategy_, n_seg=n_seg,
-                               soft_lock=soft_lock, **dicod_args)
+                               strategy=strategy, soft_lock=soft_lock,
+                               **dicod_args)
     meta = dicod_args.copy()
     meta.update(n_atoms=n_atoms, n_times_atom=n_times_atom,
                 n_channels=n_channels, noise_level=noise_level)
@@ -96,7 +105,8 @@ def run_one(n_workers, strategy, reg, n_times, tol, soft_lock, dicod_args,
 
 def run_scaling_1d_benchmark(strategies, n_rep=1, max_workers=75, timeout=None,
                              soft_lock='none', list_n_times=[151, 750],
-                             list_reg=[2e-1, 5e-1], random_state=None):
+                             list_reg=[2e-1, 5e-1], random_state=None,
+                             collect=False):
     '''Run DICOD strategy for a certain problem with different value
     for n_workers and store the runtime in csv files if given a save_dir.
 
@@ -122,41 +132,66 @@ def run_scaling_1d_benchmark(strategies, n_rep=1, max_workers=75, timeout=None,
         Tolerance parameter used in DICOD.
     random_state: None or int or RandomState
         Seed for the random number generator.
+    collect: bool
+        If set to True, do not run any computation but only collect cached
+        results.
     '''
-    rng = check_random_state(random_state)
 
     # Parameters to generate the simulated problems
     n_times_atom = 250
     n_atoms = 25
     n_channels = 7
     noise_level = 1
+    rng = check_random_state(random_state)
 
     # Parameters for the algorithm
     tol = 1e-8
-    dicod_args = dict(timing=False, timeout=7200,
+    dicod_args = dict(timing=False, timeout=timeout,
                       max_iter=int(5e8), verbose=2)
 
     # Get the list of parameter to call
     list_n_workers = np.unique(np.logspace(0, np.log10(max_workers), 15,
                                dtype=int))
     list_n_workers = list_n_workers[::-1]
-    list_seeds = [rng.randint(MAX_INT) for _ in range(n_rep)]
+    list_seeds = rng.randint(MAX_INT, size=n_rep)
     strategies = [s[0] for s in strategies]
     list_args = itertools.product(list_n_workers, strategies, list_reg,
                                   list_n_times, list_seeds)
 
-    # Run the computation
-    results = [run_one(n_workers=n_workers, strategy=strategy, reg=reg,
-                       n_times=n_times, tol=tol, soft_lock=soft_lock,
-                       dicod_args=dicod_args, n_times_atom=n_times_atom,
-                       n_atoms=n_atoms, n_channels=n_channels,
-                       noise_level=noise_level, random_state=random_state)
-               for (n_workers, strategy, reg,
-                    n_times, random_state) in list_args]
+    common_args = dict(tol=tol, soft_lock=soft_lock, dicod_args=dicod_args,
+                       n_times_atom=n_times_atom, n_atoms=n_atoms,
+                       n_channels=n_channels, noise_level=noise_level)
+
+    results = []
+    done, total = 0, 0
+    for (n_workers, strategy, reg, n_times, random_state) in list_args:
+        total += 1
+        if collect:
+            # if this option is set, only collect the entries that have already
+            # been cached
+            func_id, args_id = run_one._get_output_identifiers(
+                n_workers=n_workers, strategy=strategy, reg=reg,
+                n_times=n_times, **common_args, random_state=random_state)
+            if not run_one.store_backend.contains_item((func_id, args_id)):
+                continue
+
+        done += 1
+        results.append(run_one(
+                n_workers=n_workers, strategy=strategy, reg=reg,
+                n_times=n_times, random_state=random_state, **common_args)
+        )
+        # results = [run_one(n_workers=n_workers, strategy=strategy, reg=reg,
+        #                    n_times=n_times, random_state=random_state,
+        #                    **common_args)
+        #            for (n_workers, strategy, reg,
+        #                 n_times, random_state) in list_args]
 
     # Save the results as a DataFrame
     results = pandas.DataFrame(results)
-    results.to_pickle(SAVE_FILE_NAME.format('.pkl'))
+    results.to_pickle(get_save_file_name(ext='pkl'))
+
+    if collect:
+        print(f"Script: {done / total:7.2%}")
 
 
 ###############################################
@@ -176,11 +211,11 @@ def plot_scaling_1d_benchmark():
         }
     }
 
-    full_df = pandas.read_pickle(SAVE_FILE_NAME.format('.pkl'))
+    full_df = pandas.read_pickle(get_save_file_name(ext='pkl'))
     for T in full_df.n_times.unique():
         T_df = full_df[full_df.n_times == T]
         for reg in T_df.reg.unique():
-            plt.figure(figsize=(6, 3))
+            plt.figure(figsize=(6, 3.5))
             ylim = 1e100, 0
             reg_df = T_df[T_df.reg == reg]
             for strategy in reg_df.strategy.unique():
@@ -195,20 +230,24 @@ def plot_scaling_1d_benchmark():
                            markersize=8)
 
                 # Plot scaling
-                t = np.linspace(df.n_workers.min(), df.n_workers.max())
+                min_workers = df.n_workers.min()
+                max_workers = df.n_workers.max()
+                t = np.logspace(np.log10(min_workers), np.log10(max_workers),
+                                6)
                 p = config[strategy].get('scaling', 1)
-                R0 = np.max(curve.runtime)
-                plt.plot(t, R0 / t ** p, 'k--')
+                R0 = curve.runtime.loc[min_workers]
+                scaling = lambda t: R0 / (t / min_workers) ** p  # noqa: E731
+                plt.plot(t, scaling(t), 'k--')
 
-                tt = 2
+                tt = t[1]
                 eps = 1e-10
                 text = "linear" if p == 1 else "quadratic"
-                anchor_pt = np.array([tt, R0 / tt**p])
-                next_pt = np.array([tt + eps, R0 / (tt + eps)**p])
+                anchor_pt = np.array([tt, scaling(tt)])
+                next_pt = np.array([tt + eps, scaling(tt + eps)])
 
                 RotationAwareAnnotation(
                     text, anchor_pt=anchor_pt, next_pt=next_pt,
-                    xytext=(0, -15), textcoords="offset points", fontsize=12,
+                    xytext=(0, -12), textcoords="offset points", fontsize=12,
                     horizontalalignment='center', verticalalignment='center')
 
             # Add a line on scale improvement limit
@@ -228,10 +267,11 @@ def plot_scaling_1d_benchmark():
             plt.ylabel("Runtime [sec]")
             plt.xlabel("# workers $W$")
             plt.legend()
+            # plt.tight_layout()
 
             # Save the figures
             suffix = f"_T={T}_reg={str(reg).replace('.', '-')}.pdf"
-            plt.savefig(SAVE_FILE_NAME.format(suffix), dpi=300,
+            plt.savefig(str(SAVE_FILE_BASENAME).format(suffix), dpi=300,
                         bbox_inches='tight', pad_inches=0)
     plt.close('all')
 
@@ -252,17 +292,21 @@ if __name__ == "__main__":
                         'average running time.')
     parser.add_argument('--max-workers', type=int, default=75,
                         help='Maximal number of workers used.')
+    parser.add_argument('--collect', action="store_true",
+                        help='Only output the cached results. Do not run more '
+                        'computations. This can be used while another process '
+                        'is computing the results.')
     args = parser.parse_args()
 
     random_state = 422742
 
     soft_lock = 'none'
     strategies = [
-        ('greedy', 'Greedy', 's-'),
+        ('gcd', 'Greedy', 's-'),
         # ('cyclic', 'Cyclic', "h-"),
         ('lgcd', "LGCD", 'o-')
     ]
-    list_reg = [2e-1, 5e-1]
+    list_reg = [1e-1, 2e-1, 5e-1]
     list_n_times = [201, 500, 1000]
 
     if args.plot:
@@ -271,4 +315,4 @@ if __name__ == "__main__":
         run_scaling_1d_benchmark(
             strategies, n_rep=args.n_rep, max_workers=args.max_workers,
             soft_lock=soft_lock, list_n_times=list_n_times, list_reg=list_reg,
-            random_state=random_state)
+            random_state=random_state, collect=args.collect)

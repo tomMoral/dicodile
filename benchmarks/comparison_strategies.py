@@ -19,7 +19,6 @@ from threadpoolctl import threadpool_limits
 from dicodile.update_z.dicod import dicod
 from dicodile.utils import check_random_state
 from dicodile.data.simulate import simulate_data
-from dicodile.utils.dictionary import get_lambda_max
 
 from dicodile.utils.plot_config import get_style
 
@@ -65,9 +64,9 @@ def run_one(n_times, n_times_atom, n_atoms, n_channels, noise_level,
     msg = f"\r{tag} started at T={current_time:.0f} sec"
     print(colorify(msg, BLUE))
 
-    X, D_hat = simulate_data(n_times, n_times_atom, n_atoms, n_channels,
-                             noise_level, random_state=random_state)
-    lmbd_max = get_lambda_max(X, D_hat)
+    X, D_hat, lmbd_max = simulate_data(
+        n_times, n_times_atom, n_atoms, n_channels, noise_level,
+        random_state=random_state)
     reg_ = reg * lmbd_max
 
     n_seg = 1
