@@ -46,7 +46,7 @@ class ParallelResourceBalance:
         results = []
 
         while self.load_balance(it_args):
-            res, n_workers, idx = self.out_queue.get()
+            idx, res, n_workers = self.out_queue.get()
             self.used_workers -= n_workers
             results.append((idx, res))
 
@@ -55,23 +55,23 @@ class ParallelResourceBalance:
             t.join()
 
         while not self.out_queue.empty():
-            res, n_workers, idx = self.out_queue.get()
+            idx, res, n_workers = self.out_queue.get()
             self.used_workers -= n_workers
             results.append((idx, res))
 
         return [res for _, res in sorted(results)]
 
-    def run_one(self, call_item, idx):
+    def run_one(self, idx, call_item):
         try:
             res = call_item()
         except Exception as e:
             import traceback
             traceback.print_exc()
             res = e
-        self.out_queue.put((res, call_item.n_workers, idx))
+        self.out_queue.put((idx, res, call_item.n_workers))
 
-    def start_in_thread(self, call_item, idx):
-        t = threading.Thread(target=self.run_one, args=(call_item, idx))
+    def start_in_thread(self, idx, call_item):
+        t = threading.Thread(target=self.run_one, args=(idx, call_item))
         t.start()
         self.running_threads.append(t)
 
@@ -82,7 +82,7 @@ class ParallelResourceBalance:
 
             idx, call_item = self.next_args
             while self.used_workers + call_item.n_workers <= self.max_workers:
-                self.start_in_thread(call_item, idx)
+                self.start_in_thread(idx, call_item)
                 self.used_workers += call_item.n_workers
                 self.next_args = idx, call_item = next(it_args)
             print(f"Using {self.used_workers} CPUs")

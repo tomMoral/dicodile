@@ -1,3 +1,3 @@
 from __future__ import absolute_import
 
-import sporco.dictlrn.dictlrn
+import benchmarks.other.sporco.dictlrn.dictlrn

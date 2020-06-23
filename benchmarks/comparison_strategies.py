@@ -168,7 +168,7 @@ def plot_comparison_strategies(strategies):
         in_name, in_list, label, unit = config['inner']
         for out in out_list:
             fig = plt.figure(f"comparison CD -- {out_name}={out}",
-                             figsize=(6, 3.5))
+                             figsize=(6, 3.15))
             ax_bar = fig.subplots()
             xticks, labels = [], []
             ylim = (1e10, 0)
@@ -192,15 +192,15 @@ def plot_comparison_strategies(strategies):
                     ax_bar.plot(np.ones_like(t_run) * position, t_run, 'k_')
                     ylim = (min(ylim[0], t_run.min()),
                             max(ylim[1], t_run.max()))
-            ax_bar.set_ylabel("Runtime [sec]")
+            ax_bar.set_ylabel("Runtime [sec]", fontsize=12)
             ax_bar.set_yscale('log')
             ax_bar.set_xticks(xticks)
-            ax_bar.set_xticklabels(labels, fontsize=18)
+            ax_bar.set_xticklabels(labels, fontsize=14)
             # ax_bar.set_ylim(ylim[0] / 5, 5 * ylim[1])
             ax_bar.set_ylim(.1, 1e5)
-            ax_bar.legend(bbox_to_anchor=(-.1, 1.1, 1., .3), loc="lower left",
+            ax_bar.legend(bbox_to_anchor=(0, 1.05, 1., .3), loc="lower left",
                           handles=handles, ncol=3, borderaxespad=0.,
-                          fontsize=16)
+                          fontsize=14)
             fig.tight_layout()
             out = str(out).replace('.', ',')
             for ext in ['png']:

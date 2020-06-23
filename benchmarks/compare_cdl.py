@@ -125,16 +125,16 @@ def plot_results():
         pp_w.append(pobjs_w)
         times = np.r_[.1, times[1:]]
         times_w = np.r_[.1, times_w[1:]]
-        plt.plot(times, (pobjs), 'C0', alpha=.3)
-        plt.plot(times_w, (pobjs_w[1:]), 'C1--', alpha=.3)
+        plt.semilogy(times_w, (pobjs_w[1:]), 'C0--', alpha=.3)
+        plt.semilogy(times, (pobjs), 'C1', alpha=.3)
     tt, pp = median_curve(tt, pp)
-    print(tt)
     tt_w, pp_w = median_curve(tt_w, pp_w)
-    plt.semilogy(tt_w, pp_w, 'C1', label='Skau et al. (2018)')
-    plt.semilogy(tt, pp, 'C0', label='DiCoDiLe')
+    plt.semilogy(tt_w, pp_w, 'C0', label='Skau et al. (2018)')
+    plt.semilogy(tt, pp, 'C1', label='DiCoDiLe')
     plt.legend(fontsize=14)
+    plt.yticks([1e3, 1e4], ["$10^3$", "$10^4$"])
     plt.xlabel("Time [sec]", fontsize=12)
-    plt.ylabel("$F(Z, D) / F(0, 0)$", fontsize=12)
+    plt.ylabel("Loss $F(Z, D)$", fontsize=12)
     plt.tight_layout()
     fig.savefig("benchmarks_results/compare_cdl.pdf", dpi=300,
                 bbox_inches='tight', pad_inches=0)

@@ -1,3 +1,3 @@
 from __future__ import absolute_import
 
-import sporco.fista.fista
+import benchmarks.other.sporco.fista.fista

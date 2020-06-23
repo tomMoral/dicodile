@@ -86,7 +86,10 @@ def run_one_scaling_2d(n_atoms, atom_support, reg, n_workers, strategy, tol,
         X, D, reg=reg_, strategy=strategy, n_workers=n_workers, tol=tol,
         **dicod_args)
 
+    runtime = run_statistics['runtime']
     sparsity = len(z_hat.nonzero()[0]) / z_hat.size
+    print(colorify('=' * 79 + f"\n{tag} End with {n_workers} workers for reg="
+                   f"{reg:.0e} in {runtime:.1e}\n" + "=" * 79, color=GREEN))
 
     return ResultItem(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
                       n_workers=n_workers, strategy=strategy, tol=tol,
@@ -115,14 +118,18 @@ def run_scaling_benchmark(max_n_workers, n_rep=1, random_state=None):
     # Generate the list of parameter to call
     reg_list = [5e-1, 2e-1, 1e-1]
     list_n_workers = np.unique(np.logspace(0, np.log10(256), 15, dtype=int))
-    list_strategies = ['lgcd']  # , 'gcd']
-    list_random_states = enumerate(rng.randint(MAX_INT, size=n_rep))
-    it_args = itertools.product(reg_list, list_n_workers, list_strategies,
-                                list_random_states)
-    assert list_n_workers.max() < max_n_workers, (
+    list_n_workers = [n if n != 172 else 169 for n in list_n_workers]
+    list_n_workers += [18*18, 20*20]
+    list_strategies = ['lgcd', 'gcd']
+    list_random_states = list(enumerate(rng.randint(MAX_INT, size=n_rep)))
+
+    assert np.max(list_n_workers) < max_n_workers, (
         f"This benchmark need to have more than {list_n_workers.max()} to run."
         f" max_n_workers was set to {max_n_workers}, which is too low."
     )
+
+    it_args = itertools.product(list_n_workers, reg_list, list_strategies,
+                                list_random_states)
 
     # run the benchmark
     run_one = delayed(run_one_scaling_2d)
@@ -130,7 +137,7 @@ def run_scaling_benchmark(max_n_workers, n_rep=1, random_state=None):
         run_one(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
                 n_workers=n_workers, strategy=strategy, tol=tol,
                 dicod_args=dicod_args, random_state=random_state)
-        for (reg, n_workers, strategy, random_state) in it_args)
+        for (n_workers, reg, strategy, random_state) in it_args)
 
     # Save the results as a DataFrame
     results = pandas.DataFrame(results)
@@ -155,25 +162,35 @@ def plot_scaling_benchmark():
     regs = df['reg'].unique()
     regs.sort()
     for reg, c in zip(regs, colors):
-        for strategy, style in [('Greedy', '--'), ('LGCD', '-')]:
+        for strategy, style in [('LGCD', '-'), ('GCD', '--')]:
             s = strategy.lower()
             this_df = df[(df.reg == reg) & (df.strategy == s)]
             curve = this_df.groupby('n_workers').runtime
             runtimes = curve.mean()
             runtime_std = curve.std()
 
+            print(runtimes.index.max())
             plt.fill_between(runtimes.index, runtimes - runtime_std,
                              runtimes + runtime_std, alpha=.1)
             plt.loglog(runtimes.index, runtimes, label=f"{strategy}_{reg:.2f}",
                        linestyle=style, c=c)
             color_handle = lines.Line2D(
-                [], [], linestyle='-', c=c, label=f"${reg:.2f}\\lambda_\\max$")
+                [], [], linestyle='-', c=c, label=f"${reg:.1f}\\lambda_\\max$")
             style_handle = lines.Line2D(
                 [], [], linestyle=style, c='k', label=f"{strategy}")
             handles_lmbd[reg] = color_handle
             handles_strategy[strategy] = style_handle
-    plt.xlim((1, 400))
-    # plt.ylim((1e1, 1e4))
+
+            # min_workers = this_df.n_workers.min()
+            # max_workers = this_df.n_workers.max()
+            # t = np.logspace(np.log10(min_workers), np.log10(max_workers),
+            #                 6)
+            # p = 1
+            # R0 = runtimes.loc[min_workers]
+            # scaling = lambda t: R0 / (t / min_workers) ** p  # noqa: E731
+            # plt.plot(t, scaling(t), 'k--')
+    plt.xlim((1, runtimes.index.max()))
+    plt.ylim((2e1, 2e4))
     # plt.xticks(n_workers, n_workers, fontsize=14)
     # plt.yticks(fontsize=14)
     # plt.minorticks_off(axis='y')
@@ -187,7 +204,7 @@ def plot_scaling_benchmark():
     # handles = [handles[k] for k in keys]
     legend_lmbd = plt.legend(handles=handles_lmbd.values(), loc=1,
                              fontsize=14)
-    plt.legend(handles=handles_strategy.values(), loc=3, fontsize=14)
+    plt.legend(handles=handles_strategy.values(), loc=3, ncol=2, fontsize=14)
     ax.add_artist(legend_lmbd)
     plt.tight_layout()
     plt.savefig(get_save_file_name(ext='pdf'), dpi=300,

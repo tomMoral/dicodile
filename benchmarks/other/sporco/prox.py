@@ -60,7 +60,7 @@ except ImportError:
 else:
     have_numexpr = True
 
-import sporco.linalg as sl
+import benchmarks.other.sporco.linalg as sl
 
 
 __author__ = """Brendt Wohlberg <brendt@ieee.org>"""

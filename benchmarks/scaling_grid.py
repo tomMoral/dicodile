@@ -127,16 +127,21 @@ def run_scaling_grid(n_rep=1, max_workers=225, random_state=None):
     # Generate the list of parameter to call
     reg_list = [5e-1, 2e-1, 1e-1]
     list_soft_lock = ['border']  # , 'corner']
+    list_grid = [True, False]
     list_n_workers = np.unique(np.logspace(0, np.log10(15), 20, dtype=int))**2
     list_random_states = enumerate(rng.randint(MAX_INT, size=n_rep))
 
-    it_args = itertools.product(reg_list, [True, False], list_n_workers,
+    # HACK
+    # list_grid = [False]
+    # list_n_workers = [25]
+
+    it_args = itertools.product(list_n_workers, reg_list, list_grid,
                                 list_soft_lock, list_random_states)
 
     # Filter out the arguments where the algorithm cannot run because there
     # is too many workers.
-    it_args = [args for args in it_args if args[1] or args[2] <= 36]
-    it_args = [args if args[1] or args[2] < 32 else (*args[:2], 32, *args[3:])
+    it_args = [args for args in it_args if args[2] or args[0] <= 36]
+    it_args = [args if args[2] or args[0] < 32 else (32, *args[1:])
                for args in it_args]
 
     # run the benchmark
@@ -145,7 +150,7 @@ def run_scaling_grid(n_rep=1, max_workers=225, random_state=None):
         run_one(n_atoms=n_atoms, atom_support=atom_support, reg=reg,
                 n_workers=n_workers, grid=grid, tol=tol, soft_lock=soft_lock,
                 dicod_args=dicod_args, random_state=random_state)
-        for (reg, grid, n_workers, soft_lock, random_state) in it_args)
+        for (n_workers, reg, grid, soft_lock, random_state) in it_args)
 
     # Save the results as a DataFrame
     results = pandas.DataFrame(results)
@@ -173,7 +178,7 @@ def plot_scaling_benchmark():
             plt.loglog(curve.index, curve, label=name)
 
         ylim = plt.ylim()
-        plt.vlines(512 / (8 * 2), *ylim, colors='g', linestyles='-.')
+        plt.vlines(512 / (8 * 4), *ylim, colors='g', linestyles='-.')
         plt.ylim(ylim)
         plt.legend(fontsize=14)
         # plt.xticks(n_workers, n_workers)
