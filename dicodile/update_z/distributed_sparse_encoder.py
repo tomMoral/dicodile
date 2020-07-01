@@ -7,6 +7,10 @@ from ..utils.csc import compute_objective
 from ..workers.reusable_workers import get_reusable_workers
 from ..workers.reusable_workers import send_command_to_reusable_workers
 
+from ..utils import debug_flags as flags
+from ..utils.debugs import main_check_beta
+from ..utils.shape_helpers import get_valid_support
+
 from .dicod import recv_z_hat, recv_z_nnz
 from .dicod import _gather_run_statistics
 from .dicod import _send_task, _send_D, _send_signal
@@ -27,12 +31,6 @@ class DistributedSparseEncoder:
         self.hostfile = hostfile
         self.verbose = verbose
 
-        # Create the workers with MPI
-        self.comm = get_reusable_workers(self.n_workers,
-                                         hostfile=self.hostfile)
-        send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
-                                         verbose=self.verbose)
-
     def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
 
         # compute the partition fo the signals
@@ -40,14 +38,34 @@ class DistributedSparseEncoder:
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
 
+        # compute effective n_workers to not have smaller worker support than
+        # 4 times the atom_support
+        valid_support = get_valid_support(sig_support, atom_support)
+        max_n_workers = np.prod(np.maximum(
+            1, np.array(valid_support) // (4 * np.array(atom_support))
+        ))
+        effective_n_workers = min(max_n_workers, self.n_workers)
+
+        # Create the workers with MPI
+        self.comm = get_reusable_workers(effective_n_workers,
+                                         hostfile=self.hostfile)
+        send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
+                                         verbose=self.verbose)
+
+        w_world = self.w_world
+        if self.w_world != 'auto' and self.w_world > effective_n_workers:
+            w_world = effective_n_workers
+
         self.params = params.copy()
         self.params['reg'] = reg
         self.params['precomputed_DtD'] = DtD is not None
+        self.params['verbose'] = self.verbose
 
         send_command_to_reusable_workers(constants.TAG_DICODILE_SET_TASK,
                                          verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.comm, X, D_hat, z0, DtD, self.w_world, self.params)
+            self.comm, X, D_hat, z0, DtD, w_world, self.params
+        )
 
     def set_worker_D(self, D, DtD=None):
         msg = "The support of the dictionary cannot be changed on an encoder."
@@ -87,9 +105,13 @@ class DistributedSparseEncoder:
     def process_z_hat(self):
         send_command_to_reusable_workers(constants.TAG_DICODILE_COMPUTE_Z_HAT,
                                          verbose=self.verbose)
+
+        if flags.CHECK_WARM_BETA:
+            main_check_beta(self.comm, self.workers_segments)
+
         # Then wait for the end of the computation
         self.comm.Barrier()
-        return _gather_run_statistics(self.comm, self.n_workers,
+        return _gather_run_statistics(self.comm, self.workers_segments,
                                       verbose=self.verbose)
 
     def get_cost(self):

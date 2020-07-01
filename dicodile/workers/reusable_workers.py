@@ -6,16 +6,15 @@ import os
 import sys
 import time
 import warnings
+import threading
 import numpy as np
 from mpi4py import MPI
-from multiprocessing import util
 
 from ..utils import constants
 from ..utils import debug_flags as flags
 
 # global worker communicator
-_n_workers = None
-_worker_comm = None
+thread_locals = threading.local()
 
 
 SYSTEM_HOSTFILE = os.environ.get("MPI_HOSTFILE", None)
@@ -26,42 +25,64 @@ INTERACTIVE_EXEC = "xterm"
 INTERACTIVE_ARGS = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
+class Workers:
+    def __init__(self, n_workers, hostfile):
+        self.comm = _spawn_workers(n_workers, hostfile)
+        self.n_workers = n_workers
+        self.hostfile = hostfile
+        self.shutdown = False
+
+    def __del__(self):
+
+        if not self.shutdown:
+            shutdown_reusable_workers(_workers=self)
+
+
 def get_reusable_workers(n_workers=4, hostfile=None):
 
-    global _worker_comm, _n_workers
-    if _worker_comm is None:
-        _n_workers = n_workers
-        _worker_comm = _spawn_workers(n_workers, hostfile)
-        util.Finalize(None, shutdown_reusable_workers, exitpriority=20)
+    global thread_locals
+    _workers = getattr(thread_locals, '_workers', None)
+    if _workers is None:
+        thread_locals._workers = Workers(n_workers, hostfile)
+        # util.Finalize(None, shutdown_reusable_workers, exitpriority=20)
     else:
-        if _n_workers != n_workers:
+        if _workers.n_workers != n_workers:
             warnings.warn("You should not require different size")
             shutdown_reusable_workers()
+            del _workers
+            time.sleep(.5)
             return get_reusable_workers(n_workers=n_workers, hostfile=hostfile)
 
-    return _worker_comm
+    return thread_locals._workers.comm
 
 
-def send_command_to_reusable_workers(tag, verbose=0):
-    global _worker_comm, _n_workers
+def send_command_to_reusable_workers(tag, _workers=None, verbose=0):
+    if _workers is None:
+        global thread_locals
+        _workers = thread_locals._workers
 
     msg = np.empty(1, dtype='i')
     msg[0] = tag
     t_start = time.time()
-    for i_worker in range(_n_workers):
-        _worker_comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
+    for i_worker in range(_workers.n_workers):
+        _workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
     if verbose > 5:
         print("Sent message {} in {:.3f}s".format(tag, time.time() - t_start))
 
 
-def shutdown_reusable_workers():
-    global _worker_comm, _n_workers
-    if _worker_comm is not None:
-        send_command_to_reusable_workers(constants.TAG_WORKER_STOP)
-        _worker_comm.Barrier()
-        _worker_comm.Disconnect()
-        _n_workers = None
-        _worker_comm = None
+def shutdown_reusable_workers(_workers=None):
+    if _workers is None:
+        global thread_locals
+        _workers = getattr(thread_locals, '_workers', None)
+        del thread_locals._workers
+
+    if _workers is not None:
+        send_command_to_reusable_workers(constants.TAG_WORKER_STOP,
+                                         _workers=_workers)
+        _workers.comm.Barrier()
+        _workers.comm.Disconnect()
+        MPI.COMM_SELF.Barrier()
+        _workers.shutdown = True
 
 
 def _spawn_workers(n_workers, hostfile=None):
@@ -83,14 +104,34 @@ def _spawn_workers(n_workers, hostfile=None):
     # Spawn the workers
     script_name = os.path.join(os.path.dirname(__file__),
                                "main_worker.py")
-    if flags.INTERACTIVE_PROCESSES:
-        comm = MPI.COMM_SELF.Spawn(
-            INTERACTIVE_EXEC, args=INTERACTIVE_ARGS + [script_name],
-            maxprocs=n_workers, info=info)
+    exception = None
 
+    MPI.COMM_SELF.Set_errhandler(MPI.ERRORS_RETURN)
+    for i in range(10):
+        MPI.COMM_SELF.Barrier()
+        try:
+            if flags.INTERACTIVE_PROCESSES:
+                comm = MPI.COMM_SELF.Spawn(
+                    INTERACTIVE_EXEC, args=INTERACTIVE_ARGS + [script_name],
+                    maxprocs=n_workers, info=info
+                )
+
+            else:
+                comm = MPI.COMM_SELF.Spawn(
+                    sys.executable,
+                    args=["-W", "error::RuntimeWarning", script_name],
+                    maxprocs=n_workers, info=info
+                )
+            break
+        except Exception as e:
+            print(i, "Exception")
+            if e.error_code == MPI.ERR_SPAWN:
+                time.sleep(10)
+                exception = e
+                continue
+            raise
     else:
-        comm = MPI.COMM_SELF.Spawn(sys.executable, args=[script_name],
-                                   maxprocs=n_workers, info=info)
+        raise exception
     comm.Barrier()
     duration = time.time() - t_start
     print("Started {} workers in {:.3}s".format(n_workers, duration))

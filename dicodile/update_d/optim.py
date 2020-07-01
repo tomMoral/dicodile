@@ -71,13 +71,13 @@ def fista(f_obj, f_grad, f_prox, step_size, x0, max_iter, verbose=0,
     grad = np.empty(x_hat.shape)
     diff = np.empty(x_hat.shape)
     last_up = t_start = time.time()
+    has_restarted = False
     for ii in range(max_iter):
         t_update = time.time()
         if verbose > 1 and t_update - last_up > 1:
             print("\r[PROGRESS:{}] {:.0f}s - {:7.2%} iterations ({:.3e})"
                   .format(name, t_update - t_start, ii / max_iter, step_size),
                   end="", flush=True)
-        has_restarted = False
 
         grad[:] = f_grad(x_hat_aux)
 
@@ -112,9 +112,11 @@ def fista(f_obj, f_grad, f_prox, step_size, x0, max_iter, verbose=0,
                 # We did not find a valid step size. We should restart
                 # the momentum for APGD or stop the algorithm for PDG.
                 x_hat_aux = x_hat
-                has_restarted = momentum
-                step_size = 1e-3
+                has_restarted = momentum and not has_restarted
+                step_size = 1
                 obj_uv = f_obj(x_hat)
+            else:
+                has_restarted = False
 
         else:
             x_hat_aux -= step_size * grad
@@ -142,7 +144,8 @@ def fista(f_obj, f_grad, f_prox, step_size, x0, max_iter, verbose=0,
             raise RuntimeError("The D update have diverged.")
     else:
         if verbose > 1:
-            print('\r[INFO:{}] update did not converge'.format(name))
+            print('\r[INFO:{}] update did not converge'
+                  .format(name).ljust(60))
     if verbose > 1:
         print('\r[INFO:{}]: {} iterations'.format(name, ii + 1))
 

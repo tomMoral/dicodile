@@ -4,8 +4,9 @@ import numpy as np
 
 from .optim import fista
 
-from .loss_and_gradient import compute_objective
 from .loss_and_gradient import gradient_d
+from ..utils.dictionary import tukey_window
+from .loss_and_gradient import compute_objective
 
 
 def prox_d(D, step_size=0, return_norm=False):
@@ -24,7 +25,7 @@ def prox_d(D, step_size=0, return_norm=False):
 
 
 def update_d(X, z, D_hat0, constants=None, step_size=None, max_iter=300,
-             eps=None, momentum=False, verbose=0):
+             eps=None, momentum=False, window=False, verbose=0):
     """Learn d's in time domain.
 
     Parameters
@@ -53,15 +54,32 @@ def update_d(X, z, D_hat0, constants=None, step_size=None, max_iter=300,
     n_trials, n_channels, *sig_support = X.shape
     n_atoms, n_channels, *atom_support = D_hat0.shape
 
+    if window:
+        tukey_window_ = tukey_window(atom_support)[None, None]
+        D_hat0 = D_hat0.copy()
+        D_hat0 /= tukey_window_
+
     def objective(D, full=False):
+        if window:
+            D = D.copy()
+            D *= tukey_window_
         return compute_objective(D=D, constants=constants)
 
     def grad(D):
+        if window:
+            D = D.copy()
+            D *= tukey_window_
         grad = gradient_d(D=D, X=X, z=z, constants=constants)
+        if window:
+            grad *= tukey_window_
         return grad
 
     def prox(D, step_size=0):
+        if window:
+            D *= tukey_window_
         D = prox_d(D)
+        if window:
+            D /= tukey_window_
         return D
 
     adaptive_step_size = True
@@ -71,5 +89,8 @@ def update_d(X, z, D_hat0, constants=None, step_size=None, max_iter=300,
         step_size=step_size, adaptive_step_size=adaptive_step_size,
         eps=eps, momentum=momentum, verbose=verbose, scipy_line_search=True,
         name="Update D")
+
+    if window:
+        D_hat *= tukey_window_
 
     return D_hat, step_size

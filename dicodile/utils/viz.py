@@ -116,6 +116,7 @@ class RotationAwareAnnotation(mpl_text.Annotation):
 
         # Create the text objects and display it
         kwargs.update(rotation_mode=kwargs.get("rotation_mode", "anchor"))
+        kwargs.update(annotation_clip=kwargs.get("annotation_clip", True))
         super().__init__(text, anchor_pt, **kwargs)
         self.set_transform(mpl_transforms.IdentityTransform())
         self.ax._add_text(self)

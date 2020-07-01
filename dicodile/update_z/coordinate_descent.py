@@ -479,6 +479,6 @@ def _check_convergence(segments, tol, iteration, dz_opt, n_coordinates,
     return not segments.exist_active_segment()
 
 
-# # Set the strategies in docstring
-# for f in [_check_convergence, _select_coordinate, coordinate_descent]:
-#     f.__doc__ = f.__doc__.format(strategies=STRATEGIES)
+# Set the strategies in docstring
+for f in [_check_convergence, _select_coordinate, coordinate_descent]:
+    f.__doc__ = f.__doc__.format(strategies=STRATEGIES)

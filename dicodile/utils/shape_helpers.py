@@ -15,6 +15,7 @@ def get_valid_support(sig_support, atom_support):
     ])
 
 
+# TODO: improve to find something that fits better the constraints
 def find_grid_size(n_workers, sig_support):
     """Given a signal support and a number of jobs, find a suitable grid shape
 

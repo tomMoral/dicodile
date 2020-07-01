@@ -11,10 +11,10 @@ from dicodile.utils.csc import reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils import constants as constants
+from dicodile.utils.debugs import worker_check_beta
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
-from dicodile.utils.debugs import worker_check_warm_beta
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
@@ -70,6 +70,7 @@ class DICODWorker:
                 random_state=rng, offset=offset)
 
         i_seg = -1
+        dz = 1
         n_coordinate_updates = 0
         accumulator = 0
         k0, pt0 = 0, None
@@ -89,7 +90,8 @@ class DICODWorker:
             deadline = None
         for ii in range(self.max_iter):
             # Display the progress of the algorithm
-            self.progress(ii, max_ii=self.max_iter, unit="iterations")
+            self.progress(ii, max_ii=self.max_iter, unit="iterations",
+                          extra_msg=abs(dz))
 
             # Process incoming messages
             self.process_messages()
@@ -122,13 +124,14 @@ class DICODWorker:
                     self.soft_lock != 'none'):
                 n_lock = 1 if self.soft_lock == "corner" else 0
                 lock_slices = self.workers_segments.get_touched_overlap_slices(
-                    self.rank, pt0, np.array(self.overlap) + 1)
+                    self.rank, pt0, np.array(self.overlap) + 1
+                )
                 # Only soft lock in the corners
                 if len(lock_slices) > n_lock:
-                    max_on_lock = 0
-                    for u_slice in lock_slices:
-                        max_on_lock = max(abs(self.dz_opt[u_slice]).max(),
-                                          max_on_lock)
+                    max_on_lock = max([
+                        abs(self.dz_opt[u_slice]).max()
+                        for u_slice in lock_slices
+                    ])
                     soft_locked = max_on_lock > abs(dz)
 
             # Update the selected coordinate and beta, only if the update is
@@ -208,11 +211,18 @@ class DICODWorker:
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
 
+        if flags.CHECK_FINAL_BETA:
+            worker_check_beta(self.rank, self.workers_segments, self.beta,
+                              self.D.shape)
+
+        t_select_coord = np.mean(t_select_coord)
+        t_update_coord = (np.mean(t_update_coord) if len(t_update_coord) > 0
+                          else None)
         self.return_run_statistics(ii=ii, t_run=t_run,
                                    n_coordinate_updates=n_coordinate_updates,
                                    runtime=runtime, t_local_init=t_local_init,
-                                   t_select_coord=np.mean(t_select_coord),
-                                   t_update_coord=np.mean(t_update_coord))
+                                   t_select_coord=t_select_coord,
+                                   t_update_coord=t_update_coord)
 
     def stop_before_convergence(self, msg, ii, n_coordinate_updates):
         self.info("{}. Done {} iterations ({} updates). Max of |dz|={}.",
@@ -240,6 +250,9 @@ class DICODWorker:
         # Avoid printing progress too often
         self._last_progress = 0
 
+        if self.warm_start and hasattr(self, 'z_hat'):
+            self.z0 = self.z_hat.copy()
+
         # Initialization of the auxillary variable for LGCD
         self.beta, self.dz_opt, self.dE = _init_beta(
             self.X_worker, self.D, self.reg, z_i=self.z0, constants=constants,
@@ -256,8 +269,8 @@ class DICODWorker:
             self.z_hat = np.zeros(self.beta.shape)
 
         if flags.CHECK_WARM_BETA:
-            worker_check_warm_beta(self.rank, self.workers_segments, self.beta,
-                                   self.D.shape)
+            worker_check_beta(self.rank, self.workers_segments, self.beta,
+                              self.D.shape)
 
         if self.freeze_support:
             assert self.z0 is not None
@@ -269,8 +282,8 @@ class DICODWorker:
         self.synchronize_workers(with_main=False)
 
         t_local_init = time.time() - t_start
-        self.info("End local initialization in {:.2f}s", t_local_init,
-                  global_msg=True)
+        self.debug("End local initialization in {:.2f}s", t_local_init,
+                   global_msg=True)
 
         self.info("Start DICOD with {} workers, strategy '{}', soft_lock"
                   "={} and n_seg={}({})", self.n_workers, self.strategy,
@@ -557,22 +570,26 @@ class DICODWorker:
     #     Display utilities
     ###########################################################################
 
-    def progress(self, ii, max_ii, unit):
+    def progress(self, ii, max_ii, unit, extra_msg=None):
         t_progress = time.time()
         if t_progress - self._last_progress < 1:
             return
+        if extra_msg is None:
+            extra_msg = ''
+        else:
+            extra_msg = f"({extra_msg})"
         self._last_progress = t_progress
-        self._log("{:.0f}s - progress : {:7.2%} {}",
-                  t_progress - self.t_start,
-                  ii / max_ii, unit, level=1, level_name="PROGRESS",
+        self._log("{:.0f}s - progress : {:7.2%} {} {}",
+                  t_progress - self.t_start, ii / max_ii, unit,
+                  extra_msg, level=1, level_name="PROGRESS",
                   global_msg=True, endline=False)
 
     def info(self, msg, *fmt_args, global_msg=False, **fmt_kwargs):
-        self._log(msg, *fmt_args, level=1, level_name="INFO",
+        self._log(msg, *fmt_args, level=2, level_name="INFO",
                   global_msg=global_msg, **fmt_kwargs)
 
     def debug(self, msg, *fmt_args, global_msg=False, **fmt_kwargs):
-        self._log(msg, *fmt_args, level=5, level_name="DEBUG",
+        self._log(msg, *fmt_args, level=10, level_name="DEBUG",
                   global_msg=global_msg, **fmt_kwargs)
 
     def _log(self, msg, *fmt_args, level=0, level_name="None",
@@ -589,7 +606,7 @@ class DICODWorker:
             if endline:
                 kwargs = {}
             else:
-                kwargs = {'end': '', 'flush': True}
+                kwargs = dict(end='', flush=True)
             msg_fmt = msg_fmt.ljust(80)
             print(msg_fmt.format(*fmt_args, identity=identity,
                                  level_name=level_name, **fmt_kwargs,),
@@ -630,6 +647,7 @@ class DICODWorker:
         self.soft_lock = params['soft_lock']
         self.z_positive = params['z_positive']
         self.return_ztz = params['return_ztz']
+        self.warm_start = params['warm_start']
         self.freeze_support = params['freeze_support']
         self.precomputed_DtD = params['precomputed_DtD']
 

@@ -28,5 +28,10 @@ GET_OVERLAP_Z_HAT = TESTING_DICOD
 
 
 # If set to True, check that the computed beta are consistent on neighbor
-# workers.
+# workers when initiated with z_0 != 0
 CHECK_WARM_BETA = TESTING_DICOD
+
+
+# If set to True, check that the computed beta are consistent on neighbor
+# workers at the end of the algorithm
+CHECK_FINAL_BETA = TESTING_DICOD

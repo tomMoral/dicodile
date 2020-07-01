@@ -375,13 +375,13 @@ class Segmentation:
             if start < start_inner:
                 assert start_inner <= end <= end_inner
                 updated_slices.append(
-                    pre_slice + (slice(start, start_inner),) +
-                    post_slice)
+                    pre_slice + (slice(start, start_inner),) + post_slice
+                )
             if end > end_inner:
                 assert start_inner <= start <= end_inner
                 updated_slices.append(
-                    pre_slice + (slice(end_inner, end),) +
-                    post_slice)
+                    pre_slice + (slice(end_inner, end),) + post_slice
+                )
             pre_slice = pre_slice + (slice(start, end),)
             post_slice = post_slice[1:]
 

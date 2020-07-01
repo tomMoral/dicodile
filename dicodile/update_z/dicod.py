@@ -7,11 +7,11 @@ import time
 import logging
 import numpy as np
 from mpi4py import MPI
-from warnings import warn
 
 from ..utils import constants
 from ..utils import debug_flags as flags
 from ..utils.csc import compute_objective
+from ..utils.debugs import main_check_beta
 from .coordinate_descent import STRATEGIES
 from ..utils.segmentation import Segmentation
 from .coordinate_descent import coordinate_descent
@@ -33,8 +33,8 @@ interactive_args = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
           soft_lock='border', n_workers=1, w_world='auto', hostfile=None,
           tol=1e-5, max_iter=100000, timeout=None, z_positive=False,
-          return_ztz=False, freeze_support=False, timing=False,
-          random_state=None, verbose=0, debug=False):
+          return_ztz=False, warm_start=False, freeze_support=False,
+          timing=False, random_state=None, verbose=0, debug=False):
     """DICOD for 2D convolutional sparse coding.
 
     Parameters
@@ -55,7 +55,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     strategy : str in {}
         Coordinate selection scheme for the coordinate descent. If set to
         'greedy', the coordinate with the largest value for dz_opt is selected.
-        If set to 'random, the coordinate is chosen uniformly on the segment.
+        If set to 'random', the coordinate is chosen uniformly on the segment.
     soft_lock : str in {{ 'none', 'corner', 'border' }}
         If set to true, use the soft-lock in LGCD.
     n_workers : int
@@ -77,6 +77,8 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         If set to true, the activations are constrained to be positive.
     return_ztz : boolean
         If True, returns the constants ztz and ztX, used to compute D-updates.
+    warm_start : boolean
+        If set to True, start from the previous solution z_hat if it exists.
     freeze_support : boolean
         If set to True, only update the coefficient that are non-zero in z0.
     timing : boolean
@@ -93,9 +95,11 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     """
     if strategy == 'lgcd':
         strategy = 'greedy'
-        if n_seg == 1:
-            warn("Falling back to the greedy strategy with strategy='lgcd' "
-                 "and n_seg=1.")
+        assert n_seg == 'auto', "strategy='lgcd' only work with n_seg='auto'."
+    elif strategy == 'gcd':
+        strategy = 'greedy'
+        assert n_seg == 'auto', "strategy='gcd' only work with n_seg='auto'."
+        n_seg = 1
 
     # Parameters validation
     n_channels, *sig_support = X_i.shape
@@ -118,7 +122,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
         soft_lock=soft_lock, precomputed_DtD=DtD is not None,
-        freeze_support=freeze_support
+        freeze_support=freeze_support, warm_start=warm_start
     )
 
     comm = _spawn_workers(n_workers, hostfile)
@@ -126,8 +130,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
                                                params)
 
     if flags.CHECK_WARM_BETA:
-        from ..utils.debugs import main_check_warm_beta
-        main_check_warm_beta(comm, workers_segments)
+        main_check_beta(comm, workers_segments)
 
     if verbose > 0:
         print('\r[INFO:DICOD-{}] End transfert - {:.4}s'
@@ -136,7 +139,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     # Wait for the result computation
     comm.Barrier()
     run_statistics = _gather_run_statistics(
-        comm, n_workers, verbose=verbose)
+        comm, workers_segments, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
         comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
@@ -252,7 +255,9 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
     msg = ("The size of the support in each worker is smaller than twice the "
            "size of the atom support. The algorithm is does not converge in "
            "this condition. Reduce the number of cores.")
-    assert all(np.array(worker_support) >= 2 * np.array(atom_support)), msg
+    assert all(
+        (np.array(worker_support) >= 2 * np.array(atom_support))
+        | (np.array(X_info['workers_topology']) == 1)), msg
 
     # Broadcast the info about this signal to the
     comm.bcast(X_info, root=MPI.ROOT)
@@ -280,16 +285,23 @@ def _send_array(comm, dest, arr):
               dest=dest, tag=constants.TAG_ROOT + dest)
 
 
-def _gather_run_statistics(comm, n_workers, verbose=0):
-    stats = comm.gather(None, root=MPI.ROOT)
-    iterations, n_coordinate_updates = np.sum(stats, axis=0)[:2]
-    runtime, t_local_init, t_run = np.max(stats, axis=0)[2:5]
-    t_select, t_update = np.mean(stats, axis=0)[-2:]
-    if verbose > 0:
+def _gather_run_statistics(comm, workers_segments, verbose=0):
+    n_workers = workers_segments.effective_n_seg
+
+    if flags.CHECK_FINAL_BETA:
+        main_check_beta(comm, workers_segments)
+
+    stats = np.array(comm.gather(None, root=MPI.ROOT))
+    iterations, n_coordinate_updates = np.sum(stats[:, :2], axis=0)
+    runtime, t_local_init, t_run = np.max(stats[:, 2:5], axis=0)
+    t_select = np.mean(stats[:, -2], axis=0)
+    t_update = np.mean([s for s in stats[:, -1] if s is not None])
+    if verbose > 1:
         print("\r[INFO:DICOD-{}] converged in {:.3f}s ({:.3f}s) with "
               "{:.0f} iterations ({:.0f} updates).".format(
                   n_workers, runtime, t_run, iterations, n_coordinate_updates))
-        print(f"\r[INFO:DICOD-{n_workers}] t_select={t_select:.3e}s "
+    if verbose > 5:
+        print(f"\r[DEBUG:DICOD-{n_workers}] t_select={t_select:.3e}s "
               f"t_update={t_update:.3e}s")
     run_statistics = dict(
         iterations=iterations, runtime=runtime, t_init=t_local_init,
