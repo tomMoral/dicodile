@@ -1,9 +1,15 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
+
+packages = ['dicodile',
+            'dicodile.workers',
+            'dicodile.utils',
+            'dicodile.update_z',
+            'dicodile.data']
 
 setup(name='dicodile',
       version='0.1.dev0',
-      packages=find_packages(),
+      packages=packages,
       install_requires=[
           'numpy',
           'numba',
