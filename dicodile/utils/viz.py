@@ -50,13 +50,114 @@ def plot_atom_and_coefs(D_hat, z_hat, prefix):
                 bbox_inches='tight', pad_inches=0)
 
 
+def display_atom(atom, ax=None, style=None):
+    """Display one atom in 1D/2D with the correct formating.
+
+    * For 1D atom, plot all the signals of all channels.
+    * For 2D atom, show the image with the correct cmap for
+      grayscale image with only 1 channel.
+
+    Parameters
+    ----------
+    atom: ndarray, shape (n_channels, *atom_support)
+        Atom to display. This should be a 1D or 2D multivariate atom.
+    ax: mpl.Axes or None
+        Matplotlib axe to plot the atom.
+    style: dict or None
+        Style info for the atom. Can include color, linestyle, linewidth, ...
+    """
+    if style is None:
+        style = {}
+    if ax is None:
+        fig, ax = plt.subplots(111)
+
+    if atom.ndim == 2:
+        ax.plot(atom.T, **style)
+    elif atom.ndim == 3:
+        cmap = 'gray' if atom.shape[0] == 1 else None
+        atom = np.rollaxis(atom, axis=0, start=3).squeeze()
+        ax.imshow(atom, cmap=cmap)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set(**style)
+    else:
+        raise ValueError(
+            'display_atom utility can only be used for multivariate atoms in '
+            f'1D or 2D. Got atom with shape {atom.shape}'
+        )
+
+
+def display_dictionaries(*list_D, styles=None, axes=None, filename=None):
+    """Display utility for dictionaries
+
+    Parameters
+    ----------
+    list_D: List of ndarray, shape (n_atoms, n_channels, *atom_support)
+        Dictionaries to display in the figure.
+    styles: Dict of style or None
+        Style to display an atom
+
+    """
+    n_dict = len(list_D)
+    D_0 = list_D[0]
+
+    if styles is None and n_dict > 1:
+        styles = [dict(color=f'C{i}') for i in range(n_dict)]
+
+    # compute layout
+    n_atoms = D_0.shape[0]
+    n_cols = max(4, int(np.sqrt(n_atoms)))
+    n_rows = int(np.ceil(n_atoms / n_cols))
+
+    if axes is None:
+        fig, axes = plt.subplots(ncols=n_cols, nrows=n_dict * n_rows,
+                                 squeeze=False)
+    else:
+        assert axes.shape >= (n_rows*n_dict, n_cols), (
+            f"axes argument should have at least shape ({n_rows*n_dict}, "
+            f"{n_cols}). Got {axes.shape}."
+        )
+        fig = axes[0, 0].get_figure()
+
+    used_axes = 0
+    for id_ax, D in enumerate(zip(*list_D)):
+        used_axes += 1
+        i, j = np.unravel_index(id_ax, (n_rows, n_cols))
+        for k, (dk, style) in enumerate(zip(D, styles)):
+            ik = n_dict * i + k
+            ax = axes[ik, j]
+            display_atom(dk, ax=ax, style=style)
+
+    # hide the unused axis
+    for id_ax in range(used_axes, n_cols * n_rows):
+        i, j = np.unravel_index(id_ax, (n_rows, n_cols))
+        for k in range(n_dict):
+            ik = n_dict * i + k
+            axes[ik, j].set_axis_off()
+
+    if filename is not None:
+        fig.savefig(f'{filename}.pdf', dpi=300)
+
+    return fig
+
+
 def median_curve(times, pobj):
     """Compute the Median curve, given a list of curves and their timing.
 
+    Parameters
+    ----------
     times : list of list
         Time point associated to pobj
     pobj : list of list
         Value of the cost function at a given time.
+
+    Returns
+    -------
+    t: ndarray, shape (100,)
+        Time points for the curve
+    median_curve: ndarray, shape (100)
+        Median value for the curves
     """
     T = np.max([np.max(tt) for tt in times])
     # t = np.linspace(0, T, 100)
