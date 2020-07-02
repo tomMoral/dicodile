@@ -1,0 +1,22 @@
+name: dicodile
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - cython
+  - numba
+  - matplotlib
+  - scipy
+  - joblib
+  - pandas
+  - ipython
+  - pytest
+  - pip
+  - scikit-learn
+  - python-spams
+  - mpi4py
+  - pip:
+    - git+https://github.com/dask/dask-jobqueue.git
+    - threadpoolctl
+    - -e .
+
