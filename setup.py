@@ -4,6 +4,7 @@ from setuptools import setup
 packages = ['dicodile',
             'dicodile.workers',
             'dicodile.utils',
+            'dicodile.update_d',
             'dicodile.update_z',
             'dicodile.data']
 
