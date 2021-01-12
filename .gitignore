@@ -24,3 +24,8 @@ hostfile
 # Coverage
 coverage.xml
 .coverage
+
+# Sphinx
+_build
+generated
+auto_examples
