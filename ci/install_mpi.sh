@@ -5,7 +5,7 @@ case "$MPI_INSTALL" in
     "conda")
         conda install -y openmpi;;
     "system")
-        sudo apt-get install -qy openmpi-bin;;
+        sudo apt-get install -qy libopenmpi-dev openmpi-bin;;
     *)
         false;;
 esac
