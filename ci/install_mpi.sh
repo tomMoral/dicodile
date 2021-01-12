@@ -3,7 +3,7 @@ set -euo pipefail
 
 case "$MPI_INSTALL" in
     "conda")
-        conda install -y openmpi openmpi-mpicc;;
+        conda install -y openmpi mpi4py;;
     "system")
         sudo apt-get install -qy libopenmpi-dev openmpi-bin;;
     *)
