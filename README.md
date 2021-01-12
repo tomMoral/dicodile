@@ -1,4 +1,4 @@
-![Build Status](https://github.com/tomMoral/dicodile/workflows/.github/workflows/unittests.yml/badge.svg)
+![Build Status](https://github.com/tomMoral/dicodile/workflows/unittests/badge.svg)
 
 This package is still under development. If you have any trouble running this code, please contact <thomas.moreau.2010@gmail.com>
 
