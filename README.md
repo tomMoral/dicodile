@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tomMoral/dicodile.svg?branch=master)](https://travis-ci.org/tomMoral/dicodile)
+![Build Status](https://github.com/tomMoral/dicodile/workflows/.github/workflows/unittests.yml/badge.svg)
 
 This package is still under development. If you have any trouble running this code, please contact <thomas.moreau.2010@gmail.com>
 
