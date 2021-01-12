@@ -1,6 +1,8 @@
 name: unittests
 on:
-  - push
+  - push:
+     branches:
+        - 'main'
   - pull_request
 
 jobs:
