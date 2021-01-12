@@ -9,6 +9,9 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+    strategy:
+      matrix:
+        mpi_install: [system, conda]
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
@@ -17,7 +20,10 @@ jobs:
           channels: conda-forge
       - run: conda --version
       - run: which python
-      - run: conda install openmpi pytest mpi4py pytest-env
+      - run: ./ci/install_mpi.sh
+        env:
+          MPI_INSTALL: ${{ matrix.mpi_install }}
+      - run: pip install pytest pytest-env
       - run: pip install -e .
       - run: echo "localhost slots=16">hostfile
       - run: pytest
