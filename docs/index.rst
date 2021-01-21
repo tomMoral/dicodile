@@ -1,11 +1,14 @@
 .. include:: ../README.rst
 
-Welcome to dicodile's documentation!
-====================================
+
+Contents
+========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+	:maxdepth: 2
+
+	api
+	Fork dicodile on Github <https://github.com/tomMoral/dicodile>
 
 
 Indices and tables

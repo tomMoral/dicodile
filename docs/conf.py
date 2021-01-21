@@ -28,6 +28,12 @@ author = 'Inria'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    # extension to pull docstrings from modules to document
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    # to generate automatic links to the documentation of objects in other projects
+    'sphinx.ext.intersphinx',
+    'numpydoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -39,12 +45,22 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
+# generate autosummary even if no references
+autosummary_generate = True
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
 html_theme = 'alabaster'
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://numpy.org/devdocs', None),
+    'scipy': ('https://scipy.github.io/devdocs', None),
+    'matplotlib': ('https://matplotlib.org', None),
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
