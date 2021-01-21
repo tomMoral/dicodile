@@ -1,4 +1,5 @@
 ![Build Status](https://github.com/tomMoral/dicodile/workflows/unittests/badge.svg)
+[![codecov](https://codecov.io/gh/tomMoral/dicodile/branch/master/graph/badge.svg)](https://codecov.io/gh/tomMoral/dicodile)
 
 This package is still under development. If you have any trouble running this code, please contact <thomas.moreau.2010@gmail.com>
 
