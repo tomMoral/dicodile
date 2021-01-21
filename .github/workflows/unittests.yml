@@ -31,7 +31,6 @@ jobs:
           MPI_INSTALL: ${{ matrix.mpi_install }}
       - name: Run unit tests
         run: |
-          pip install pytest pytest-env
           pip install -e .[test]
           echo "localhost slots=16">hostfile
           pytest --cov-report=xml --cov=dicodile
