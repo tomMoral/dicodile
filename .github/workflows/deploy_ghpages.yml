@@ -1,13 +1,10 @@
 name: Deploy GitHub pages
 
-on:
-  push:
-    branches:
-      - main
-      - sphinx_gh_pages
+on: [push, pull_request]
+
 
 jobs:
-  build:
+  build_docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -17,6 +14,19 @@ jobs:
           docs-folder: "docs/"
       - name:  Upload generated HTML as artifact
         uses: actions/upload-artifact@v2
+        with:
+          name: DocHTML
+          path: docs/_build/html/
+
+  deploy_docs:
+    if: github.ref == 'refs/heads/main'
+    needs:
+      build_docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@master
         with:
           name: DocHTML
           path: docs/_build/html/
