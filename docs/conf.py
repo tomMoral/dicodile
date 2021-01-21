@@ -34,6 +34,7 @@ extensions = [
     # to generate automatic links to the documentation of objects in other projects
     'sphinx.ext.intersphinx',
     'numpydoc',
+    'sphinx_gallery.gen_gallery',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -61,10 +62,16 @@ html_theme_options = {
     'source_link_position': "",
     'navbar_class': "navbar navbar-inverse",
     'navbar_links': [
+        ("Examples", "auto_examples/index"),
         ("API", "api"),
         ("GitHub", "https://github.com/tomMoral/dicodile", True)
     ],
     'bootswatch_theme': "united"
+}
+
+sphinx_gallery_conf = {
+    'examples_dirs': '../examples',
+    'gallery_dirs': 'auto_examples',
 }
 
 intersphinx_mapping = {
