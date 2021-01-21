@@ -2,8 +2,7 @@ name: unittests
 on:
   push:
   pull_request:
-     branches:
-        - 'main'
+     branches: [ $default-branch ]
   
 
 jobs:
