@@ -13,7 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-
+import sphinx_bootstrap_theme
 
 # -- Project information -----------------------------------------------------
 
@@ -53,7 +53,19 @@ autosummary_generate = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'bootstrap'
+
+html_theme_options = {
+    'navbar_sidebarrel': False,
+    'navbar_pagenav': False,
+    'source_link_position': "",
+    'navbar_class': "navbar navbar-inverse",
+    'navbar_links': [
+        ("API", "api"),
+        ("GitHub", "https://github.com/tomMoral/dicodile", True)
+    ],
+    'bootswatch_theme': "united"
+}
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
