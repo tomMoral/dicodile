@@ -22,12 +22,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           channels: conda-forge
+      - uses: codecov/codecov-action@v1
+        with:
+          flags: unittests 
+          fail_ci_if_error: true 
       - run: conda --version
       - run: which python
       - run: ./ci/install_mpi.sh
         env:
           MPI_INSTALL: ${{ matrix.mpi_install }}
       - run: pip install pytest pytest-env
-      - run: pip install -e .
+      - run: pip install -e .[test]
       - run: echo "localhost slots=16">hostfile
-      - run: pytest
+      - run: pytest --cov-report=xml --cov=dicodile
