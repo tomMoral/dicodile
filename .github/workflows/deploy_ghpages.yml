@@ -12,6 +12,7 @@ jobs:
         uses: ammaraskar/sphinx-action@master
         with:
           docs-folder: "docs/"
+          pre-build-command: pip install -e .[doc]
       - name:  Upload generated HTML as artifact
         uses: actions/upload-artifact@v2
         with:
