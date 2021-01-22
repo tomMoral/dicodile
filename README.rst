@@ -1,4 +1,4 @@
-|Build Status|
+|Build Status| |codecov|
 
 This package is still under development. If you have any trouble running this code, please contact thomas.moreau.2010@gmail.com
 
@@ -24,5 +24,6 @@ All experiments are with ``mpi4py`` and will try to spawned workers depending on
 
 All figures can be generated using scripts in ``benchmarks``. Each script will generate and save the data to reproduce the figure. The figure can then be plotted by re-running the same script with the argument ``--plot``. The figures are saved in pdf in the ``benchmarks_results`` folder. The computation are cached with ``joblib`` to be robust to failures.
 
-.. |Build Status| image:: https://travis-ci.org/tomMoral/dicodile.svg?branch=master
-   :target: https://travis-ci.org/tomMoral/dicodile
+.. |Build Status| image:: https://github.com/tomMoral/dicodile/workflows/unittests/badge.svg
+.. |codecov| image:: https://codecov.io/gh/tomMoral/dicodile/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/tomMoral/dicodile
