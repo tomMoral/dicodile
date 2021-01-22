@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from joblib import Memory
 
 
-from dicodile import dicod
+from dicodile.update_z.dicod import dicod
 from dicodile.data.images import get_mandril
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.dictionary import get_lambda_max
