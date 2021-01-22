@@ -1,9 +1,5 @@
 name: unittests
-on:
-  push:
-  pull_request:
-     branches: [ $default-branch ]
-  
+on: [push, pull_request]
 
 jobs:
   test:
