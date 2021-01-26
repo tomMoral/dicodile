@@ -24,10 +24,10 @@ def test_default_home(monkeypatch):
 
 def test_dicodile_home_has_priority_over_xdg_data_home(monkeypatch):
     _set_env(monkeypatch, {
-        "DICODILE_DATA_HOME":  None,
-        "XDG_DATA_HOME": None
+        "DICODILE_DATA_HOME": "/home/unittest/dicodile",
+        "XDG_DATA_HOME": "/home/unittest/data"
     })  
-    assert(get_data_home() == Path.home() / "data" / "dicodile")
+    assert(get_data_home() == Path("/home/unittest/dicodile/dicodile"))
 
 def _set_env(monkeypatch, d):
     for k,v in d.items():
