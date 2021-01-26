@@ -8,7 +8,7 @@ from .home import DATA_HOME
 
 def get_mandril():
 
-    mandril_dir = pathlib.Path(DATA_HOME) / "images" / "standard_images"
+    mandril_dir = DATA_HOME / "images" / "standard_images"
     mandril_dir.mkdir(parents=True, exist_ok=True)
     mandril = download("http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03", mandril_dir / "mandril_color.tif")
 
