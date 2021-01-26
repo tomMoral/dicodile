@@ -10,7 +10,10 @@ def get_mandril():
 
     mandril_dir = DATA_HOME / "images" / "standard_images"
     mandril_dir.mkdir(parents=True, exist_ok=True)
-    mandril = download("http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03", mandril_dir / "mandril_color.tif")
+    mandril = download(
+        "http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03",
+        mandril_dir / "mandril_color.tif"
+    )
 
     X = plt.imread(mandril) / 255
     return X.swapaxes(0, 2)
