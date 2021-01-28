@@ -18,6 +18,7 @@ setup(name='dicodile',
           'matplotlib',
           'mpi4py',
           'threadpoolctl',
-          'joblib'
+          'joblib',
+          'download'
       ],
       )
