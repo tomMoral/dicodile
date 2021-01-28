@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     run_args = (n_atoms, atom_support, reg, tol, n_workers, random_state)
     if args.no_cache:
-        X_hat, pobj = run_without_soft_lock.call(*run_args)
+        X_hat, pobj = run_without_soft_lock.call(*run_args)[0]
     else:
         X_hat, pobj = run_without_soft_lock(*run_args)
 
