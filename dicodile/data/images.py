@@ -23,7 +23,7 @@ def get_hubble(size="Medium"):
 
     image_path = f"images/hubble/STScI-H-2016-39-a-{size}.jpg"
 
-    image_path = os.path.join(DATA_HOME, image_path)
+    image_path = DATA_HOME / image_path
 
     PIL.Image.MAX_IMAGE_PIXELS = 617967525
     X = plt.imread(image_path)
