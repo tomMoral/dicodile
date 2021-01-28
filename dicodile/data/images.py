@@ -1,4 +1,3 @@
-import os
 import pathlib
 import PIL
 import matplotlib.pyplot as plt
