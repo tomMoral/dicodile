@@ -1,3 +1,11 @@
+"""
+===================================================
+Reconstruction of the image Mandrill using DiCoDile
+===================================================
+This example illlustrates...
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from joblib import Memory
@@ -16,7 +24,7 @@ mem = Memory(location='.')
 
 @mem.cache
 def run(n_atoms=25, atom_support=(12, 12), reg=.01,
-                          tol=5e-2, n_workers=100, random_state=60):
+        tol=5e-2, n_workers=100, random_state=60):
     rng = np.random.RandomState(random_state)
 
     X = get_mandril()
@@ -51,7 +59,7 @@ if __name__ == "__main__":
     w_world = 7
     n_workers = w_world * w_world
     random_state = 60
-    atom_support = (16, 16)
+    atom_support = (4, 4)
 
     run_args = (n_atoms, atom_support, reg, tol, n_workers, random_state)
     if args.no_cache:
