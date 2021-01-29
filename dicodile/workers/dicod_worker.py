@@ -200,29 +200,32 @@ class DICODWorker:
 
             # Check is we reach the timeout
             if deadline is not None and time.time() >= deadline:
-                self.stop_before_convergence("Reached timeout",
-                                             ii + 1, n_coordinate_updates)
+                self.stop_before_convergence(
+                    "Reached timeout", ii + 1, n_coordinate_updates
+                )
                 break
         else:
-            self.stop_before_convergence("Reached max_iter",
-                                         ii + 1, n_coordinate_updates)
+            self.stop_before_convergence(
+                "Reached max_iter", ii + 1, n_coordinate_updates
+            )
 
         self.synchronize_workers(with_main=True)
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
 
         if flags.CHECK_FINAL_BETA:
-            worker_check_beta(self.rank, self.workers_segments, self.beta,
-                              self.D.shape)
+            worker_check_beta(
+                self.rank, self.workers_segments, self.beta, self.D.shape
+            )
 
         t_select_coord = np.mean(t_select_coord)
         t_update_coord = (np.mean(t_update_coord) if len(t_update_coord) > 0
                           else None)
-        self.return_run_statistics(ii=ii, t_run=t_run,
-                                   n_coordinate_updates=n_coordinate_updates,
-                                   runtime=runtime, t_local_init=t_local_init,
-                                   t_select_coord=t_select_coord,
-                                   t_update_coord=t_update_coord)
+        self.return_run_statistics(
+            ii=ii, t_run=t_run, n_coordinate_updates=n_coordinate_updates,
+            runtime=runtime, t_local_init=t_local_init,
+            t_select_coord=t_select_coord, t_update_coord=t_update_coord
+        )
 
     def stop_before_convergence(self, msg, ii, n_coordinate_updates):
         self.info("{}. Done {} iterations ({} updates). Max of |dz|={}.",
@@ -256,7 +259,8 @@ class DICODWorker:
         # Initialization of the auxillary variable for LGCD
         self.beta, self.dz_opt, self.dE = _init_beta(
             self.X_worker, self.D, self.reg, z_i=self.z0, constants=constants,
-            z_positive=self.z_positive, return_dE=self.strategy == "gs-q")
+            z_positive=self.z_positive, return_dE=self.strategy == "gs-q"
+        )
 
         # Make sure all segments are activated
         self.local_segments.reset()

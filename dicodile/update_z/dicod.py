@@ -233,12 +233,12 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
     valid_support = get_valid_support(full_support, atom_support)
     overlap = tuple(np.array(atom_support) - 1)
 
-    X_info = dict(has_z0=z0 is not None)
-
-    X_info['valid_support'] = get_valid_support(full_support, atom_support)
+    X_info = dict(has_z0=z0 is not None, valid_support=valid_support)
 
     if w_world == 'auto':
-        X_info["workers_topology"] = find_grid_size(n_workers, full_support)
+        X_info["workers_topology"] = find_grid_size(
+            n_workers, valid_support, atom_support
+        )
     else:
         assert n_workers % w_world == 0
         X_info["workers_topology"] = w_world, n_workers // w_world
@@ -254,7 +254,9 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
     worker_support = workers_segments.get_seg_support(0, inner=True)
     msg = ("The size of the support in each worker is smaller than twice the "
            "size of the atom support. The algorithm is does not converge in "
-           "this condition. Reduce the number of cores.")
+           "this condition. Reduce the number of cores.\n"
+           f"worker: {worker_support}, atom: {atom_support}, "
+           f"topology: {X_info['workers_topology']}")
     assert all(
         (np.array(worker_support) >= 2 * np.array(atom_support))
         | (np.array(X_info['workers_topology']) == 1)), msg

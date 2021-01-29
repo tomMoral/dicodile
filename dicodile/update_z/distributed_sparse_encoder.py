@@ -42,9 +42,10 @@ class DistributedSparseEncoder:
         # 4 times the atom_support
         valid_support = get_valid_support(sig_support, atom_support)
         max_n_workers = np.prod(np.maximum(
-            1, np.array(valid_support) // (4 * np.array(atom_support))
+            1, np.array(valid_support) // (2 * np.array(atom_support))
         ))
         effective_n_workers = min(max_n_workers, self.n_workers)
+        self.effective_n_workers = effective_n_workers
 
         # Create the workers with MPI
         self.comm = get_reusable_workers(effective_n_workers,
