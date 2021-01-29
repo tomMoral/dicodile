@@ -102,7 +102,7 @@ def display_dictionaries(*list_D, styles=None, axes=None, filename=None):
     n_dict = len(list_D)
     D_0 = list_D[0]
 
-    if styles is None and n_dict > 1:
+    if styles is None and n_dict >= 1:
         styles = [dict(color=f'C{i}') for i in range(n_dict)]
 
     # compute layout
@@ -202,6 +202,7 @@ class RotationAwareAnnotation(mpl_text.Annotation):
         Key-word arguments for the Annotation. List of available kwargs:
         https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.annotate.html
     """
+
     def __init__(self, text, anchor_pt, next_pt, ax=None, **kwargs):
         # Get the Artiste to draw on
         self.ax = ax or plt.gca()
