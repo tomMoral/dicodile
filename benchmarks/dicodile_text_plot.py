@@ -130,7 +130,8 @@ def plot_performances(result_file='dicodile_text.py_20-06-26_13h49.pkl',
     err = df.groupby(['noise_level', 'text_length'])[cols].std()
 
     ax = None
-    fig = plt.figure(figsize=(6.4, 3.8))
+    fig = plt.figure(figsize=(6.4, 3.6))
+    fig.subplots_adjust(left=.05, right=0.98)
     gs = mpl.gridspec.GridSpec(nrows=2, ncols=len(noise_levels),
                                hspace=.1, height_ratios=[.2, .8])
     for i, std in enumerate(noise_levels):
@@ -139,21 +140,28 @@ def plot_performances(result_file='dicodile_text.py_20-06-26_13h49.pkl',
 
         handles = []
 
+        n_pixels = pd.Series({
+            150: 165991.1, 360: 366754.6,
+            866: 870279.6, 2081: 2059766.6,
+            5000: 4881131.4
+        })
+
         c, e = curve.loc[std], err.loc[std]
         for col, style in styles.items():
-            handles.extend(ax.semilogx(c.index, c[col], **style))
-            ax.fill_between(e.index, c[col] - e[col], c[col] + e[col],
+            handles.extend(ax.semilogx(n_pixels, c[col], **style))
+            ax.fill_between(n_pixels, c[col] - e[col], c[col] + e[col],
                             alpha=.2, color=style['color'])
         ax.set_title(fr'$\sigma = {std}$', fontsize=14)
-        ax.set_xlabel('Text length', fontsize=14)
+        ax.set_xlabel('Image Size [Mpx]', fontsize=14)
         if i == 0:
             ax.set_ylabel(r'Recovery score $\rho$', fontsize=14)
         ax.grid(True)
 
     # ax.set_ylim(0.55, 1)
-    ax.set_xlim(100, 5001)
-    # ax.set_xticks([100, 1000, 5000])
-    # ax.set_xticklabels(['1e$^2$', '1e$^3$', '5e$^3$'])
+    ax.set_xlim(n_pixels.min(), n_pixels.max())
+    x_ticks = np.array([0.2, 1, 4.8]) * 1e6
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels([f'{x/1e6:.1f}' for x in x_ticks])
 
     ax_legend = fig.add_subplot(gs[0, :])
     ax_legend.set_axis_off()
