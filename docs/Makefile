@@ -7,10 +7,25 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
+HOSTFILE      = ../hostfile
 
 # Put it first so that "make" without argument is like "make help".
+.PHONY: help
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: clean
+clean:
+	rm -rf $(BUILDDIR)/*
+	rm -rf auto_examples/*
+	rm -rf generated/*
+
+
+.PHONY: html
+html:
+	mpiexec -np 1 --hostfile $(HOSTFILE) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(SOURCEDIR) $(BUILDDIR)/html
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 .PHONY: help Makefile
 
@@ -18,3 +33,4 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
