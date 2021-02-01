@@ -13,13 +13,19 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import sphinx_bootstrap_theme
+from datetime import datetime, timezone
+import sphinx_bootstrap_theme  # noqa: F401
 
 # -- Project information -----------------------------------------------------
 
 project = 'dicodile'
-copyright = '2021, Inria'
-author = 'Inria'
+td = datetime.now(tz=timezone.utc)
+copyright = (
+    '2020-%(year)s, Dicodile Developers. Last updated %(short)s'
+) % dict(year=td.year, iso=td.isoformat(),
+         short=td.strftime('%Y-%m-%d %H:%M %Z'))
+
+author = 'dicodile developers'
 
 
 # -- General configuration ---------------------------------------------------

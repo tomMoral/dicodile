@@ -7,8 +7,8 @@ Contents
 	:maxdepth: 2
 
         auto_examples/index
-	api
-	Fork dicodile on Github <https://github.com/tomMoral/dicodile>
+        api
+        Fork dicodile on Github <https://github.com/tomMoral/dicodile>
 
 
 Indices and tables
