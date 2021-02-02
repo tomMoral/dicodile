@@ -2,13 +2,9 @@
 ===================================================
 Reconstruction of the image Mandrill using dicod
 ===================================================
-This example illlustrates reconstruction of `Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_.
+This example illlustrates reconstruction of `Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_ using dicod algorithm with soft_lock "corner" and 16 workers.
 
 """
-
-###############################################################################
-# We will first download the Mandril image.
-
 
 from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.segmentation import Segmentation
@@ -24,16 +20,19 @@ from dicodile.utils.dictionary import get_lambda_max
 from dicodile.update_z.dicod import dicod
 from dicodile.utils.csc import compute_objective, reconstruct
 
-X = get_mandril()
 
 ###############################################################################
-# Plot the image.
+# We will first download the Mandril image.
+
+
+X = get_mandril()
 
 plt.axis('off')
 plt.imshow(X.swapaxes(0, 2))
 
+
 ###############################################################################
-# Let's create a dictionary of K = 25 patches of size 8 x 8 from the original Mandrill image.
+# We will create a random dictionary of K = 25 patches of size 8 x 8 from the original Mandrill image to be used for sparse coding.
 
 # set dictionary size
 n_atoms = 25
@@ -41,7 +40,7 @@ n_atoms = 25
 # set individual atom (patch) size
 atom_support = (8, 8)
 
-#
+# random state to seed the random number generator
 rng = np.random.RandomState(60)
 
 
@@ -54,7 +53,7 @@ list_D = np.array([D_init])
 display_dictionaries(*list_D)
 
 ###############################################################################
-# Set parameters
+# Set parameters.
 #
 reg = .01
 
@@ -69,7 +68,7 @@ lmbd_max = get_lambda_max(X, D_init).max()
 reg_ = reg * lmbd_max
 
 ###############################################################################
-# Run dicod
+# Run dicod.
 
 z_hat, *_ = dicod(X, D_init, reg_, max_iter=1000000, n_workers=n_workers,
                   tol=tol, strategy='greedy', verbose=1, soft_lock='corner',
@@ -80,7 +79,7 @@ z_hat = np.clip(z_hat, -1e3, 1e3)
 print("[DICOD] final cost : {}".format(pobj))
 
 ###############################################################################
-# Reconstruct the image from z_hat and D_init
+# Reconstruct the image from z_hat and D_init.
 
 
 X_hat = reconstruct(z_hat, D_init)
@@ -94,7 +93,7 @@ workers_segments = Segmentation(n_seg=(w_world, w_world),
                                 overlap=0)
 
 ###############################################################################
-# Plot reconstructed image
+# Plot reconstructed image.
 
 fig = plt.figure("recovery")
 fig.patch.set_alpha(0)
