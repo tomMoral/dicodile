@@ -2,7 +2,7 @@
 ===================================================
 Reconstruction of the image Mandrill using dicod
 ===================================================
-This example illlustrates reconstruction of `Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`._
+This example illlustrates reconstruction of `Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_.
 
 """
 
