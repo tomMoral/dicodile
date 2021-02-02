@@ -23,7 +23,7 @@ clean:
 
 .PHONY: html
 html:
-	mpiexec -np 1 --hostfile $(HOSTFILE) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(SOURCEDIR) $(BUILDDIR)/html
+	mpiexec -np 1 --allow-run-as-root --hostfile $(HOSTFILE) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(SOURCEDIR) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
