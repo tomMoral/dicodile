@@ -62,7 +62,7 @@ reg = .01
 tol = 5e-2
 
 #
-w_world = 7
+w_world = 4
 n_workers = w_world * w_world
 
 lmbd_max = get_lambda_max(X, D_init).max()
