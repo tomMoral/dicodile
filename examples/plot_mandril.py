@@ -2,23 +2,26 @@
 ===================================================
 Reconstruction of the image Mandrill using dicod
 ===================================================
-This example illlustrates reconstruction of `Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_ using dicod algorithm with soft_lock "corner" and 16 workers.
 
-"""
+This example illlustrates reconstruction of
+Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
+using dicod algorithm with soft_lock "corner" and 16 workers.
 
-from dicodile.utils.shape_helpers import get_valid_support
-from dicodile.utils.segmentation import Segmentation
+"""  # noqa
+
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dicodile.utils.dictionary import init_dictionary
 from dicodile.data.images import get_mandril
 
+from dicodile.utils.shape_helpers import get_valid_support
+from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
 from dicodile.utils.dictionary import get_lambda_max
+from dicodile.utils.csc import compute_objective, reconstruct
 
 from dicodile.update_z.dicod import dicod
-from dicodile.utils.csc import compute_objective, reconstruct
 
 
 ###############################################################################
@@ -32,7 +35,8 @@ plt.imshow(X.swapaxes(0, 2))
 
 
 ###############################################################################
-# We will create a random dictionary of K = 25 patches of size 8 x 8 from the original Mandrill image to be used for sparse coding.
+# We will create a random dictionary of K = 25 patches of size 8 x 8 from the
+# original Mandrill image to be used for sparse coding.
 
 # set dictionary size
 n_atoms = 25
@@ -42,7 +46,6 @@ atom_support = (8, 8)
 
 # random state to seed the random number generator
 rng = np.random.RandomState(60)
-
 
 D_init = init_dictionary(X, n_atoms, atom_support, random_state=rng)
 
@@ -54,13 +57,9 @@ display_dictionaries(*list_D)
 
 ###############################################################################
 # Set parameters.
-#
+
 reg = .01
-
-#
 tol = 5e-2
-
-#
 w_world = 4
 n_workers = w_world * w_world
 
@@ -80,7 +79,6 @@ print("[DICOD] final cost : {}".format(pobj))
 
 ###############################################################################
 # Reconstruct the image from z_hat and D_init.
-
 
 X_hat = reconstruct(z_hat, D_init)
 X_hat = np.clip(X_hat, 0, 1)
