@@ -16,15 +16,13 @@ from dicodile.data.images import get_mandril
 
 from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
-from dicodile.utils.dictionary import get_lambda_max
-from dicodile.utils.csc import compute_objective, reconstruct
+from dicodile.utils.csc import reconstruct
 
-from dicodile.update_z.dicod import dicod
+from dicodile.dicodile import dicodile
 
 
 ###############################################################################
 # We will first download the Mandril image.
-
 
 X = get_mandril()
 
@@ -40,7 +38,7 @@ plt.imshow(X.swapaxes(0, 2))
 n_atoms = 25
 
 # set individual atom (patch) size
-atom_support = (8, 8)
+atom_support = (4, 4)
 
 # random state to seed the random number generator
 rng = np.random.RandomState(60)
@@ -48,42 +46,40 @@ rng = np.random.RandomState(60)
 D_init = init_dictionary(X, n_atoms, atom_support, random_state=rng)
 
 ###############################################################################
-# Let's see the dictionary patches.
-
-list_D = np.array([D_init])
-display_dictionaries(*list_D)
-
-###############################################################################
 # Set parameters.
 
-reg = .01
-tol = 5e-2
-w_world = 4
+w_world = 3
 n_workers = w_world * w_world
-
-lmbd_max = get_lambda_max(X, D_init).max()
-reg_ = reg * lmbd_max
 
 ###############################################################################
 # Run dicod.
 
-z_hat, *_ = dicod(X, D_init, reg_, max_iter=1000000, n_workers=n_workers,
-                  tol=tol, strategy='greedy', verbose=1, soft_lock='corner',
-                  z_positive=False, timing=False)
+pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=3,
+                                     n_workers=n_workers,
+                                     strategy='greedy',
+                                     dicod_kwargs={"max_iter": 10000},
+                                     verbose=20)
 
-pobj = compute_objective(X, z_hat, D_init, reg_)
+
 z_hat = np.clip(z_hat, -1e3, 1e3)
 print("[DICOD] final cost : {}".format(pobj))
 
 ###############################################################################
+# Plot the dictionary patches.
+
+list_D = np.array([D_hat])
+display_dictionaries(*list_D)
+
+
+###############################################################################
 # Reconstruct the image from z_hat and D_init.
 
-X_hat = reconstruct(z_hat, D_init)
+X_hat = reconstruct(z_hat, D_hat)
 X_hat = np.clip(X_hat, 0, 1)
 
 
 ###############################################################################
-# Plot reconstructed image.
+# Plot the reconstructed image.
 
 fig = plt.figure("recovery")
 fig.patch.set_alpha(0)
