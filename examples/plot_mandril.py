@@ -1,10 +1,9 @@
-"""
-===================================================
+"""===================================================
 Reconstruction of the image Mandrill using dicod
 ===================================================
 
-This example illlustrates reconstruction of
-Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
+This example illlustrates reconstruction of `Mandrill image
+<http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
 using DiCoDiLe algorithm with soft_lock "corner" and 16 workers.
 
 """  # noqa
