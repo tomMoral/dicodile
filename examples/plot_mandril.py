@@ -5,7 +5,7 @@ Reconstruction of the image Mandrill using dicod
 
 This example illlustrates reconstruction of
 Mandrill image <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
-using dicod algorithm with soft_lock "corner" and 16 workers.
+using DiCoDiLe algorithm with soft_lock "corner" and 16 workers.
 
 """  # noqa
 
@@ -14,8 +14,6 @@ import matplotlib.pyplot as plt
 
 from dicodile.data.images import get_mandril
 
-from dicodile.utils.shape_helpers import get_valid_support
-from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
 from dicodile.utils.dictionary import get_lambda_max
@@ -83,12 +81,6 @@ print("[DICOD] final cost : {}".format(pobj))
 X_hat = reconstruct(z_hat, D_init)
 X_hat = np.clip(X_hat, 0, 1)
 
-# Compute the worker segmentation for the image,
-n_channels, *sig_support = X_hat.shape
-valid_support = get_valid_support(sig_support, atom_support)
-workers_segments = Segmentation(n_seg=(w_world, w_world),
-                                signal_support=valid_support,
-                                overlap=0)
 
 ###############################################################################
 # Plot reconstructed image.
@@ -98,10 +90,5 @@ fig.patch.set_alpha(0)
 
 ax = plt.subplot()
 ax.imshow(X_hat.swapaxes(0, 2))
-for i_seg in range(workers_segments.effective_n_seg):
-    seg_bounds = np.array(workers_segments.get_seg_bounds(i_seg))
-    seg_bounds = seg_bounds + np.array(atom_support) / 2
-    ax.vlines(seg_bounds[1], *seg_bounds[0], linestyle='--')
-    ax.hlines(seg_bounds[0], *seg_bounds[1], linestyle='--')
 ax.axis('off')
 plt.tight_layout()
