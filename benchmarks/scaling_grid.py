@@ -15,7 +15,7 @@ from benchmarks.parallel_resource_balance import delayed
 from benchmarks.parallel_resource_balance import ParallelResourceBalance
 
 from dicodile.update_z.dicod import dicod
-from dicodile.data.images import get_mandril
+from dicodile.data.images import fetch_mandrill
 from dicodile.utils import check_random_state
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary
@@ -80,7 +80,7 @@ def run_one_grid(n_atoms, atom_support, reg, n_workers, grid, tol,
     # Generate a problem
     print(colorify(79*"=" + f"\n{tag} Start with {n_workers} workers\n" +
                    79*"="))
-    X = get_mandril()
+    X = fetch_mandrill()
     D = init_dictionary(X, n_atoms, atom_support, random_state=random_state)
     reg_ = reg * get_lambda_max(X, D).max()
 

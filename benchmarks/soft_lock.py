@@ -4,7 +4,7 @@ from joblib import Memory
 
 
 from dicodile.update_z.dicod import dicod
-from dicodile.data.images import get_mandril
+from dicodile.data.images import fetch_mandrill
 from dicodile.utils.segmentation import Segmentation
 from dicodile.utils.dictionary import get_lambda_max
 from dicodile.utils.dictionary import init_dictionary
@@ -19,7 +19,7 @@ def run_without_soft_lock(n_atoms=25, atom_support=(12, 12), reg=.01,
                           tol=5e-2, n_workers=100, random_state=60):
     rng = np.random.RandomState(random_state)
 
-    X = get_mandril()
+    X = fetch_mandrill()
     D_init = init_dictionary(X, n_atoms, atom_support, random_state=rng)
     lmbd_max = get_lambda_max(X, D_init).max()
     reg_ = reg * lmbd_max
