@@ -13,7 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import sphinx_bootstrap_theme
+import sphinx_bootstrap_theme  # noqa: F401
 
 # -- Project information -----------------------------------------------------
 
@@ -31,7 +31,8 @@ extensions = [
     # extension to pull docstrings from modules to document
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    # to generate automatic links to the documentation of objects in other projects
+    # to generate automatic links to the documentation of
+    # objects in other projects
     'sphinx.ext.intersphinx',
     'numpydoc',
     'sphinx_gallery.gen_gallery',

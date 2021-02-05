@@ -184,7 +184,8 @@ if __name__ == '__main__':
         raise SystemExit(0)
 
     files = []
-    for l in np.logspace(np.log10(150 + .1), np.log10(args.max_length + .1),
+    for l in np.logspace(np.log10(150 + .1),  # noqa: E741
+                         np.log10(args.max_length + .1),
                          num=5, dtype=int):
         for seed in range(args.n_rep):
             files.append(generate_text_npy(

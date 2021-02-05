@@ -34,7 +34,7 @@ def plot_dictionary(result_file='dicodile_text.py_PAMI_20-06-29_15h35.pkl',
         df = pd.read_pickle(OUTPUT_DIR / result_file)
         tl_max = df['text_length'].max()  # noqa: F841
         res = df.query(
-            f'noise_level== @IM_NOISE_LEVEL & text_length == @tl_max'
+            'noise_level== @IM_NOISE_LEVEL & text_length == @tl_max'
         )
         res = res.loc[res['score_cdl_2'].idxmax()]
 
@@ -107,7 +107,7 @@ def plot_dictionary(result_file='dicodile_text.py_PAMI_20-06-29_15h35.pkl',
 
     # Adjust plot and save figure
     plt.subplots_adjust(wspace=.1, top=.99, bottom=0.01)
-    fig.savefig(OUTPUT_DIR / f'dicodile_text_dict.pdf', dpi=300)
+    fig.savefig(OUTPUT_DIR / 'dicodile_text_dict.pdf', dpi=300)
 
 
 def plot_performances(result_file='dicodile_text.py_20-06-26_13h49.pkl',
