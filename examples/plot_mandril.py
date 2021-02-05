@@ -1,6 +1,6 @@
-"""===================================================
-Reconstruction of the image Mandrill using dicod
-===================================================
+"""
+DiCoDiLe on the Mandrill image
+==============================
 
 This example illlustrates reconstruction of `Mandrill image
 <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
@@ -11,7 +11,7 @@ using DiCoDiLe algorithm with soft_lock "corner" and 16 workers.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dicodile.data.images import get_mandril
+from dicodile.data.images import fetch_mandrill
 
 from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
@@ -23,7 +23,7 @@ from dicodile.dicodile import dicodile
 ###############################################################################
 # We will first download the Mandril image.
 
-X = get_mandril()
+X = fetch_mandrill()
 
 plt.axis('off')
 plt.imshow(X.swapaxes(0, 2))
@@ -51,7 +51,7 @@ w_world = 3
 n_workers = w_world * w_world
 
 ###############################################################################
-# Run dicod.
+# Run DiCoDiLe
 
 pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=3,
                                      n_workers=n_workers,
@@ -64,14 +64,14 @@ z_hat = np.clip(z_hat, -1e3, 1e3)
 print("[DICOD] final cost : {}".format(pobj))
 
 ###############################################################################
-# Plot the dictionary patches.
+# Plot the dictionary patches
 
 list_D = np.array([D_hat])
 display_dictionaries(*list_D)
 
 
 ###############################################################################
-# Reconstruct the image from z_hat and D_init.
+# Reconstruct the image from z_hat and D_init
 
 X_hat = reconstruct(z_hat, D_hat)
 X_hat = np.clip(X_hat, 0, 1)

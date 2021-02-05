@@ -5,7 +5,7 @@ from download import download
 from .home import DATA_HOME
 
 
-def get_mandril():
+def fetch_mandrill():
 
     mandril_dir = DATA_HOME / "images" / "standard_images"
     mandril_dir.mkdir(parents=True, exist_ok=True)
