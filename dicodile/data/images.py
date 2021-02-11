@@ -1,9 +1,9 @@
-import pathlib
 import PIL
 import matplotlib.pyplot as plt
 from download import download
 
 from .home import DATA_HOME
+
 
 def fetch_mandrill():
 
