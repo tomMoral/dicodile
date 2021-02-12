@@ -17,7 +17,7 @@ from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
 from dicodile.utils.csc import reconstruct
 
-from dicodile.dicodile import dicodile
+from dicodile import dicodile
 
 
 ###############################################################################
