@@ -81,7 +81,6 @@ X_hat = np.clip(X_hat, 0, 1)
 # Plot the reconstructed image.
 
 fig = plt.figure("recovery")
-fig.patch.set_alpha(0)
 
 ax = plt.subplot()
 ax.imshow(X_hat.swapaxes(0, 2))
