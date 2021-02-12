@@ -13,7 +13,7 @@ import spams
 from sklearn.feature_extraction.image import extract_patches_2d
 
 # Import for CDL
-from dicodile.dicodile import dicodile
+from dicodile import dicodile
 
 # Import to initiate the dictionary
 from dicodile.utils.dictionary import prox_d

@@ -2,7 +2,7 @@
 import numpy as np
 from scipy import sparse
 
-from dicodile.dicodile import dicodile
+from dicodile import dicodile
 from dicodile.data.images import get_hubble
 from dicodile.utils.viz import plot_atom_and_coefs
 

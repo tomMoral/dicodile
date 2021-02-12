@@ -4,7 +4,7 @@
 API Documentation
 =================
 
-.. currentmodule:: dicodile.dicodile
+.. currentmodule:: dicodile
 
 
 .. autosummary::
