@@ -4,7 +4,7 @@ DiCoDiLe on the Mandrill image
 
 This example illlustrates reconstruction of `Mandrill image
 <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
-using DiCoDiLe algorithm with soft_lock "corner" and 16 workers.
+using DiCoDiLe algorithm with soft_lock "corner" and 9 workers.
 
 """  # noqa
 
@@ -21,7 +21,7 @@ from dicodile import dicodile
 
 
 ###############################################################################
-# We will first download the Mandril image.
+# We will first download the Mandrill image.
 
 X = fetch_mandrill()
 
@@ -30,8 +30,8 @@ plt.imshow(X.swapaxes(0, 2))
 
 
 ###############################################################################
-# We will create a random dictionary of K = 25 patches of size 8 x 8 from the
-# original Mandrill image to be used for sparse coding.
+# We will create a random dictionary of **K = 25** patches of size **8x8**
+# from the original Mandrill image to be used for sparse coding.
 
 # set dictionary size
 n_atoms = 25
@@ -39,39 +39,42 @@ n_atoms = 25
 # set individual atom (patch) size
 atom_support = (4, 4)
 
-# random state to seed the random number generator
-rng = np.random.RandomState(60)
-
-D_init = init_dictionary(X, n_atoms, atom_support, random_state=rng)
+D_init = init_dictionary(X, n_atoms, atom_support, random_state=60)
 
 ###############################################################################
-# Set parameters.
+# We are going to run `dicodile` with **9** workers on **3x3** grids.
 
+# number of splits along each dimension
 w_world = 3
+
+# number of workers
 n_workers = w_world * w_world
 
 ###############################################################################
-# Run DiCoDiLe
+# Run `dicodile`.
 
 pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=3,
                                      n_workers=n_workers,
                                      strategy='greedy',
                                      dicod_kwargs={"max_iter": 10000},
-                                     verbose=20)
+                                     verbose=6)
 
 
-z_hat = np.clip(z_hat, -1e3, 1e3)
 print("[DICOD] final cost : {}".format(pobj))
 
 ###############################################################################
-# Plot the dictionary patches
+# Plot and compare the initial dictionary `D_init` with the
+# dictionary `D_hat` improved by `dicodile`.
 
-list_D = np.array([D_hat])
-display_dictionaries(*list_D)
+# normalize dictionaries
+normalized_D_init = D_init / D_init.max()
+normalized_D_hat = D_hat / D_hat.max()
+
+display_dictionaries(normalized_D_init, normalized_D_hat)
 
 
 ###############################################################################
-# Reconstruct the image from z_hat and D_init
+# Reconstruct the image from `z_hat` and `D_init`.
 
 X_hat = reconstruct(z_hat, D_hat)
 X_hat = np.clip(X_hat, 0, 1)
