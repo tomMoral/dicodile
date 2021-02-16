@@ -44,19 +44,28 @@ D_init = init_dictionary(X, n_atoms, atom_support, random_state=60)
 ###############################################################################
 # We are going to run `dicodile` with **9** workers on **3x3** grids.
 
+# number of iterations for dicodile
+n_iter = 3
+
+# number of iterations for csc (dicodile_z)
+max_iter = 10000
+
 # number of splits along each dimension
 w_world = 3
 
 # number of workers
 n_workers = w_world * w_world
 
+# coordinate selection strategy for coordinate descent
+strategy = 'greedy'
+
 ###############################################################################
 # Run `dicodile`.
 
-pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=3,
+pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=n_iter,
                                      n_workers=n_workers,
-                                     strategy='greedy',
-                                     dicod_kwargs={"max_iter": 10000},
+                                     strategy=strategy,
+                                     dicod_kwargs={"max_iter": max_iter},
                                      verbose=6)
 
 
