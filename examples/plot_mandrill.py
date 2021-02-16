@@ -1,10 +1,10 @@
-"""
-DiCoDiLe on the Mandrill image
+"""DiCoDiLe on the Mandrill image
 ==============================
 
 This example illlustrates reconstruction of `Mandrill image
 <http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03>`_
-using DiCoDiLe algorithm with soft_lock "corner" and 9 workers.
+using DiCoDiLe algorithm with default soft_lock value "border" and 9
+workers.
 
 """  # noqa
 
