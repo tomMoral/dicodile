@@ -37,7 +37,7 @@ plt.imshow(X.swapaxes(0, 2))
 n_atoms = 25
 
 # set individual atom (patch) size
-atom_support = (4, 4)
+atom_support = (8, 8)
 
 D_init = init_dictionary(X, n_atoms, atom_support, random_state=60)
 
@@ -83,7 +83,7 @@ display_dictionaries(normalized_D_init, normalized_D_hat)
 
 
 ###############################################################################
-# Reconstruct the image from `z_hat` and `D_init`.
+# Reconstruct the image from `z_hat` and `D_hat`.
 
 X_hat = reconstruct(z_hat, D_hat)
 X_hat = np.clip(X_hat, 0, 1)
