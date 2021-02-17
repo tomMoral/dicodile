@@ -1,10 +1,9 @@
-
 import pandas
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-from dicodile.dicodile import dicodile
+from dicodile import dicodile
 from dicodile.data.images import get_hubble
 from dicodile.utils.viz import median_curve
 from dicodile.utils.dictionary import get_lambda_max
@@ -50,7 +49,7 @@ def run_one(method, n_atoms, atom_support, reg, z_positive, n_workers, n_iter,
             'CBPDN': {'rho': 50.0*reg_ + 0.5,
                       'NonNegCoef': z_positive},
             'DictSize': D_init_.shape,
-            }
+        }
         opt = ConvBPDNDictLearn_Consensus.Options(options)
         cdl = ConvBPDNDictLearn_Consensus(
             D_init_, X_, lmbda=reg_, nproc=n_workers, opt=opt, dimK=1, dimN=2)
