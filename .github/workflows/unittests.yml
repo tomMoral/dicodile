@@ -6,14 +6,16 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
         mpi_install: [system, conda]
+        mpi_impl: [openmpi, mpich]
         python: [3.8]
     steps:
       - uses: actions/checkout@v2
@@ -28,6 +30,7 @@ jobs:
           ./ci/install_mpi.sh
         env:
           MPI_INSTALL: ${{ matrix.mpi_install }}
+          MPI_IMPL: ${{ matrix.mpi_impl }}
       - name: Run unit tests
         run: |
           pip install -e .[test]
