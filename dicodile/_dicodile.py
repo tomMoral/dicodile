@@ -93,8 +93,6 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
                                     step_size=step_size, max_iter=100,
                                     eps=1e-5, verbose=verbose, momentum=False)
         times.append(time.time() - t_start_update_d)
-        # Update the dictionary D_hat in the encoder
-        encoder.set_worker_D(D_hat)
 
         # If an atom is un-used, replace it by the chunk of the residual with
         # the largest un-captured variance.

@@ -1,3 +1,4 @@
+import time
 import threading
 from queue import Queue
 
@@ -14,6 +15,7 @@ class CallItem:
         for k in N_CPU_KEYS:
             if k in kwargs:
                 self.n_workers = kwargs[k]
+                break
 
     def __call__(self):
         return self.func(*self.args, **self.kwargs)
@@ -74,6 +76,7 @@ class ParallelResourceBalance:
         t = threading.Thread(target=self.run_one, args=(idx, call_item))
         t.start()
         self.running_threads.append(t)
+        time.sleep(5)
 
     def load_balance(self, it_args):
         try:
