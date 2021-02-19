@@ -1,21 +1,45 @@
 |Build Status| |codecov|
 
-This package is still under development. If you have any trouble running this code, please contact thomas.moreau.2010@gmail.com
+This package is still under development. If you have any trouble running this code,
+please `open an issue on GitHub <https://github.com/tomMoral/dicodile/issues>`_.
 
 DiCoDiLe
 --------
 
 Package to run the experiments for the preprint paper `Distributed Convolutional Dictionary Learning (DiCoDiLe): Pattern Discovery in Large Images and Signals <https://arxiv.org/abs/1901.09235>`__.
 
-Requirements
+Installation
 ^^^^^^^^^^^^
 
-All the tests were done with python3.6. This package depends on the python library ``numpy``, ``matplotlib``, ``scipy``, ``mpi4py``,
-``joblib``. The package can be installed with the following command run from the root of the package.
+All the tests should work with python >=3.6. This package depends on the python
+library ``numpy``, ``matplotlib``, ``scipy``, ``mpi4py``, ``joblib``. The
+package can be installed with the following command run from the root of the
+package.
 
 .. code:: bash
 
     pip install  -e .
+
+Or using the conda environment:
+
+.. code:: bash
+
+    conda env create -f dicodile_env.yml
+
+To build the doc use:
+
+.. code:: bash
+
+    pip install  -e .[doc]
+    cd docs
+    make html
+
+To run the tests:
+
+.. code:: bash
+
+    pip install  -e .[test]
+    pytest .
 
 Usage
 ^^^^^
