@@ -1,0 +1,6 @@
+dicodile.dicodile
+=================
+
+.. currentmodule:: dicodile
+
+.. autofunction:: dicodile

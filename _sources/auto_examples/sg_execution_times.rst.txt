@@ -1,0 +1,12 @@
+
+:orphan:
+
+.. _sphx_glr_auto_examples_sg_execution_times:
+
+Computation times
+=================
+**03:09.776** total execution time for **auto_examples** files:
+
++-----------------------------------------------------------------------+-----------+--------+
+| :ref:`sphx_glr_auto_examples_plot_mandrill.py` (``plot_mandrill.py``) | 03:09.776 | 0.0 MB |
++-----------------------------------------------------------------------+-----------+--------+
