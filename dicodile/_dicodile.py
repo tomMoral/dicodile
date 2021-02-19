@@ -17,6 +17,69 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
              w_world='auto', n_workers=4, hostfile=None, eps=1e-5,
              window=False, raise_on_increase=True, random_state=None,
              name="DICODILE", verbose=0):
+    r"""Convolutional dictionary learning.
+
+    Computes a sparse representation of a signal X, returning a dictionary
+    D and a sparse activation signal Z such that X is close to
+    :math:`Z \ast D`.
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_channels, *sig_support)
+        Signal to encode
+    D_hat : ndarray, shape (n_atoms, n_channels, *atom_support)
+        Current dictionary
+    reg : float
+        Regularization parameter
+    n_iter : int
+        Maximum number of iterations
+    strategy : str in {{'greedy', 'random'}}
+        Coordinate selection scheme for the coordinate descent.
+    n_seg : int or list of int
+        Number of segments to use for each dimension. If only one int is
+        given, use this same number for all axes
+    tol
+        Tolerance for minimal update size
+    dicod_kwargs
+        Extra arguments passed to the dicod funtion.
+        See `dicodile.update_z.dicod`
+    w_world : int or {{'auto'}}
+        Number of jobs used per row in the splitting grid. This should divide
+        n_workers.
+    n_workers : int
+        Number of workers used to compute the convolutional sparse coding
+        solution.
+    hostfile : str
+        MPI hostfile as used by `mpirun`. See your MPI implementation
+        documentation.
+    eps : float
+        Tolerance for the stopping criterion.
+    window : bool
+        Apply window on dictionary
+    raise_on_increase : bool
+        Raise a RuntimeError if the objective function value increases as
+        a result of an update
+    random_state : None or int or RandomState
+        Random state to seed the random number generator
+    name : str
+        Name of identifier to use in log traces
+    verbose : int
+        Verbosity level, higher is more verbose
+
+    Returns
+    -------
+    pobj
+        list of costs
+    times
+        list of running times (seconds) for each dictionary
+        and activation update step.
+        The total running time of the algorithm is given by
+        sum(times)
+    D_hat : ndarray, shape (n_channels, *sig_support)
+        Updated dictionary
+    Z_hat
+        Coding signal
+    """
 
     lmbd_max = get_lambda_max(X, D_hat).max()
     if verbose > 5:
