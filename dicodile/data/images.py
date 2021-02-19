@@ -1,20 +1,20 @@
-import pathlib
 import PIL
 import matplotlib.pyplot as plt
 from download import download
 
 from .home import DATA_HOME
 
-def get_mandril():
 
-    mandril_dir = DATA_HOME / "images" / "standard_images"
-    mandril_dir.mkdir(parents=True, exist_ok=True)
-    mandril = download(
+def fetch_mandrill():
+
+    mandrill_dir = DATA_HOME / "images" / "standard_images"
+    mandrill_dir.mkdir(parents=True, exist_ok=True)
+    mandrill = download(
         "http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03",
-        mandril_dir / "mandril_color.tif"
+        mandrill_dir / "mandrill_color.tif"
     )
 
-    X = plt.imread(mandril) / 255
+    X = plt.imread(mandrill) / 255
     return X.swapaxes(0, 2)
 
 

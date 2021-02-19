@@ -37,7 +37,8 @@ extensions = [
     # extension to pull docstrings from modules to document
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    # to generate automatic links to the documentation of objects in other projects
+    # to generate automatic links to the documentation of
+    # objects in other projects
     'sphinx.ext.intersphinx',
     'numpydoc',
     'sphinx_gallery.gen_gallery',
