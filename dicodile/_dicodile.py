@@ -38,7 +38,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     n_seg : int or list of int
         Number of segments to use for each dimension. If only one int is
         given, use this same number for all axes
-    tol
+    tol : float
         Tolerance for minimal update size
     dicod_kwargs
         Extra arguments passed to the dicod funtion.
