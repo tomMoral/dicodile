@@ -28,57 +28,59 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     X : ndarray, shape (n_channels, *sig_support)
         Signal to encode
     D_hat : ndarray, shape (n_atoms, n_channels, *atom_support)
-        Current dictionary
+        Current atoms dictionary
     reg : float
         Regularization parameter
-    n_iter : int
+    n_iter : int, defaults to 100
         Maximum number of iterations
-    strategy : str in {{'greedy', 'random'}}
+    strategy : str in {{'greedy', 'random'}}, defaults to 'greedy'
         Coordinate selection scheme for the coordinate descent.
-    n_seg : int or list of int
+    n_seg : int or list of int or 'auto', defaults to 'auto'
         Number of segments to use for each dimension. If only one int is
         given, use this same number for all axes
-    tol : float
+    tol : float, defaults to 1e-3
         Tolerance for minimal update size
-    dicod_kwargs
+    dicod_kwargs : dict
         Extra arguments passed to the dicod funtion.
         See `dicodile.update_z.dicod`
     w_world : int or {{'auto'}}
         Number of jobs used per row in the splitting grid. This should divide
         n_workers.
-    n_workers : int
+    n_workers : int, defaults to 4
         Number of workers used to compute the convolutional sparse coding
         solution.
-    hostfile : str
+    hostfile : str or None
         MPI hostfile as used by `mpirun`. See your MPI implementation
-        documentation.
-    eps : float
-        Tolerance for the stopping criterion.
+        documentation. Defaults to None, which implies XXX
+    eps : float, defaults to 1e-5
+        Tolerance for the stopping criterion. A lower value will result in
+        more computing time.
     window : bool
         Apply window on dictionary
     raise_on_increase : bool
         Raise a RuntimeError if the objective function value increases as
         a result of an update
     random_state : None or int or RandomState
-        Random state to seed the random number generator
-    name : str
-        Name of identifier to use in log traces
-    verbose : int
+        Random state to seed the random number generator.
+    name : str, defaults to 'DICODILE'
+        Name of identifier to use in log traces.
+    verbose : int, defaults to 0
         Verbosity level, higher is more verbose
 
     Returns
     -------
-    pobj
+    pobj : list of float
         list of costs
-    times
+    times : list of float
         list of running times (seconds) for each dictionary
         and activation update step.
         The total running time of the algorithm is given by
         sum(times)
     D_hat : ndarray, shape (n_channels, *sig_support)
-        Updated dictionary
-    Z_hat
-        Activations of the different atoms (where or when the atoms are estimated).
+        Updated atoms dictionary.
+    Z_hat : ndarray, shape (n_channels, *valid_support)
+        Activations of the different atoms
+        (where or when the atoms are estimated).
     """
 
     lmbd_max = get_lambda_max(X, D_hat).max()
