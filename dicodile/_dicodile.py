@@ -78,7 +78,7 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     D_hat : ndarray, shape (n_channels, *sig_support)
         Updated dictionary
     Z_hat
-        Coding signal
+        Activations of the different atoms (where or when the atoms are estimated).
     """
 
     lmbd_max = get_lambda_max(X, D_hat).max()
