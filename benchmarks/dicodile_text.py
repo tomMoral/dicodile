@@ -120,7 +120,7 @@ def compute_cdl(X, n_atoms, atom_support, D_init, reg=.2,
     # fit the dictionary with dicodile
     pobj, times, D_hat, z_hat = dicodile(
         X_0, D_init, n_workers=n_jobs, w_world='auto',
-        **meta, raise_on_increase=True, verbose=1,
+        **meta, verbose=1,
     )
 
     # Order the dictionary based on the l1 norm of its activation
