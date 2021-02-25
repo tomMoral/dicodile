@@ -76,6 +76,11 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
 
     Returns
     -------
+    D_hat : ndarray, shape (n_channels, *sig_support)
+        Updated atoms dictionary.
+    Z_hat : ndarray, shape (n_channels, *valid_support)
+        Activations of the different atoms
+        (where or when the atoms are estimated).
     pobj : list of float
         list of costs
     times : list of float
@@ -83,11 +88,6 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         and activation update step.
         The total running time of the algorithm is given by
         sum(times)
-    D_hat : ndarray, shape (n_channels, *sig_support)
-        Updated atoms dictionary.
-    Z_hat : ndarray, shape (n_channels, *valid_support)
-        Activations of the different atoms
-        (where or when the atoms are estimated).
 
     See Also
     --------
