@@ -118,7 +118,7 @@ def compute_cdl(X, n_atoms, atom_support, D_init, reg=.2,
                 window=window)
 
     # fit the dictionary with dicodile
-    pobj, times, D_hat, z_hat = dicodile(
+    D_hat, z_hat, pobj, times = dicodile(
         X_0, D_init, n_workers=n_jobs, w_world='auto',
         **meta, verbose=1,
     )

@@ -59,7 +59,7 @@ n_workers = w_world * w_world
 ###############################################################################
 # Run `dicodile`.
 
-pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=n_iter,
+D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=n_iter,
                                      n_workers=n_workers,
                                      dicod_kwargs={"max_iter": max_iter},
                                      verbose=6)
