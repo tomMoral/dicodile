@@ -31,8 +31,9 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         \left \| X - Z \ast D \right\|_{2}^{2} +
         \lambda \left \| Z \right \|_{1}
 
-    The support for X is noted sig_support
-    The support for D is noted atom_support
+    The support for X is noted sig_support.
+
+    The support for D is noted atom_support.
 
     Parameters
     ----------
@@ -54,7 +55,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         localized in the middle of the atom support and reduces
         border effects.
     z_positive : bool, default True
-        if True, adds a constraint that the activations Z must be positive.
+        If True, adds a constraint that the activations Z must be positive.
     n_workers : int, defaults to 4
         Number of workers used to compute the convolutional sparse coding
         solution.
