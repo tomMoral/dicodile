@@ -49,7 +49,10 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         Tolerance for the stopping criterion. A lower value will result in
         more computing time.
     window : bool
-        Apply window on dictionary.
+        If set to True, the learned atoms are multiplied by a Tukey
+        window that set its border to 0. This can help having patterns
+        localized in the middle of the atom support and reduces
+        border effects.
     z_positive : bool, default True
         if True, adds a constraint that the activations Z must be positive.
     n_workers : int, defaults to 4
