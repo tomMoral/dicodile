@@ -37,9 +37,9 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     Parameters
     ----------
     X : ndarray, shape (n_channels, *sig_support)
-        Signal to encode
+        Signal to encode.
     D_init : ndarray, shape (n_atoms, n_channels, *atom_support)
-        Current atoms dictionary
+        Current atoms dictionary.
     reg : float, defaults to .1
         Regularization parameter, in [0,1]
         The λ parameter is computed as reg * lambda_max
@@ -49,9 +49,9 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         Tolerance for the stopping criterion. A lower value will result in
         more computing time.
     window : bool
-        Apply window on dictionary
+        Apply window on dictionary.
     z_positive : bool, default True
-        if True, adds a constraint that the activations Z must be positive
+        if True, adds a constraint that the activations Z must be positive.
     n_workers : int, defaults to 4
         Number of workers used to compute the convolutional sparse coding
         solution.
@@ -59,17 +59,17 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         Number of jobs used per row in the splitting grid. This should divide
         n_workers.
     tol : float, defaults to 1e-3
-        Tolerance for minimal update size
+        Tolerance for minimal update size.
     hostfile : str or None
         MPI hostfile as used by `mpirun`. See your MPI implementation
         documentation. Defaults to None.
     dicod_kwargs : dict
-        Extra arguments passed to the dicod funtion.
+        Extra arguments passed to the dicod function.
         See `dicodile.update_z.dicod`
     random_state : None or int or RandomState
         Random state to seed the random number generator.
     verbose : int, defaults to 0
-        Verbosity level, higher is more verbose
+        Verbosity level, higher is more verbose.
 
     Returns
     -------
