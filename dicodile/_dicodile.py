@@ -85,6 +85,10 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     Z_hat : ndarray, shape (n_channels, *valid_support)
         Activations of the different atoms
         (where or when the atoms are estimated).
+
+    See Also
+    --------
+    dicodile.update_z.dicod : Convolutional sparse coding.
     """
 
     name = "DICODILE"
