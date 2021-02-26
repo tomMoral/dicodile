@@ -9,18 +9,96 @@ from .utils.dictionary import get_max_error_dict
 from .update_z.distributed_sparse_encoder import DistributedSparseEncoder
 
 
-DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), timeout=None)
+DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), n_seg='auto',
+                            strategy='greedy', timeout=None,
+                            soft_lock='border', debug=False)
 
 
-def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
-             n_seg='auto', tol=1e-3, dicod_kwargs={}, stopping_pobj=None,
-             w_world='auto', n_workers=4, hostfile=None, eps=1e-5,
-             window=False, raise_on_increase=True, random_state=None,
-             name="DICODILE", verbose=0):
+def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
+             z_positive=True, n_workers=4, w_world='auto',
+             tol=1e-3, hostfile=None, dicod_kwargs={},
+             random_state=None, verbose=0):
+    r"""Convolutional dictionary learning.
 
-    lmbd_max = get_lambda_max(X, D_hat).max()
+    Computes a sparse representation of a signal X, returning a dictionary
+    D and a sparse activation signal Z such that X is close to
+    :math:`Z \ast D`.
+
+    This is done by solving the following optimization problem:
+
+    .. math::
+        \underset{Z,D, \left \| D_{k}\right \|\leq 1}{min} \frac{1}{2}
+        \left \| X - Z \ast D \right\|_{2}^{2} +
+        \lambda \left \| Z \right \|_{1}
+
+    The support for X is noted sig_support.
+
+    The support for D is noted atom_support.
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_channels, *sig_support)
+        Signal to encode.
+    D_init : ndarray, shape (n_atoms, n_channels, *atom_support)
+        Current atoms dictionary.
+    reg : float, defaults to .1
+        Regularization parameter, in [0,1]
+        The λ parameter is computed as reg * lambda_max
+    n_iter : int, defaults to 100
+        Maximum number of iterations
+    eps : float, defaults to 1e-5
+        Tolerance for the stopping criterion. A lower value will result in
+        more computing time.
+    window : bool
+        If set to True, the learned atoms are multiplied by a Tukey
+        window that sets its borders to 0. This can help having patterns
+        localized in the middle of the atom support and reduces
+        border effects.
+    z_positive : bool, default True
+        If True, adds a constraint that the activations Z must be positive.
+    n_workers : int, defaults to 4
+        Number of workers used to compute the convolutional sparse coding
+        solution.
+    w_world : int or {{'auto'}}
+        Number of jobs used per row in the splitting grid. This should divide
+        n_workers.
+    tol : float, defaults to 1e-3
+        Tolerance for minimal update size.
+    hostfile : str or None
+        MPI hostfile as used by `mpirun`. See your MPI implementation
+        documentation. Defaults to None.
+    dicod_kwargs : dict
+        Extra arguments passed to the dicod function.
+        See `dicodile.update_z.dicod`
+    random_state : None or int or RandomState
+        Random state to seed the random number generator.
+    verbose : int, defaults to 0
+        Verbosity level, higher is more verbose.
+
+    Returns
+    -------
+    D_hat : ndarray, shape (n_channels, *sig_support)
+        Updated atoms dictionary.
+    Z_hat : ndarray, shape (n_channels, *valid_support)
+        Activations of the different atoms
+        (where or when the atoms are estimated).
+    pobj : list of float
+        list of costs
+    times : list of float
+        list of running times (seconds) for each dictionary
+        and activation update step.
+        The total running time of the algorithm is given by
+        sum(times)
+
+    See Also
+    --------
+    dicodile.update_z.dicod : Convolutional sparse coding.
+    """
+
+    name = "DICODILE"
+    lmbd_max = get_lambda_max(X, D_init).max()
     if verbose > 5:
-        print("[DEBUG:DICODILE] Lambda_max = {}".format(lmbd_max))
+        print("[DEBUG:{}] Lambda_max = {}".format(name, lmbd_max))
 
     # Scale reg and tol
     reg_ = reg * lmbd_max
@@ -29,16 +107,16 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     params = DEFAULT_DICOD_KWARGS.copy()
     params.update(dicod_kwargs)
     params.update(dict(
-        strategy=strategy, n_seg=n_seg, z_positive=z_positive, tol=tol,
-        random_state=random_state, reg=reg_, timing=False, soft_lock='border',
-        return_ztz=False, freeze_support=False, warm_start=True, debug=False
+        z_positive=z_positive, tol=tol,
+        random_state=random_state, reg=reg_, timing=False,
+        return_ztz=False, freeze_support=False, warm_start=True,
     ))
 
     encoder = DistributedSparseEncoder(n_workers, w_world=w_world,
                                        hostfile=hostfile, verbose=verbose-1)
-    encoder.init_workers(X, D_hat, reg_, params)
-
-    n_atoms, n_channels, *_ = D_hat.shape
+    encoder.init_workers(X, D_init, reg_, params)
+    D_hat = D_init.copy()
+    n_atoms, n_channels, *_ = D_init.shape
 
     # Initialize constants for computations of the dictionary gradient.
     constants = {}
@@ -118,12 +196,12 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
         dz = (pobj[-3] - pobj[-2]) / min(pobj[-3], pobj[-2])
         du = (pobj[-2] - pobj[-1]) / min(pobj[-2], pobj[-1])
         if (dz < eps or du < eps):
-            if dz < 0 and raise_on_increase:
+            if dz < 0:
                 raise RuntimeError(
                     "The z update have increased the objective value by {}."
                     .format(dz)
                 )
-            if du < -1e-10 and dz > 1e-12 and raise_on_increase:
+            if du < -1e-10 and dz > 1e-12:
                 raise RuntimeError(
                     "The d update have increased the objective value by {}."
                     "(dz={})".format(du, dz)
@@ -135,9 +213,6 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
                       "= {:.3e}, {:.3e}".format(name, ii + 1, dz, du))
                 break
 
-        if stopping_pobj is not None and pobj[-1] < stopping_pobj:
-            break
-
     encoder.process_z_hat()
     z_hat = encoder.get_z_hat()
     pobj.append(encoder.get_cost())
@@ -145,4 +220,4 @@ def dicodile(X, D_hat, reg=.1, z_positive=True, n_iter=100, strategy='greedy',
     runtime = np.sum(times)
     encoder.release_workers()
     print("[INFO:{}] Finished in {:.0f}s".format(name, runtime))
-    return pobj, times, D_hat, z_hat
+    return D_hat, z_hat, pobj, times

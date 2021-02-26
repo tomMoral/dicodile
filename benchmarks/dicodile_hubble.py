@@ -20,7 +20,7 @@ def run_dicodile_hubble(size, reg, L):
         X, n_atoms, (L, L), random_state=random_state)
 
     dicod_kwargs = dict(soft_lock='border')
-    pobj, times, D_hat, z_hat = dicodile(
+    D_hat, z_hat, pobj, times = dicodile(
         X, D_init, reg=reg, z_positive=True, n_iter=100, n_workers=400,
         eps=1e-5, tol=1e-3, verbose=2, dicod_kwargs=dicod_kwargs)
 

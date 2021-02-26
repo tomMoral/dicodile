@@ -61,7 +61,7 @@ def run_one(method, n_atoms, atom_support, reg, z_positive, n_workers, n_iter,
         times = itstat.Time
 
     elif method == "dicodile":
-        pobj, times, D_hat, z_hat = dicodile(
+        D_hat, z_hat, pobj, times = dicodile(
             X, D_init, reg=reg, z_positive=z_positive, n_iter=n_iter, eps=eps,
             n_workers=n_workers, verbose=2, tol=tol)
         pobj = pobj[::2]
