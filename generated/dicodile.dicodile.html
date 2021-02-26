@@ -15,6 +15,7 @@
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="prev" title="API Documentation" href="../api.html" />
@@ -96,8 +97,85 @@
 <h1>dicodile.dicodile<a class="headerlink" href="#dicodile-dicodile" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="dicodile.dicodile">
-<code class="sig-prename descclassname">dicodile.</code><code class="sig-name descname">dicodile</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">D_hat</em>, <em class="sig-param">reg=0.1</em>, <em class="sig-param">z_positive=True</em>, <em class="sig-param">n_iter=100</em>, <em class="sig-param">strategy='greedy'</em>, <em class="sig-param">n_seg='auto'</em>, <em class="sig-param">tol=0.001</em>, <em class="sig-param">dicod_kwargs={}</em>, <em class="sig-param">stopping_pobj=None</em>, <em class="sig-param">w_world='auto'</em>, <em class="sig-param">n_workers=4</em>, <em class="sig-param">hostfile=None</em>, <em class="sig-param">eps=1e-05</em>, <em class="sig-param">window=False</em>, <em class="sig-param">raise_on_increase=True</em>, <em class="sig-param">random_state=None</em>, <em class="sig-param">name='DICODILE'</em>, <em class="sig-param">verbose=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dicodile.dicodile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="sig-prename descclassname">dicodile.</code><code class="sig-name descname">dicodile</code><span class="sig-paren">(</span><em class="sig-param">X</em>, <em class="sig-param">D_init</em>, <em class="sig-param">reg=0.1</em>, <em class="sig-param">n_iter=100</em>, <em class="sig-param">eps=1e-05</em>, <em class="sig-param">window=False</em>, <em class="sig-param">z_positive=True</em>, <em class="sig-param">n_workers=4</em>, <em class="sig-param">w_world='auto'</em>, <em class="sig-param">tol=0.001</em>, <em class="sig-param">hostfile=None</em>, <em class="sig-param">dicod_kwargs={}</em>, <em class="sig-param">random_state=None</em>, <em class="sig-param">verbose=0</em><span class="sig-paren">)</span><a class="headerlink" href="#dicodile.dicodile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convolutional dictionary learning.</p>
+<p>Computes a sparse representation of a signal X, returning a dictionary
+D and a sparse activation signal Z such that X is close to
+<span class="math notranslate nohighlight">\(Z \ast D\)</span>.</p>
+<p>This is done by solving the following optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\underset{Z,D, \left \| D_{k}\right \|\leq 1}{min} \frac{1}{2}
+\left \| X - Z \ast D \right\|_{2}^{2} +
+\lambda \left \| Z \right \|_{1}\]</div>
+<p>The support for X is noted sig_support.</p>
+<p>The support for D is noted atom_support.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>X</strong><span class="classifier">ndarray, shape (n_channels, <a href="#id1"><span class="problematic" id="id2">*</span></a>sig_support)</span></dt><dd><p>Signal to encode.</p>
+</dd>
+<dt><strong>D_init</strong><span class="classifier">ndarray, shape (n_atoms, n_channels, <a href="#id3"><span class="problematic" id="id4">*</span></a>atom_support)</span></dt><dd><p>Current atoms dictionary.</p>
+</dd>
+<dt><strong>reg</strong><span class="classifier">float, defaults to .1</span></dt><dd><p>Regularization parameter, in [0,1]
+The λ parameter is computed as reg * lambda_max</p>
+</dd>
+<dt><strong>n_iter</strong><span class="classifier">int, defaults to 100</span></dt><dd><p>Maximum number of iterations</p>
+</dd>
+<dt><strong>eps</strong><span class="classifier">float, defaults to 1e-5</span></dt><dd><p>Tolerance for the stopping criterion. A lower value will result in
+more computing time.</p>
+</dd>
+<dt><strong>window</strong><span class="classifier">bool</span></dt><dd><p>If set to True, the learned atoms are multiplied by a Tukey
+window that sets its borders to 0. This can help having patterns
+localized in the middle of the atom support and reduces
+border effects.</p>
+</dd>
+<dt><strong>z_positive</strong><span class="classifier">bool, default True</span></dt><dd><p>If True, adds a constraint that the activations Z must be positive.</p>
+</dd>
+<dt><strong>n_workers</strong><span class="classifier">int, defaults to 4</span></dt><dd><p>Number of workers used to compute the convolutional sparse coding
+solution.</p>
+</dd>
+<dt><strong>w_world</strong><span class="classifier">int or {{‘auto’}}</span></dt><dd><p>Number of jobs used per row in the splitting grid. This should divide
+n_workers.</p>
+</dd>
+<dt><strong>tol</strong><span class="classifier">float, defaults to 1e-3</span></dt><dd><p>Tolerance for minimal update size.</p>
+</dd>
+<dt><strong>hostfile</strong><span class="classifier">str or None</span></dt><dd><p>MPI hostfile as used by <cite>mpirun</cite>. See your MPI implementation
+documentation. Defaults to None.</p>
+</dd>
+<dt><strong>dicod_kwargs</strong><span class="classifier">dict</span></dt><dd><p>Extra arguments passed to the dicod function.
+See <cite>dicodile.update_z.dicod</cite></p>
+</dd>
+<dt><strong>random_state</strong><span class="classifier">None or int or RandomState</span></dt><dd><p>Random state to seed the random number generator.</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier">int, defaults to 0</span></dt><dd><p>Verbosity level, higher is more verbose.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>D_hat</strong><span class="classifier">ndarray, shape (n_channels, <a href="#id5"><span class="problematic" id="id6">*</span></a>sig_support)</span></dt><dd><p>Updated atoms dictionary.</p>
+</dd>
+<dt><strong>Z_hat</strong><span class="classifier">ndarray, shape (n_channels, <a href="#id7"><span class="problematic" id="id8">*</span></a>valid_support)</span></dt><dd><p>Activations of the different atoms
+(where or when the atoms are estimated).</p>
+</dd>
+<dt><strong>pobj</strong><span class="classifier">list of float</span></dt><dd><p>list of costs</p>
+</dd>
+<dt><strong>times</strong><span class="classifier">list of float</span></dt><dd><p>list of running times (seconds) for each dictionary
+and activation update step.
+The total running time of the algorithm is given by
+sum(times)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicodile.update_z.dicod</span></code></dt><dd><p>Convolutional sparse coding.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
 
 </div>
 
@@ -113,7 +191,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2020-2021, Dicodile Developers. Last updated 2021-02-19 16:24 UTC.<br/>
+        &copy; Copyright 2020-2021, Dicodile Developers. Last updated 2021-02-26 10:12 UTC.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.<br/>
     </p>
   </div>

@@ -56,15 +56,11 @@ w_world = 3
 # number of workers
 n_workers = w_world * w_world
 
-# coordinate selection strategy for coordinate descent
-strategy = 'greedy'
-
 ###############################################################################
 # Run `dicodile`.
 
-pobj, times, D_hat, z_hat = dicodile(X, D_init, n_iter=n_iter,
+D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=n_iter,
                                      n_workers=n_workers,
-                                     strategy=strategy,
                                      dicod_kwargs={"max_iter": max_iter},
                                      verbose=6)
 
