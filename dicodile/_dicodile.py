@@ -51,7 +51,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         more computing time.
     window : bool
         If set to True, the learned atoms are multiplied by a Tukey
-        window that set its border to 0. This can help having patterns
+        window that sets its borders to 0. This can help having patterns
         localized in the middle of the atom support and reduces
         border effects.
     z_positive : bool, default True
