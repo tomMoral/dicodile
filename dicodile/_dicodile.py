@@ -39,6 +39,11 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     ----------
     X : ndarray, shape (n_channels, *sig_support)
         Signal to encode.
+
+        For example, a 3-channel RGB image of definition 640x480 would
+        have a shape of (3, 640, 480), a grayscale image of the same definition
+        would have a shape of (1, 640, 480), a single time series would have a
+        shape of (1, number_of_samples)
     D_init : ndarray, shape (n_atoms, n_channels, *atom_support)
         Current atoms dictionary.
     reg : float, defaults to .1
@@ -94,6 +99,9 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     --------
     dicodile.update_z.dicod : Convolutional sparse coding.
     """
+
+    assert X.ndim == len(D_init.shape[2:]) + 1, \
+        "Signal and Dictionary dimensions are mismatched"
 
     name = "DICODILE"
     lmbd_max = get_lambda_max(X, D_init).max()
