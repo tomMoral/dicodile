@@ -16,7 +16,7 @@
 
 """
 # Gait (steps) example
-In this example, we use ``dicodile`` on an open `dataset`_ of gait (steps)
+In this example, we use DiCoDiLe on an open `dataset`_ of gait (steps)
 IMU time-series to discover patterns in the data.
 We will then use those to attempt to detect steps and compare our findings
 with the ground truth.
@@ -83,7 +83,7 @@ ax.legend()
 
 ###############################################################################
 # ## Convolutional Dictionary Learning
-# Now, let's use DiCoDile to learn patterns from the data and reconstruct
+# Now, let's use DiCoDiLe to learn patterns from the data and reconstruct
 # the signal from a sparse representation.
 #
 # First, we initialize a dictionary from parts of the signal:
@@ -102,7 +102,7 @@ D_init = init_dictionary(X, n_atoms=8, atom_support=(300,), random_state=60)
 # Here, we have a single-channel time series.
 
 ###############################################################################
-# Then, we run DiCoDile!
+# Then, we run DiCoDiLe!
 
 D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=3,
                                      n_workers=4,
@@ -111,7 +111,7 @@ D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=3,
                                      window=True)
 
 
-print("[DICOD] final cost : {}".format(pobj))
+print("[DiCoDiLe] final cost : {}".format(pobj))
 
 ###############################################################################
 # We'll now display the initial and final dictionary side by side
@@ -123,7 +123,11 @@ normalized_D_hat = D_hat / D_hat.max()
 display_dictionaries(normalized_D_init, normalized_D_hat)
 
 ###############################################################################
-# We now reconstruct a sparse version of the original signal
+# **TODO: order by decreasing contribution**
+#
+# **TODO: legend**
+#
+# We now reconstruct a sparse version of the input signal
 # and plot it together with the original
 
 X_hat = reconstruct(z_hat, D_hat)
@@ -142,4 +146,15 @@ ax_hat.legend()
 # Check that our representation is indeed sparse:
 
 np.count_nonzero(z_hat)
-""
+###############################################################################
+# A measure of how closely we're reconstructing the original signal is the
+# (normalized) cross-correlation. Let's compute this:
+
+np.correlate(X[0], X_hat[0]) / (
+    np.sqrt(np.correlate(X[0], X[0]) * np.correlate(X_hat[0], X_hat[0])))
+
+###############################################################################
+# ## Detecting steps
+
+###############################################################################
+# ## Multi-channel signals
