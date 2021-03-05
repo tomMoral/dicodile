@@ -147,8 +147,8 @@ ax_hat.legend()
 
 np.count_nonzero(z_hat)
 ###############################################################################
-# A measure of how closely we're reconstructing the original signal is the
-# (normalized) cross-correlation. Let's compute this:
+# Besides our visual check, a measure of how closely we're reconstructing the
+# original signal is the (normalized) cross-correlation. Let's compute this:
 
 np.correlate(X[0], X_hat[0]) / (
     np.sqrt(np.correlate(X[0], X[0]) * np.correlate(X_hat[0], X_hat[0])))
@@ -158,3 +158,20 @@ np.correlate(X[0], X_hat[0]) / (
 
 ###############################################################################
 # ## Multi-channel signals
+
+# Left foot Vertical acceleration, Y rotation and X acceleration
+channels = 'LAV', 'LRY', 'LAX'
+
+###############################################################################
+# Let's look at a small portion of multi-channel data
+
+colors = plt.rcParams["axes.prop_cycle"]()
+mc_fig, mc_ax = plt.subplots(len(channels), sharex=True)
+
+for ax, chan in zip(mc_ax, channels):
+    ax.plot(trial['data'][chan][5000:5800],
+            label=chan, color=next(colors)["color"])
+mc_fig.legend(loc="upper center")
+
+
+""
