@@ -8,9 +8,11 @@ DiCoDiLe algorithm.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dicodile import dicodile
 from dicodile.data.text import generate_text
 from dicodile.update_d.update_d import tukey_window
 from dicodile.utils import check_random_state
+from dicodile.utils.csc import reconstruct
 from dicodile.utils.dictionary import init_dictionary, prox_d
 from dicodile.utils.viz import display_dictionaries
 
@@ -29,17 +31,21 @@ n_atoms = 4
 # number of characters that compose the text image
 text_length = 5000
 
-X, D = generate_text(n_atoms=n_atoms, text_length=text_length,
-                     random_state='PAMI')
+X_original, D = generate_text(n_atoms=n_atoms, text_length=text_length,
+                              random_state='PAMI')
 
 
 ###############################################################################
-# We need to reshape image data `X` and `D` to fit to expected signal
-# shape of `dicodile`:
+# We will work on the copy `X` of the original image and we need to
+# reshape image data `X` and `D` to fit to expected signal shape of
+# `dicodile`:
 #
 # (n_channels, *sig_support)
 
-X = X.reshape(1, *X.shape)
+X = X_original.copy()
+
+# reshape
+X = X[None]
 D = D[:, None]
 
 # pad `D`
@@ -47,12 +53,12 @@ D = np.pad(D, [(0, 0), (0, 0), (4, 4), (4, 4)])
 
 
 ###############################################################################
-# Let's display an extract of the generated text image `X` and all the images
-# of characters from `D`.
+# Let's display an extract of the original text image `X_original` and
+# all the images of characters from `D`.
 
-extract_x = X[0][190:490, 250:750]
+extract_x = X_original[190:490, 250:750]
 plt.axis('off')
-plt.imshow(extract_x)
+plt.imshow(extract_x, cmap='gray')
 
 display_dictionaries(D)
 
@@ -66,8 +72,11 @@ rng = check_random_state(None)
 X += std * X.std() * rng.randn(*X.shape)
 
 ###############################################################################
-# We will create a random dictionary of **K = 4** patches from the noisy image.
+# We will create a random dictionary of **K = 10** patches from the
+# noisy image.
 
+# set number of patches
+n_atoms = 10
 # set individual atom (patch) size
 atom_support = np.array(D.shape[-2:])
 
@@ -76,6 +85,12 @@ D_init = init_dictionary(X, n_atoms=n_atoms, atom_support=atom_support,
 
 # normalize the atoms
 D_init = prox_d(D_init)
+
+# Add a small noise to extracted patches
+noise_level = .1
+noise_level_ = noise_level * D_init.std(axis=(-1, -2), keepdims=True)
+noise = noise_level_ * rng.randn(*D_init.shape)
+D_init = prox_d(D_init + noise)
 
 # window the dictionary, this helps make sure that the border values are 0
 atom_support = D_init.shape[-2:]
@@ -87,6 +102,58 @@ D_init *= tw
 
 zoom_x = X[0][190:490, 250:750]
 plt.axis('off')
-plt.imshow(zoom_x)
+plt.imshow(zoom_x, cmap='gray')
 
 display_dictionaries(D_init)
+
+###############################################################################
+# Add a small noise to avoid having coefficients that are equal which
+# might complicate distributed optimization.
+
+X_0 = X.copy()
+X_0 += X_0.std() * 1e-8 * np.random.randn(*X.shape)
+
+reg = .2
+window = True
+n_jobs = 10
+
+###############################################################################
+# Fit the dictionary with `dicodile`.
+D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=.2, n_iter=100,
+                                     window=window, z_positive=True,
+                                     n_workers=n_jobs, w_world='auto',
+                                     tol=1e-3, verbose=1)
+
+print("[DICOD] final cost : {}".format(pobj))
+
+###############################################################################
+# Let's compare the initially generated random patches in `D_init`
+# with the atoms in `D_hat` recovered with `dicodile`.
+
+display_dictionaries(D_init, D_hat)
+
+###############################################################################
+# Now we will reconstruct the image from `z_hat` and `D_hat`.
+
+X_hat = reconstruct(z_hat, D_hat)
+X_hat = np.clip(X_hat, 0, 1)
+
+###############################################################################
+# Let's plot the reconstructed image `X_hat` together with the
+# original image `X_original` and the noisy image `X_0` that was input
+# to `dicodile`.
+
+f, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=[6.4, 8])
+
+ax1.imshow(X_original[190:490, 250:750], cmap='gray')
+ax1.set_title('Original image')
+ax1.axis('off')
+
+ax2.imshow(X_0[0][190:490, 250:750], cmap='gray')
+ax2.set_title('Noisy image')
+ax2.axis('off')
+
+ax3.imshow(X_hat[0][190:490, 250:750], cmap='gray')
+ax3.set_title('Recovered image')
+ax3.axis('off')
+plt.tight_layout()
