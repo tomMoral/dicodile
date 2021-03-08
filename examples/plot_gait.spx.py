@@ -1,19 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     cell_markers: region,endregion
-#     formats: .spx.py:sphinx
-#     text_representation:
-#       extension: .py
-#       format_name: sphinx
-#       format_version: '1.1'
-#       jupytext_version: 1.10.2
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
 """
 Gait (steps) example
 ====================
@@ -244,3 +228,4 @@ ax_hat_mc.set_xlabel('time (x10ms)')
 ax_hat_mc.legend()
 
 ""
+
