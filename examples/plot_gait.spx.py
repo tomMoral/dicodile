@@ -21,7 +21,8 @@ from dicodile.utils.csc import reconstruct
 from dicodile import dicodile
 
 ###############################################################################
-# ## Retrieve trial data
+# Retrieve trial data
+# -------------------
 
 trial = get_gait_data(subject=6, trial=1)
 
@@ -68,7 +69,9 @@ ax.legend()
 # vertical acceleration.
 
 ###############################################################################
-# ## Convolutional Dictionary Learning
+# Convolutional Dictionary Learning
+# ---------------------------------
+#
 # Now, let's use DiCoDiLe to learn patterns from the data and reconstruct
 # the signal from a sparse representation.
 #
@@ -125,7 +128,9 @@ fig_reordered = display_dictionaries(normalized_D_init[patch_indices],
                                      normalized_D_hat[patch_indices])
 
 ###############################################################################
-# ### Signal reconstruction
+# Signal reconstruction
+# ^^^^^^^^^^^^^^^^^^^^^
+#
 # Now, let's reconstruct the original signal
 
 X_hat = reconstruct(z_hat, D_hat)
@@ -152,10 +157,13 @@ np.correlate(X[0], X_hat[0]) / (
     np.sqrt(np.correlate(X[0], X[0]) * np.correlate(X_hat[0], X_hat[0])))
 
 ###############################################################################
-# ## Detecting steps
+# Detecting steps
+# ---------------
 
 ###############################################################################
-# ## Multichannel signals
+# Multichannel signals
+# --------------------
+#
 # DiCoDiLe works just as well with multi-channel signals. The gait dataset
 # contains 16 signals (8 for each foot), in the rest of this tutorial,
 # we'll use three of those.
@@ -210,7 +218,9 @@ D_hat_mc, z_hat_mc, pobj_mc, times_mc = dicodile(X_mc_subset,
 print("[DiCoDiLe] final cost : {}".format(pobj_mc))
 
 ###############################################################################
-# ### Signal reconstruction (multichannel)
+# Signal reconstruction (multichannel)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # Now, let's reconstruct the original signal
 
 X_hat_mc = reconstruct(z_hat_mc, D_hat_mc)
@@ -228,4 +238,3 @@ ax_hat_mc.set_xlabel('time (x10ms)')
 ax_hat_mc.legend()
 
 ""
-
