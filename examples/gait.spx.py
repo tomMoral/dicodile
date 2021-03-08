@@ -15,7 +15,9 @@
 # ---
 
 """
-# Gait (steps) example
+Gait (steps) example
+====================
+
 In this example, we use DiCoDiLe on an open `dataset`_ of gait (steps)
 IMU time-series to discover patterns in the data.
 We will then use those to attempt to detect steps and compare our findings
