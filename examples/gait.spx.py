@@ -123,12 +123,29 @@ normalized_D_hat = D_hat / D_hat.max()
 display_dictionaries(normalized_D_init, normalized_D_hat)
 
 ###############################################################################
-# **TODO: order by decreasing contribution**
+# We can order the dictionary patches by decreasing sum of the activations'
+# absolute values in the reconstruction ``z_hat``, which, intuitively, gives
+# a measure of how they contribute to the reconstruction.
 #
 # **TODO: legend**
 #
 # We now reconstruct a sparse version of the input signal
 # and plot it together with the original
+
+sum_abs_val = np.sum(np.abs(z_hat), axis=-1)
+sum_abs_val
+
+""
+patch_indices = np.argsort(-sum_abs_val)
+patch_indices
+
+""
+display_dictionaries(normalized_D_init[patch_indices],
+                     normalized_D_hat[patch_indices])
+
+###############################################################################
+# ### Signal reconstruction
+# Now, let's reconstruct the original signal
 
 X_hat = reconstruct(z_hat, D_hat)
 
