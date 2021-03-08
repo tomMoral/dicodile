@@ -122,28 +122,23 @@ print("[DiCoDiLe] final cost : {}".format(pobj))
 normalized_D_init = D_init / D_init.max()
 normalized_D_hat = D_hat / D_hat.max()
 
-display_dictionaries(normalized_D_init, normalized_D_hat)
+fig = display_dictionaries(normalized_D_init, normalized_D_hat)
 
 ###############################################################################
 # We can order the dictionary patches by decreasing sum of the activations'
-# absolute values in the reconstruction ``z_hat``, which, intuitively, gives
+# absolute values in the activations ``z_hat``, which, intuitively, gives
 # a measure of how they contribute to the reconstruction.
-#
-# **TODO: legend**
-#
-# We now reconstruct a sparse version of the input signal
-# and plot it together with the original
 
 sum_abs_val = np.sum(np.abs(z_hat), axis=-1)
 sum_abs_val
 
-""
-patch_indices = np.argsort(-sum_abs_val)
-patch_indices
 
 ""
-display_dictionaries(normalized_D_init[patch_indices],
-                     normalized_D_hat[patch_indices])
+# we negate sum_abs_val to sort in decreasing order
+patch_indices = np.argsort(-sum_abs_val)
+
+fig_reordered = display_dictionaries(normalized_D_init[patch_indices],
+                                     normalized_D_hat[patch_indices])
 
 ###############################################################################
 # ### Signal reconstruction
@@ -176,10 +171,13 @@ np.correlate(X[0], X_hat[0]) / (
 # ## Detecting steps
 
 ###############################################################################
-# ## Multi-channel signals
+# ## Multichannel signals
+# DiCoDiLe works just as well with multi-channel signals. The gait dataset
+# contains 16 signals (8 for each foot), in the rest of this tutorial,
+# we'll use three of those.
 
 # Left foot Vertical acceleration, Y rotation and X acceleration
-channels = 'LAV', 'LRY', 'LAX'
+channels = ['LAV', 'LRY', 'LAX']
 
 ###############################################################################
 # Let's look at a small portion of multi-channel data
@@ -192,5 +190,57 @@ for ax, chan in zip(mc_ax, channels):
             label=chan, color=next(colors)["color"])
 mc_fig.legend(loc="upper center")
 
+
+""
+X_mc = trial['data']
+
+""
+X_mc.dtype.names
+
+""
+X_mc_reshaped = X_mc.view(dtype=np.dtype('<f8')).reshape(len(X_mc.dtype.names),
+                                                         X_mc.shape[-1])
+X_mc_reshaped.shape
+
+
+""
+channel_indices = [0, 1, 6]  # LAV, LAX, LRY
+X_mc_subset = X_mc_reshaped[channel_indices]
+
+""
+D_mc_init = init_dictionary(X_mc_subset,
+                            n_atoms=8,
+                            atom_support=(300,),
+                            random_state=60)
+
+""
+D_hat_mc, z_hat_mc, pobj_mc, times_mc = dicodile(X_mc_subset,
+                                                 D_mc_init,
+                                                 n_iter=3,
+                                                 n_workers=4,
+                                                 dicod_kwargs={"max_iter": 10000},  # noqa: E501
+                                                 verbose=6,
+                                                 window=True)
+
+
+print("[DiCoDiLe] final cost : {}".format(pobj_mc))
+
+###############################################################################
+# ### Signal reconstruction (multichannel)
+# Now, let's reconstruct the original signal
+
+X_hat_mc = reconstruct(z_hat_mc, D_hat_mc)
+X_hat_mc.shape
+
+###############################################################################
+# Let's visually compare a small part of the original and reconstructed signals
+
+fig_hat_mc, ax_hat_mc = plt.subplots()
+ax_hat_mc.plot(X_mc_subset[2][4000:4200],
+               label='ORIGINAL')
+ax_hat_mc.plot(X_hat_mc[2][4000:4200],
+               label='RECONSTRUCTED')
+ax_hat_mc.set_xlabel('time (x10ms)')
+ax_hat_mc.legend()
 
 ""
