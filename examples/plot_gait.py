@@ -196,7 +196,8 @@ X_mc_reshaped.shape
 
 
 ""
-channel_indices = [0, 1, 6]  # LAV, LAX, LRY
+# find data indices for our selected channels labels
+channel_indices = np.nonzero(np.isin(np.array(X_mc.dtype.names), channels))
 X_mc_subset = X_mc_reshaped[channel_indices]
 
 ""
