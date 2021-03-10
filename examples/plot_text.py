@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dicodile import dicodile
-from dicodile.data.text import generate_text
+from dicodile.data.images import fetch_pami
 from dicodile.update_d.update_d import tukey_window
 from dicodile.utils import check_random_state
 from dicodile.utils.csc import reconstruct
@@ -18,21 +18,14 @@ from dicodile.utils.viz import display_dictionaries
 
 
 ###############################################################################
-# We will first generate a text image `X` from a text of **5000**
+# We will first load PAMI image generated from a text of **5000**
 # characters drawn uniformly from the **4** letters **P** **A** **M**
-# **I** and 2 whitespaces.
+# **I** and 2 whitespaces and assign it to `X`.
 #
-# We also generate the images of the characters used to generate the
-# image `X` and assign it to variable `D`.
+# We will also load the images of the four characters used to generate
+# `X` and assign it to variable `D`.
 
-
-# number of letters used to generate the text
-n_atoms = 4
-# number of characters that compose the text image
-text_length = 5000
-
-X_original, D = generate_text(n_atoms=n_atoms, text_length=text_length,
-                              random_state='PAMI')
+X_original, D = fetch_pami()
 
 
 ###############################################################################
@@ -44,9 +37,8 @@ X_original, D = generate_text(n_atoms=n_atoms, text_length=text_length,
 
 X = X_original.copy()
 
-# reshape
-X = X[None]
-D = D[:, None]
+X = X.reshape(1, *X.shape)
+D = D.reshape(4, 1, *D.shape[-2:])
 
 # pad `D`
 D = np.pad(D, [(0, 0), (0, 0), (4, 4), (4, 4)])

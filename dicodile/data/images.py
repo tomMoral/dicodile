@@ -1,6 +1,7 @@
 import PIL
-import matplotlib.pyplot as plt
 from download import download
+import matplotlib.pyplot as plt
+import numpy as np
 
 from dicodile.config import DATA_HOME
 
@@ -16,6 +17,35 @@ def fetch_mandrill():
 
     X = plt.imread(mandrill) / 255
     return X.swapaxes(0, 2)
+
+
+def fetch_pami():
+    """Loads text image `X` and dictionary `D` of the images of the
+    letters `P`, `A`, `M`, `I` used to generate `X`.
+
+    Returns
+    -------
+
+    X : ndarray, shape (2321, 2004)
+        The text image generated from a text of 5000 characters drawn uniformly
+        from the letters `P`, `A`, `M`, `I` and 3 whitespaces.
+    D : ndarray, shape (4, 29, 25)
+        A dictionary of images of the 4 letters `P`, `A`, `M`, `I`.
+    """
+
+    pami_dir = DATA_HOME / "images" / "text"
+    pami_dir.mkdir(parents=True, exist_ok=True)
+
+    pami_path = download(
+        "https://ndownloader.figshare.com/files/26750168", pami_dir /
+        "text_4_5000_PAMI.npz")
+
+    data = np.load(pami_path)
+
+    X = data.get('X')
+    D = data.get('D')
+
+    return X, D
 
 
 def get_hubble(size="Medium"):
