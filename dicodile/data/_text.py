@@ -80,7 +80,7 @@ def get_centered_padding(shape, expected_shape):
       Original array dimensions.
     expected_shape: ndarray, tuple
       Expected array dimensions.
-      
+
     Returns
     -------
     padding: list
