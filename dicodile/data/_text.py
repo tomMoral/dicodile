@@ -84,7 +84,6 @@ def get_centered_padding(shape, expected_shape):
     -------
     padding: list
         padding necessary for original array to have the `expected_shape`.
-
     """
 
     padding = []
