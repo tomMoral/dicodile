@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dicodile import dicodile
-from dicodile.data.images import fetch_pami
+from dicodile.data.images import fetch_letters_pami
 from dicodile.update_d.update_d import tukey_window
 from dicodile.utils import check_random_state
 from dicodile.utils.csc import reconstruct
@@ -26,7 +26,7 @@ from dicodile.utils.viz import display_dictionaries
 # We will also load the images of the four characters used to generate
 # `X` and assign it to variable `D`.
 
-X_original, D = fetch_pami()
+X_original, D = fetch_letters_pami()
 
 
 ###############################################################################

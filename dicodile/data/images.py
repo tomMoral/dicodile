@@ -19,7 +19,7 @@ def fetch_mandrill():
     return X.swapaxes(0, 2)
 
 
-def fetch_pami():
+def fetch_letters_pami():
     """Loads text image `X` and dictionary `D` of the images of the
     letters `P`, `A`, `M`, `I` used to generate `X`.
 
