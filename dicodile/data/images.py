@@ -25,7 +25,6 @@ def fetch_pami():
 
     Returns
     -------
-
     X : ndarray, shape (2321, 2004)
         The text image generated from a text of 5000 characters drawn uniformly
         from the letters `P`, `A`, `M`, `I` and 3 whitespaces.
