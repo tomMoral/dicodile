@@ -1,5 +1,6 @@
-"""DiCoDiLe on text images
-==============================
+"""
+DiCoDiLe on text images
+==================
 
 This example illustrates pattern recovery on a noisy text image using
 DiCoDiLe algorithm.
