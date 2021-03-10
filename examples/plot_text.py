@@ -12,7 +12,6 @@ import numpy as np
 from dicodile import dicodile
 from dicodile.data.images import fetch_letters_pami
 from dicodile.update_d.update_d import tukey_window
-from dicodile.utils import check_random_state
 from dicodile.utils.csc import reconstruct
 from dicodile.utils.dictionary import init_dictionary, prox_d
 from dicodile.utils.viz import display_dictionaries
@@ -60,7 +59,7 @@ display_dictionaries(D)
 # to `X`.
 
 std = 3
-rng = check_random_state(None)
+rng = np.random.default_rng(None)
 
 X += std * X.std() * rng.randn(*X.shape)
 
