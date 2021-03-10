@@ -1,7 +1,7 @@
 """DiCoDiLe on text images
 ==============================
 
-This example illlustrates pattern recovery on a noisy text image using
+This example illustrates pattern recovery on a noisy text image using
 DiCoDiLe algorithm.
 
 """  # noqa
