@@ -105,16 +105,30 @@ display_dictionaries(D_init)
 X_0 = X.copy()
 X_0 += X_0.std() * 1e-8 * np.random.randn(*X.shape)
 
+###############################################################################
+# Set model parameters.
+
+# regularization parameter
 reg = .2
+# maximum number of iterations
+n_iter = 100
+# when True, makes sure that the borders of the atoms are 0
 window = True
-n_jobs = 10
+# when True, requires all activations Z to be positive
+z_positive = True
+# number of workers to be used for computations
+n_workers = 10
+# number of jobs per row
+w_world = 'auto'
+# tolerance for minimal update size
+tol = 1e-3
 
 ###############################################################################
 # Fit the dictionary with `dicodile`.
-D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=.2, n_iter=100,
-                                     window=window, z_positive=True,
-                                     n_workers=n_jobs, w_world='auto',
-                                     tol=1e-3, verbose=1)
+D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=.2, n_iter=n_iter,
+                                     window=window, z_positive=z_positive,
+                                     n_workers=n_workers, w_world=w_world,
+                                     tol=tol, verbose=1)
 
 print("[DICOD] final cost : {}".format(pobj))
 
