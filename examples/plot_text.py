@@ -61,7 +61,7 @@ display_dictionaries(D)
 std = 3
 rng = np.random.default_rng(None)
 
-X += std * X.std() * rng.randn(*X.shape)
+X += std * X.std() * rng.standard_normal(X.shape)
 
 ###############################################################################
 # We will create a random dictionary of **K = 10** patches from the
@@ -73,7 +73,7 @@ n_atoms = 10
 atom_support = np.array(D.shape[-2:])
 
 D_init = init_dictionary(X, n_atoms=n_atoms, atom_support=atom_support,
-                         random_state=rng)
+                         random_state=60)
 
 # window the dictionary, this helps make sure that the border values are 0
 atom_support = D_init.shape[-2:]
@@ -94,7 +94,7 @@ display_dictionaries(D_init)
 # might complicate distributed optimization.
 
 X_0 = X.copy()
-X_0 += X_0.std() * 1e-8 * np.random.randn(*X.shape)
+X_0 += X_0.std() * 1e-8 * rng.standard_normal(X.shape)
 
 ###############################################################################
 # Set model parameters.
