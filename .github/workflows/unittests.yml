@@ -11,6 +11,7 @@ jobs:
       run:
         shell: bash -l {0}
     strategy:
+      fail-fast: false
       matrix:
         mpi_install: [system, conda]
         python: [3.8]
