@@ -10,14 +10,13 @@ with the ground truth.
 .. _dataset: https://github.com/deepcharles/gait-data
 """
 
-from dicodile.data.gait import get_gait_data
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dicodile.data.gait import get_gait_data
 from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
 from dicodile.utils.csc import reconstruct
-
 from dicodile import dicodile
 
 ###############################################################################
