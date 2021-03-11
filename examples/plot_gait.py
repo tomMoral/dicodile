@@ -121,7 +121,9 @@ fig_reordered = display_dictionaries(normalized_D_init[patch_indices],
 
 X_hat = reconstruct(z_hat, D_hat)
 
-""
+###############################################################################
+# Plot a small part of the original and reconstructed signals
+
 fig_hat, ax_hat = plt.subplots()
 ax_hat.plot(X[0][5000:5800],
             label='right foot vertical acceleration (ORIGINAL)')
@@ -224,5 +226,3 @@ ax_hat_mc.plot(X_hat_mc[2][4000:4200],
                label='RECONSTRUCTED')
 ax_hat_mc.set_xlabel('time (x10ms)')
 ax_hat_mc.legend()
-
-""
