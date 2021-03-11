@@ -48,9 +48,9 @@ D = np.pad(D, [(0, 0), (0, 0), (4, 4), (4, 4)])
 # Let's display an extract of the original text image `X_original` and
 # all the images of characters from `D`.
 
-extract_x = X_original[190:490, 250:750]
+zoom_x = X_original[190:490, 250:750]
 plt.axis('off')
-plt.imshow(extract_x, cmap='gray')
+plt.imshow(zoom_x, cmap='gray')
 
 display_dictionaries(D)
 
@@ -81,7 +81,8 @@ tw = tukey_window(atom_support)[None, None]
 D_init *= tw
 
 ###############################################################################
-# Let's display noisy `X` and random dictionary `D_init` generated from `X`.
+# Let's display an extract of noisy `X` and random dictionary `D_init`
+# generated from `X`.
 
 zoom_x = X[0][190:490, 250:750]
 plt.axis('off')
@@ -116,7 +117,7 @@ tol = 1e-3
 
 ###############################################################################
 # Fit the dictionary with `dicodile`.
-D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=.2, n_iter=n_iter,
+D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=reg, n_iter=n_iter,
                                      window=window, z_positive=z_positive,
                                      n_workers=n_workers, w_world=w_world,
                                      tol=tol, verbose=1)
