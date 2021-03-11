@@ -13,7 +13,7 @@ from dicodile import dicodile
 from dicodile.data.images import fetch_letters_pami
 from dicodile.update_d.update_d import tukey_window
 from dicodile.utils.csc import reconstruct
-from dicodile.utils.dictionary import init_dictionary, prox_d
+from dicodile.utils.dictionary import init_dictionary
 from dicodile.utils.viz import display_dictionaries
 
 
@@ -74,15 +74,6 @@ atom_support = np.array(D.shape[-2:])
 
 D_init = init_dictionary(X, n_atoms=n_atoms, atom_support=atom_support,
                          random_state=rng)
-
-# normalize the atoms
-D_init = prox_d(D_init)
-
-# Add a small noise to extracted patches
-noise_level = .1
-noise_level_ = noise_level * D_init.std(axis=(-1, -2), keepdims=True)
-noise = noise_level_ * rng.randn(*D_init.shape)
-D_init = prox_d(D_init + noise)
 
 # window the dictionary, this helps make sure that the border values are 0
 atom_support = D_init.shape[-2:]
