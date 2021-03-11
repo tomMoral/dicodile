@@ -1,12 +1,36 @@
-from download import download
-from zipfile import ZipFile
 import json
+from zipfile import ZipFile
+
 import numpy as np
+from download import download
 
 from .home import DATA_HOME
 
 
 def get_gait_data(subject, trial):
+    """
+    Retrieve gait data from this `dataset`_.
+
+    Parameters
+    ----------
+    subject: int
+        Subject identifier.
+        Valid subject-trial pairs can be found in this `list`_.
+    trial: int
+        Trial number.
+        Valid subject-trial pairs can be found in this `list`_.
+
+    Returns
+    -------
+    dict
+        A dictionary containing metadata and data relative
+        to a trial.
+
+
+    .. _dataset: https://github.com/deepcharles/gait-data
+    .. _list:
+       https://github.com/deepcharles/gait-data/blob/master/code_list.json
+    """
     # coerce subject and trial
     subject = int(subject)
     trial = int(trial)
