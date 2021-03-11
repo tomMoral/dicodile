@@ -35,17 +35,7 @@ trial.keys()
 # contains a numpy array with the trial time series for each sensor axis,
 # at 100 Hz resolution.
 
-# right foot acceleration (vertical)
-trial['data']['RAV']
-
-""
 # left foot acceleration (vertical)
-trial['data']['LAV']
-
-""
-plt.plot(trial['data']['LAV'])
-
-""
 plt.plot(trial['data']['RAV'])
 
 ###############################################################################
@@ -116,10 +106,7 @@ fig = display_dictionaries(normalized_D_init, normalized_D_hat)
 # a measure of how they contribute to the reconstruction.
 
 sum_abs_val = np.sum(np.abs(z_hat), axis=-1)
-sum_abs_val
 
-
-""
 # we negate sum_abs_val to sort in decreasing order
 patch_indices = np.argsort(-sum_abs_val)
 
@@ -148,6 +135,7 @@ ax_hat.legend()
 # Check that our representation is indeed sparse:
 
 np.count_nonzero(z_hat)
+
 ###############################################################################
 # Besides our visual check, a measure of how closely we're reconstructing the
 # original signal is the (normalized) cross-correlation. Let's compute this:
