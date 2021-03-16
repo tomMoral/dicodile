@@ -221,7 +221,7 @@ X_hat_mc.shape
 # along with the activations.
 
 viz_start_idx = 4000
-viz_end_idx = 4200
+viz_end_idx = 5800
 viz_chan = 2
 
 max_abs = np.max(np.abs(z_hat_mc), axis=-1)
@@ -234,7 +234,8 @@ ax_hat_mc[0].plot(X_hat_mc[viz_chan][viz_start_idx:viz_end_idx],
                   label='RECONSTRUCTED')
 for idx in range(z_hat_normalized.shape[0]):
     ax_hat_mc[1].stem(z_hat_normalized[idx][viz_start_idx:viz_end_idx],
-                      linefmt=f"C{idx}-")
+                      linefmt=f"C{idx}-",
+                      markerfmt=f"C{idx}o")
 ax_hat_mc[0].set_xlabel('time (x10ms)')
 ax_hat_mc[0].legend()
 
