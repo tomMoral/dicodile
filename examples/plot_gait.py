@@ -221,7 +221,7 @@ X_hat_mc.shape
 # along with the activations.
 
 max_abs = np.max(np.abs(z_hat_mc), axis=-1)
-max_abs.reshape(z_hat_mc.shape[0], 1)
+max_abs = max_abs.reshape(z_hat_mc.shape[0], 1)
 z_hat_normalized = z_hat_mc / max_abs
 fig_hat_mc, ax_hat_mc = plt.subplots(2, figsize=(12, 8))
 ax_hat_mc[0].plot(X_mc_subset[2][4000:4200],
