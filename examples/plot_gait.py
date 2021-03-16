@@ -220,16 +220,20 @@ X_hat_mc.shape
 # Let's visually compare a small part of the original and reconstructed signals
 # along with the activations.
 
+viz_start_idx = 4000
+viz_end_idx = 4200
+viz_chan = 2
+
 max_abs = np.max(np.abs(z_hat_mc), axis=-1)
 max_abs = max_abs.reshape(z_hat_mc.shape[0], 1)
 z_hat_normalized = z_hat_mc / max_abs
 fig_hat_mc, ax_hat_mc = plt.subplots(2, figsize=(12, 8))
-ax_hat_mc[0].plot(X_mc_subset[2][4000:4200],
+ax_hat_mc[0].plot(X_mc_subset[viz_chan][viz_start_idx:viz_end_idx],
                   label='ORIGINAL')
-ax_hat_mc[0].plot(X_hat_mc[2][4000:4200],
+ax_hat_mc[0].plot(X_hat_mc[viz_chan][viz_start_idx:viz_end_idx],
                   label='RECONSTRUCTED')
 for idx in range(z_hat_normalized.shape[0]):
-    ax_hat_mc[1].stem(z_hat_normalized[idx][4000:4200],
+    ax_hat_mc[1].stem(z_hat_normalized[idx][viz_start_idx:viz_end_idx],
                       linefmt=f"C{idx}-")
 ax_hat_mc[0].set_xlabel('time (x10ms)')
 ax_hat_mc[0].legend()
