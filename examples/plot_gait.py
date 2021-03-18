@@ -12,6 +12,7 @@ with the ground truth.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.lib import recfunctions as rfn
 
 from dicodile.data.gait import get_gait_data
 from dicodile.utils.dictionary import init_dictionary
@@ -176,18 +177,12 @@ mc_fig.legend(loc="upper center")
 X_mc = trial['data']
 
 ""
-X_mc.dtype.names
-
-""
-X_mc_reshaped = X_mc.view(dtype=np.dtype('<f8')).reshape(len(X_mc.dtype.names),
-                                                         X_mc.shape[-1])
-X_mc_reshaped.shape
-
+X_mc_plain = rfn.structured_to_unstructured(X_mc).T
 
 ""
 # find data indices for our selected channels labels
 channel_indices = np.nonzero(np.isin(np.array(X_mc.dtype.names), channels))
-X_mc_subset = X_mc_reshaped[channel_indices]
+X_mc_subset = X_mc_plain[channel_indices]
 
 ""
 D_mc_init = init_dictionary(X_mc_subset,
@@ -238,5 +233,3 @@ for idx in range(z_hat_normalized.shape[0]):
                       markerfmt=f"C{idx}o")
 ax_hat_mc[0].set_xlabel('time (x10ms)')
 ax_hat_mc[0].legend()
-
-""
