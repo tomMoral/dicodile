@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 
+from dicodile._config import DATA_HOME
 from dicodile.utils import check_random_state
 from dicodile.utils.dictionary import prox_d
 
@@ -13,7 +14,7 @@ if not TMP.exists():
     TMP = pathlib.Path('.')
 
 
-DATA_DIR = pathlib.Path('../..') / 'data' / 'images' / 'text'
+DATA_DIR = DATA_HOME / 'images' / 'text'
 HEADER_FILE = os.path.join(os.path.dirname(__file__), 'header.tex')
 
 

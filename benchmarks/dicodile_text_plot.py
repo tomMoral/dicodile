@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 
 from scipy.optimize import linear_sum_assignment
 
+from dicodile._config import DATA_HOME
 from dicodile.utils.viz import display_dictionaries
 
 
 OUTPUT_DIR = pathlib.Path('benchmarks_results')
-DATA_DIR = pathlib.Path('../..') / 'data' / 'images' / 'text'
+DATA_DIR = DATA_HOME / 'images' / 'text'
 
 
 # Matplotlib config

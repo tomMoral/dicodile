@@ -1,5 +1,6 @@
 from pathlib import Path
-from dicodile.data.home import get_data_home
+
+from dicodile._config import get_data_home
 
 
 def test_dicodile_home(monkeypatch):

@@ -14,7 +14,7 @@ from sklearn.feature_extraction.image import extract_patches_2d
 
 # Import for CDL
 from dicodile import dicodile
-
+from dicodile._config import DATA_HOME
 # Import to initiate the dictionary
 from dicodile.utils.dictionary import prox_d
 from dicodile.update_d.update_d import tukey_window
@@ -29,7 +29,7 @@ memory = Memory(location='.', verbose=0)
 
 BASE_FILE_NAME = os.path.basename(__file__)
 OUTPUT_DIR = pathlib.Path('benchmarks_results')
-DATA_DIR = pathlib.Path('../..') / 'data' / 'images' / 'text'
+DATA_DIR = DATA_HOME / 'images' / 'text'
 
 
 @memory.cache
