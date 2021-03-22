@@ -82,11 +82,10 @@ D_init = init_dictionary(X, n_atoms=8, atom_support=(300,), random_state=60)
 ###############################################################################
 # Then, we run DiCoDiLe!
 
-D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=3,
-                                     n_workers=4,
-                                     dicod_kwargs={"max_iter": 10000},
-                                     verbose=6,
-                                     window=True)
+D_hat, z_hat, pobj, times = dicodile(
+    X, D_init, n_iter=3, n_workers=4, window=True,
+    dicod_kwargs={"max_iter": 10000}, verbose=6
+)
 
 
 print("[DiCoDiLe] final cost : {}".format(pobj))
