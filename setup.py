@@ -19,6 +19,7 @@ setup(name='dicodile',
           'mpi4py',
           'threadpoolctl',
           'joblib',
-          'download'
+          'download',
+          'pandas'
       ],
       )
