@@ -91,13 +91,6 @@ plt.imshow(zoom_x, cmap='gray')
 display_dictionaries(D_init)
 
 ###############################################################################
-# Add a small noise to avoid having coefficients that are equal which
-# might complicate distributed optimization.
-
-X_0 = X.copy()
-X_0 += X_0.std() * 1e-8 * rng.standard_normal(X.shape)
-
-###############################################################################
 # Set model parameters.
 
 # regularization parameter
@@ -117,10 +110,11 @@ tol = 1e-3
 
 ###############################################################################
 # Fit the dictionary with `dicodile`.
-D_hat, z_hat, pobj, times = dicodile(X_0, D_init, reg=reg, n_iter=n_iter,
+D_hat, z_hat, pobj, times = dicodile(X, D_init, reg=reg, n_iter=n_iter,
                                      window=window, z_positive=z_positive,
-                                     n_workers=n_workers, w_world=w_world,
-                                     tol=tol, verbose=1)
+                                     n_workers=n_workers,
+                                     dicod_kwargs={"max_iter": 10000},
+                                     w_world=w_world, tol=tol, verbose=6)
 
 print("[DICOD] final cost : {}".format(pobj))
 
@@ -138,7 +132,7 @@ X_hat = np.clip(X_hat, 0, 1)
 
 ###############################################################################
 # Let's plot the reconstructed image `X_hat` together with the
-# original image `X_original` and the noisy image `X_0` that was input
+# original image `X_original` and the noisy image `X` that was input
 # to `dicodile`.
 
 f, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=[6.4, 8])
@@ -147,7 +141,7 @@ ax1.imshow(X_original[190:490, 250:750], cmap='gray')
 ax1.set_title('Original image')
 ax1.axis('off')
 
-ax2.imshow(X_0[0][190:490, 250:750], cmap='gray')
+ax2.imshow(X[0][190:490, 250:750], cmap='gray')
 ax2.set_title('Noisy image')
 ax2.axis('off')
 
