@@ -92,13 +92,6 @@ D_hat, z_hat, pobj, times = dicodile(X, D_init, n_iter=3,
 print("[DiCoDiLe] final cost : {}".format(pobj))
 
 ###############################################################################
-# We'll now display the initial and final dictionary side by side
-
-# normalize dictionaries
-normalized_D_init = D_init / D_init.max()
-normalized_D_hat = D_hat / D_hat.max()
-
-###############################################################################
 # We can order the dictionary patches by decreasing sum of the activations'
 # absolute values in the activations ``z_hat``, which, intuitively, gives
 # a measure of how they contribute to the reconstruction.
@@ -108,8 +101,8 @@ sum_abs_val = np.sum(np.abs(z_hat), axis=-1)
 # we negate sum_abs_val to sort in decreasing order
 patch_indices = np.argsort(-sum_abs_val)
 
-fig_reordered = display_dictionaries(normalized_D_init[patch_indices],
-                                     normalized_D_hat[patch_indices])
+fig_reordered = display_dictionaries(D_init[patch_indices],
+                                     D_hat[patch_indices])
 
 ###############################################################################
 # Signal reconstruction
