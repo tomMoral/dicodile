@@ -4,6 +4,7 @@ from download import download
 
 from dicodile._config import DATA_HOME
 
+
 def fetch_mandrill():
 
     mandrill_dir = DATA_HOME / "images" / "standard_images"
