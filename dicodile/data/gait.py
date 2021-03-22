@@ -7,16 +7,16 @@ from download import download
 from .home import DATA_HOME
 
 
-def get_gait_data(subject, trial):
+def get_gait_data(subject=1, trial=1):
     """
     Retrieve gait data from this `dataset`_.
 
     Parameters
     ----------
-    subject: int
+    subject: int, defaults to 1
         Subject identifier.
         Valid subject-trial pairs can be found in this `list`_.
-    trial: int
+    trial: int, defaults to 1
         Trial number.
         Valid subject-trial pairs can be found in this `list`_.
 
