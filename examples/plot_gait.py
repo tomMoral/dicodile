@@ -98,8 +98,6 @@ print("[DiCoDiLe] final cost : {}".format(pobj))
 normalized_D_init = D_init / D_init.max()
 normalized_D_hat = D_hat / D_hat.max()
 
-fig = display_dictionaries(normalized_D_init, normalized_D_hat)
-
 ###############################################################################
 # We can order the dictionary patches by decreasing sum of the activations'
 # absolute values in the activations ``z_hat``, which, intuitively, gives
