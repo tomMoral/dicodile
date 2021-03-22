@@ -36,7 +36,7 @@ trial.keys()
 # contains a numpy array with the trial time series for each sensor axis,
 # at 100 Hz resolution.
 
-# left foot acceleration (vertical)
+# right foot acceleration (vertical)
 plt.plot(trial['data']['RAV'])
 
 ###############################################################################
