@@ -1,7 +1,7 @@
 import json
 from zipfile import ZipFile
 
-import numpy as np
+import pandas as pd
 from download import download
 
 from .home import DATA_HOME
@@ -24,7 +24,8 @@ def get_gait_data(subject=1, trial=1):
     -------
     dict
         A dictionary containing metadata and data relative
-        to a trial.
+        to a trial. The 'data' attribute contains time
+        series for the trial, as a Pandas dataframe.
 
 
     .. _dataset: https://github.com/deepcharles/gait-data
@@ -46,6 +47,6 @@ def get_gait_data(subject=1, trial=1):
         with zf.open(f"GaitData/{subject}-{trial}.json") as meta_file, \
              zf.open(f"GaitData/{subject}-{trial}.csv") as data_file:
             meta = json.load(meta_file)
-            data = np.genfromtxt(data_file, delimiter=',', names=True)
+            data = pd.read_csv(data_file, sep=',', header=0)
             meta['data'] = data
             return meta

@@ -12,7 +12,6 @@ with the ground truth.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.lib import recfunctions as rfn
 
 from dicodile.data.gait import get_gait_data
 from dicodile.utils.dictionary import init_dictionary
@@ -67,7 +66,7 @@ ax.legend()
 #
 # First, we initialize a dictionary from parts of the signal:
 
-X = trial['data']['RAV']
+X = trial['data']['RAV'].to_numpy()
 X = X.reshape(1, *X.shape)
 
 print(X.shape)
@@ -174,15 +173,8 @@ mc_fig.legend(loc="upper center")
 
 
 ""
-X_mc = trial['data']
-
-""
-X_mc_plain = rfn.structured_to_unstructured(X_mc).T
-
-""
-# find data indices for our selected channels labels
-channel_indices = np.nonzero(np.isin(np.array(X_mc.dtype.names), channels))
-X_mc_subset = X_mc_plain[channel_indices]
+X_mc_subset = trial['data'][channels].to_numpy().T
+X_mc_subset.shape
 
 ""
 D_mc_init = init_dictionary(X_mc_subset,
