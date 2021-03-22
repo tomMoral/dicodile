@@ -29,7 +29,6 @@ jobs:
         with:
           path: ${{ env.DICODILE_DATA_HOME }}
           key: ${{ env.cache-name }}
-
       - name: Install MPI
         run: |
           conda --version
