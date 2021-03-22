@@ -77,7 +77,7 @@ D_init = init_dictionary(X, n_atoms=8, atom_support=(300,), random_state=60)
 # Note the use of ``reshape`` to shape the signal as per ``dicodile``
 # requirements: the shape of the signal should be
 # ``(n_channels, *sig_support)``.
-# Here, we have a single-channel time series.
+# Here, we have a single-channel time series so it is ``(1, n_times)``.
 
 ###############################################################################
 # Then, we run DiCoDiLe!
