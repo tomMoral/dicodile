@@ -162,17 +162,25 @@ for ax, chan in zip(mc_ax, channels):
 mc_fig.legend(loc="upper center")
 
 
-""
+###############################################################################
+# Let's put the data in shape for DiCoDiLe
+
 X_mc_subset = trial['data'][channels].to_numpy().T
 X_mc_subset.shape
 
-""
+###############################################################################
+# Initialize the dictionary (note that the call is identical
+# to the single-channel version)
+
 D_mc_init = init_dictionary(X_mc_subset,
                             n_atoms=8,
                             atom_support=(300,),
                             random_state=60)
 
-""
+###############################################################################
+# And run DiCoDiLe (note that the call is identical to the single-channel
+# version here as well)
+
 D_hat_mc, z_hat_mc, pobj_mc, times_mc = dicodile(X_mc_subset,
                                                  D_mc_init,
                                                  n_iter=3,
