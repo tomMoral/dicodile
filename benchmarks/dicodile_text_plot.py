@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from scipy.optimize import linear_sum_assignment
 
-from dicodile._config import DATA_HOME
+from dicodile.config import DATA_HOME
 from dicodile.utils.viz import display_dictionaries
 
 
@@ -49,7 +49,7 @@ def plot_dictionary(result_file='dicodile_text.py_PAMI_20-06-29_15h35.pkl',
         'Pattern': {
             'D': res['D'],
             'style': dict(color='C3', linestyle='dotted', lw=3)
-         },
+        },
         'Random Patches': {
             'D': res['D_init'][j_init],
             'style': dict(color='C2', linestyle='dotted', lw=3)

@@ -4,7 +4,7 @@ import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dicodile._config import DATA_HOME
+from dicodile.config import DATA_HOME
 from dicodile.utils import check_random_state
 from dicodile.utils.dictionary import prox_d
 

@@ -14,7 +14,7 @@ from sklearn.feature_extraction.image import extract_patches_2d
 
 # Import for CDL
 from dicodile import dicodile
-from dicodile._config import DATA_HOME
+from dicodile.config import DATA_HOME
 # Import to initiate the dictionary
 from dicodile.utils.dictionary import prox_d
 from dicodile.update_d.update_d import tukey_window

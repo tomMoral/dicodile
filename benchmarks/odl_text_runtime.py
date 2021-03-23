@@ -10,7 +10,7 @@ from dicodile.utils import check_random_state
 import spams
 from sklearn.feature_extraction.image import extract_patches_2d
 
-from dicodile._config import DATA_HOME
+from dicodile.config import DATA_HOME
 # Import to initiate the dictionary
 from dicodile.utils.dictionary import prox_d
 from dicodile.update_d.update_d import tukey_window
