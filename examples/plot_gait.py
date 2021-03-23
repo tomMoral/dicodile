@@ -166,7 +166,7 @@ mc_fig.legend(loc="upper center")
 # Let's put the data in shape for DiCoDiLe: (n_channels, n_times)
 
 X_mc_subset = trial['data'][channels].to_numpy().T
-X_mc_subset.shape
+print(X_mc_subset.shape)
 
 ###############################################################################
 # Initialize the dictionary (note that the call is identical
