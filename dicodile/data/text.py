@@ -14,7 +14,7 @@ if not TMP.exists():
     TMP = pathlib.Path('.')
 
 
-DATA_DIR = DATA_HOME / 'images' / 'text'
+TEXT_DATA_DIR = DATA_HOME / 'images' / 'text'
 HEADER_FILE = os.path.join(os.path.dirname(__file__), 'header.tex')
 
 
@@ -160,7 +160,7 @@ def generate_text_npy(n_atoms=5, text_length=3000, random_state=None):
     if isinstance(random_state, (int, str)):
         tag = f"{tag}_{random_state}"
     filename = f'text_{tag}.npz'
-    np.savez(DATA_DIR / filename, X=X, D=D, text_length=text_length)
+    np.savez(TEXT_DATA_DIR / filename, X=X, D=D, text_length=text_length)
     return filename
 
 
