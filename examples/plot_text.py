@@ -33,14 +33,15 @@ X_original, D = fetch_letters_pami()
 # reshape image data `X` and `D` to fit to expected signal shape of
 # `dicodile`:
 #
-# (n_channels, *sig_support)
+# `(n_channels, *sig_support)`
 
 X = X_original.copy()
 
 X = X.reshape(1, *X.shape)
 D = D.reshape(4, 1, *D.shape[-2:])
 
-# pad `D`
+# We pad `D` in order to have atoms with 0 on the border,
+# compatible with windowed dictionary.
 D = np.pad(D, [(0, 0), (0, 0), (4, 4), (4, 4)])
 
 
@@ -55,8 +56,8 @@ plt.imshow(zoom_x, cmap='gray')
 display_dictionaries(D)
 
 ###############################################################################
-# We add a Gaussian white noise with standard deviation σ std (X) and σ = 3
-# to `X`.
+# We add some Gaussian white noise with standard deviation `std` 3 times
+# larger than `X.std` to `X`.
 
 std = 3
 rng = np.random.default_rng(None)
