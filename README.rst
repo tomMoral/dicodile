@@ -72,7 +72,7 @@ All figures can be generated using scripts in ``benchmarks``. Each script will g
 		  --hostfile hostfile \
 		  python -m mpi4py examples/plot_mandrill.py
 
-   - alternatively by setting environment variables ``OMPI_MCA_btl_tcp_if_include`` or ``OMPI_MCA_btl_tcp_if_exclude``
+Alternatively, you can also restrict the used interface by setting environment variables ``OMPI_MCA_btl_tcp_if_include`` or ``OMPI_MCA_btl_tcp_if_exclude``
 
    .. code-block:: bash
 
