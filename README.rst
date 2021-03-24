@@ -52,7 +52,7 @@ All figures can be generated using scripts in ``benchmarks``. Each script will g
 
    Open MPI tries to use all **up** network interfaces. This might cause the program to hang due to virtual network interfaces which could not actually be used to communicate with MPI processes. For more info `Open MPI FAQ <https://www.open-mpi.org/faq/?category=tcp#tcp-selection>`_.
 
-   In this case run the ``mpirun`` command:
+   In case your program hangs, you can launch computation with the ``mpirun`` command:
 
    - either spefifying usable interfaces using ``--mca btl_tcp_if_include`` parameter:
 
