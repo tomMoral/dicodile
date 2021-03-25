@@ -4,7 +4,7 @@ from zipfile import ZipFile
 import pandas as pd
 from download import download
 
-from .home import DATA_HOME
+from dicodile.config import DATA_HOME
 
 
 def get_gait_data(subject=1, trial=1):
