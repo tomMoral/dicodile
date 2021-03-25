@@ -11,6 +11,7 @@ from dicodile.utils import check_random_state
 # Import for CDL
 from dicodile.dicodile import dicodile
 
+from dicodile.config import DATA_HOME
 # Import to initiate the dictionary
 from dicodile.utils.dictionary import prox_d
 from dicodile.update_d.update_d import tukey_window
@@ -34,7 +35,7 @@ mpl.rcParams['ytick.labelsize'] = 12
 
 BASE_FILE_NAME = Path(__file__).with_suffix('').name
 OUTPUT_DIR = Path('benchmarks_results')
-DATA_DIR = Path('../..') / 'data' / 'images' / 'text'
+DATA_DIR = DATA_HOME / 'images' / 'text'
 
 
 @memory.cache
