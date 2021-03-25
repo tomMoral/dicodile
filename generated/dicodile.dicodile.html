@@ -113,6 +113,10 @@ D and a sparse activation signal Z such that X is close to
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
 <dt><strong>X</strong><span class="classifier">ndarray, shape (n_channels, <a href="#id1"><span class="problematic" id="id2">*</span></a>sig_support)</span></dt><dd><p>Signal to encode.</p>
+<p>For example, a 3-channel RGB image of definition 640x480 would
+have a shape of (3, 640, 480), a grayscale image of the same definition
+would have a shape of (1, 640, 480), a single time series would have a
+shape of (1, number_of_samples)</p>
 </dd>
 <dt><strong>D_init</strong><span class="classifier">ndarray, shape (n_atoms, n_channels, <a href="#id3"><span class="problematic" id="id4">*</span></a>atom_support)</span></dt><dd><p>Current atoms dictionary.</p>
 </dd>
@@ -191,7 +195,7 @@ sum(times)</p>
       
     </p>
     <p>
-        &copy; Copyright 2020-2021, Dicodile Developers. Last updated 2021-03-24 12:38 UTC.<br/>
+        &copy; Copyright 2020-2021, Dicodile Developers. Last updated 2021-03-25 09:56 UTC.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.<br/>
     </p>
   </div>
