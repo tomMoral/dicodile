@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>DiCoDiLe on text images &#8212; dicodile  documentation</title>
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/gallery-rendered-html.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Documentation" href="../api.html" />
+    <link rel="prev" title="DiCoDiLe on the Mandrill image" href="plot_mandrill.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-inverse navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          dicodile</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="index.html">Examples</a></li>
+                <li><a href="../api.html">API</a></li>
+                <li><a href="https://github.com/tomMoral/dicodile">GitHub</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/tomMoral/dicodile">Fork dicodile on Github</a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-plot-text-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<div class="sphx-glr-example-title section" id="dicodile-on-text-images">
+<span id="sphx-glr-auto-examples-plot-text-py"></span><h1>DiCoDiLe on text images<a class="headerlink" href="#dicodile-on-text-images" title="Permalink to this headline">¶</a></h1>
+<p>This example illustrates pattern recovery on a noisy text image using
+DiCoDiLe algorithm.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">dicodile</span> <span class="kn">import</span> <span class="n">dicodile</span>
+<span class="kn">from</span> <span class="nn">dicodile.data.images</span> <span class="kn">import</span> <span class="n">fetch_letters_pami</span>
+<span class="kn">from</span> <span class="nn">dicodile.update_d.update_d</span> <span class="kn">import</span> <span class="n">tukey_window</span>
+<span class="kn">from</span> <span class="nn">dicodile.utils.csc</span> <span class="kn">import</span> <span class="n">reconstruct</span>
+<span class="kn">from</span> <span class="nn">dicodile.utils.dictionary</span> <span class="kn">import</span> <span class="n">init_dictionary</span>
+<span class="kn">from</span> <span class="nn">dicodile.utils.viz</span> <span class="kn">import</span> <span class="n">display_dictionaries</span>
+</pre></div>
+</div>
+<p>We will first load PAMI image generated from a text of <strong>5000</strong>
+characters drawn uniformly from the <strong>4</strong> letters <strong>P</strong> <strong>A</strong> <strong>M</strong>
+<strong>I</strong> and 2 whitespaces and assign it to <cite>X</cite>.</p>
+<p>We will also load the images of the four characters used to generate
+<cite>X</cite> and assign it to variable <cite>D</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_original</span></a><span class="p">,</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="o">=</span> <span class="n">fetch_letters_pami</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading data from https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/26750168/text_4_5000_PAMI.npz (17.8 MB)
+
+
+file_sizes:   0%|                                   | 0.00/18.6M [00:00&lt;?, ?B/s]
+file_sizes:   0%|                           | 65.5k/18.6M [00:00&lt;00:55, 332kB/s]
+file_sizes:   1%|2                           | 164k/18.6M [00:00&lt;00:30, 604kB/s]
+file_sizes:   3%|7                          | 492k/18.6M [00:00&lt;00:11, 1.60MB/s]
+file_sizes:   5%|#4                        | 1.02M/18.6M [00:00&lt;00:06, 2.87MB/s]
+file_sizes:  11%|##8                       | 2.06M/18.6M [00:00&lt;00:03, 5.09MB/s]
+file_sizes:  28%|#######2                  | 5.21M/18.6M [00:00&lt;00:01, 10.6MB/s]
+file_sizes:  45%|###########6              | 8.36M/18.6M [00:00&lt;00:00, 16.0MB/s]
+file_sizes:  67%|#################5        | 12.6M/18.6M [00:01&lt;00:00, 22.5MB/s]
+file_sizes:  90%|#######################3  | 16.7M/18.6M [00:01&lt;00:00, 22.4MB/s]
+file_sizes: 100%|##########################| 18.6M/18.6M [00:01&lt;00:00, 15.5MB/s]
+Successfully downloaded file to /github/home/data/dicodile/images/text/text_4_5000_PAMI.npz
+</pre></div>
+</div>
+<p>We will work on the copy <cite>X</cite> of the original image and we need to reshape
+image data <cite>X</cite> to fit to the expected signal shape of <cite>dicodile</cite>:</p>
+<p><cite>(n_channels, *sig_support)</cite></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_original</span></a><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(1, 2321, 2004)
+</pre></div>
+</div>
+<p>Reshape <cite>D</cite> to fit to dictionary format:</p>
+<p><cite>(n_atoms, n_channels, *atom_support)</cite></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+
+<span class="c1"># We pad `D` in order to have atoms with 0 on the border,</span>
+<span class="c1"># compatible with windowed dictionary.</span>
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.pad.html#numpy.pad" title="numpy.pad" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">pad</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(4, 1, 37, 33)
+</pre></div>
+</div>
+<p>Let’s display an extract of the original text image <cite>X_original</cite> and
+all the images of characters from <cite>D</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zoom_x</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_original</span></a><span class="p">[</span><span class="mi">190</span><span class="p">:</span><span class="mi">490</span><span class="p">,</span> <span class="mi">250</span><span class="p">:</span><span class="mi">750</span><span class="p">]</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.axis.html#matplotlib.pyplot.axis" title="matplotlib.pyplot.axis" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html#matplotlib.pyplot.imshow" title="matplotlib.pyplot.imshow" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zoom_x</span></a><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+
+<span class="n">display_dictionaries</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img alt="plot text" class="sphx-glr-multi-img" src="../_images/sphx_glr_plot_text_001.png" />
+</li>
+<li><img alt="plot text" class="sphx-glr-multi-img" src="../_images/sphx_glr_plot_text_002.png" />
+</li>
+</ul>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;Figure size 640x480 with 4 Axes&gt;
+</pre></div>
+</div>
+<p>We add some Gaussian white noise with standard deviation <cite>std</cite> 3 times
+larger than <cite>X.std</cite> to <cite>X</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">std</span></a> <span class="o">=</span> <span class="mi">3</span>
+<a href="https://numpy.org/devdocs/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/random/generator.html#numpy.random.default_rng" title="numpy.random.default_rng" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span></a><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a> <span class="o">+=</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">std</span></a> <span class="o">*</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="o">.</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">std</span></a><span class="p">()</span> <span class="o">*</span> <a href="https://numpy.org/devdocs/reference/random/generator.html#numpy.random.Generator" title="numpy.random.Generator" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>We will create a random dictionary of <strong>K = 10</strong> patches from the
+noisy image.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># set number of patches</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_atoms</span></a> <span class="o">=</span> <span class="mi">10</span>
+<span class="c1"># set individual atom (patch) size</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">atom_support</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.array.html#numpy.array" title="numpy.array" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span></a> <span class="o">=</span> <span class="n">init_dictionary</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_atoms</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_atoms</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">atom_support</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">atom_support</span></a><span class="p">,</span>
+                         <span class="n">random_state</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+
+<span class="c1"># window the dictionary, this helps make sure that the border values are 0</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">atom_support</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tw</span></a> <span class="o">=</span> <span class="n">tukey_window</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">atom_support</span></a><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span></a> <span class="o">*=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tw</span></a>
+
+<span class="nb">print</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span><span class="o">.</span><span class="n">shape</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(10, 1, 37, 33)
+</pre></div>
+</div>
+<p>Let’s display an extract of noisy <cite>X</cite> and random dictionary <cite>D_init</cite>
+generated from <cite>X</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zoom_x</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">190</span><span class="p">:</span><span class="mi">490</span><span class="p">,</span> <span class="mi">250</span><span class="p">:</span><span class="mi">750</span><span class="p">]</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.axis.html#matplotlib.pyplot.axis" title="matplotlib.pyplot.axis" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html#matplotlib.pyplot.imshow" title="matplotlib.pyplot.imshow" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">zoom_x</span></a><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+
+<span class="n">display_dictionaries</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img alt="plot text" class="sphx-glr-multi-img" src="../_images/sphx_glr_plot_text_003.png" />
+</li>
+<li><img alt="plot text" class="sphx-glr-multi-img" src="../_images/sphx_glr_plot_text_004.png" />
+</li>
+</ul>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;Figure size 640x480 with 12 Axes&gt;
+</pre></div>
+</div>
+<p>Set model parameters.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># regularization parameter</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reg</span></a> <span class="o">=</span> <span class="o">.</span><span class="mi">2</span>
+<span class="c1"># maximum number of iterations</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_iter</span></a> <span class="o">=</span> <span class="mi">100</span>
+<span class="c1"># when True, makes sure that the borders of the atoms are 0</span>
+<a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">window</span></a> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># when True, requires all activations Z to be positive</span>
+<a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">z_positive</span></a> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># number of workers to be used for computations</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_workers</span></a> <span class="o">=</span> <span class="mi">10</span>
+<span class="c1"># number of jobs per row</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">w_world</span></a> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span>
+<span class="c1"># tolerance for minimal update size</span>
+<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tol</span></a> <span class="o">=</span> <span class="mf">1e-3</span>
+</pre></div>
+</div>
+<p>Fit the dictionary with <cite>dicodile</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_hat</span></a><span class="p">,</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">z_hat</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pobj</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">times</span></a> <span class="o">=</span> <span class="n">dicodile</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="p">,</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reg</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">reg</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_iter</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_iter</span></a><span class="p">,</span>
+                                     <a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">window</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">window</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">z_positive</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">z_positive</span></a><span class="p">,</span>
+                                     <a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_workers</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_workers</span></a><span class="p">,</span>
+                                     <span class="n">dicod_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max_iter&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">},</span>
+                                     <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">w_world</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">w_world</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tol</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tol</span></a><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[DICOD] final cost : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pobj</span></a><span class="p">))</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[DEBUG:DICODILE] Lambda_max = 24.487832063300694
+/github/workspace/dicodile/workers/reusable_workers.py:50: UserWarning: You should not require different size
+  warnings.warn(&quot;You should not require different size&quot;)
+Started 10 workers in 6.61s
+[INFO:DICODILE] - CD iterations 0 / 100 (0s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 11.538s (9.583s) with 42910 iterations (9799 updates).
+[DEBUG:DICODILE] Objective (z) : 3.323e+06 (17s)
+
+[PROGRESS:Update D] 4s -   1.00% iterations (1.321e+00)
+[PROGRESS:Update D] 9s -   2.00% iterations (2.179e-03)
+[PROGRESS:Update D] 10s -   3.00% iterations (1.089e-03)
+[PROGRESS:Update D] 11s -   4.00% iterations (1.089e-03)
+[PROGRESS:Update D] 12s -   5.00% iterations (1.089e-03)
+[PROGRESS:Update D] 13s -   6.00% iterations (1.089e-03)
+[PROGRESS:Update D] 14s -   7.00% iterations (1.089e-03)
+[PROGRESS:Update D] 15s -   8.00% iterations (1.089e-03)
+[PROGRESS:Update D] 16s -   9.00% iterations (1.089e-03)
+[PROGRESS:Update D] 17s -  10.00% iterations (1.089e-03)
+[PROGRESS:Update D] 17s -  11.00% iterations (1.089e-03)
+[PROGRESS:Update D] 18s -  12.00% iterations (1.089e-03)
+[PROGRESS:Update D] 19s -  13.00% iterations (1.089e-03)
+[PROGRESS:Update D] 20s -  14.00% iterations (1.089e-03)
+[PROGRESS:Update D] 21s -  15.00% iterations (1.089e-03)
+[PROGRESS:Update D] 22s -  16.00% iterations (1.089e-03)
+[PROGRESS:Update D] 23s -  17.00% iterations (1.089e-03)
+[PROGRESS:Update D] 24s -  18.00% iterations (1.089e-03)
+[PROGRESS:Update D] 25s -  19.00% iterations (1.089e-03)
+[PROGRESS:Update D] 26s -  20.00% iterations (1.089e-03)
+[PROGRESS:Update D] 27s -  21.00% iterations (1.089e-03)
+[PROGRESS:Update D] 28s -  22.00% iterations (1.089e-03)
+[INFO:Update D]: 23 iterations
+[DEBUG:DICODILE] Objective (d) : 3.296e+06  (45s)
+[INFO:DICODILE] - CD iterations 1 / 100 (72s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 89.963s (74.267s) with 99990 iterations (92489 updates).
+[DEBUG:DICODILE] Objective (z) : 3.229e+06 (100s)
+
+[PROGRESS:Update D] 6s -   1.00% iterations (4.127e-02)
+[PROGRESS:Update D] 9s -   2.00% iterations (2.181e-03)
+[PROGRESS:Update D] 11s -   3.00% iterations (1.151e-04)
+[PROGRESS:Update D] 12s -   4.00% iterations (1.151e-04)
+[PROGRESS:Update D] 13s -   5.00% iterations (1.151e-04)
+[PROGRESS:Update D] 14s -   6.00% iterations (5.756e-05)
+[PROGRESS:Update D] 15s -   7.00% iterations (5.756e-05)
+[PROGRESS:Update D] 16s -   8.00% iterations (5.756e-05)
+[PROGRESS:Update D] 17s -   9.00% iterations (5.756e-05)
+[PROGRESS:Update D] 18s -  10.00% iterations (5.756e-05)
+[PROGRESS:Update D] 19s -  11.00% iterations (5.756e-05)
+[PROGRESS:Update D] 20s -  12.00% iterations (2.878e-05)
+[PROGRESS:Update D] 21s -  13.00% iterations (2.878e-05)
+[PROGRESS:Update D] 23s -  14.00% iterations (1.439e-05)
+[PROGRESS:Update D] 24s -  15.00% iterations (1.439e-05)
+[PROGRESS:Update D] 25s -  16.00% iterations (1.439e-05)
+[PROGRESS:Update D] 25s -  17.00% iterations (1.439e-05)
+[PROGRESS:Update D] 26s -  18.00% iterations (1.439e-05)
+[PROGRESS:Update D] 27s -  19.00% iterations (1.439e-05)
+[PROGRESS:Update D] 28s -  20.00% iterations (1.439e-05)
+[PROGRESS:Update D] 29s -  21.00% iterations (1.439e-05)
+[PROGRESS:Update D] 30s -  22.00% iterations (1.439e-05)
+[PROGRESS:Update D] 31s -  23.00% iterations (1.439e-05)
+[PROGRESS:Update D] 32s -  24.00% iterations (1.439e-05)
+[PROGRESS:Update D] 33s -  25.00% iterations (1.439e-05)
+[PROGRESS:Update D] 34s -  26.00% iterations (1.439e-05)
+[PROGRESS:Update D] 35s -  27.00% iterations (1.439e-05)
+[PROGRESS:Update D] 36s -  28.00% iterations (1.439e-05)
+[PROGRESS:Update D] 37s -  29.00% iterations (1.439e-05)
+[PROGRESS:Update D] 38s -  30.00% iterations (1.439e-05)
+[PROGRESS:Update D] 38s -  31.00% iterations (1.439e-05)
+[PROGRESS:Update D] 39s -  32.00% iterations (1.439e-05)
+[PROGRESS:Update D] 40s -  33.00% iterations (1.439e-05)
+[PROGRESS:Update D] 41s -  34.00% iterations (1.439e-05)
+[PROGRESS:Update D] 42s -  35.00% iterations (1.439e-05)
+[PROGRESS:Update D] 43s -  36.00% iterations (1.439e-05)
+[PROGRESS:Update D] 44s -  37.00% iterations (1.439e-05)
+[PROGRESS:Update D] 45s -  38.00% iterations (1.439e-05)
+[PROGRESS:Update D] 46s -  39.00% iterations (1.439e-05)
+[PROGRESS:Update D] 47s -  40.00% iterations (1.439e-05)
+[PROGRESS:Update D] 48s -  41.00% iterations (1.439e-05)
+[PROGRESS:Update D] 48s -  42.00% iterations (1.439e-05)
+[PROGRESS:Update D] 49s -  43.00% iterations (1.439e-05)
+[PROGRESS:Update D] 50s -  44.00% iterations (1.439e-05)
+[PROGRESS:Update D] 51s -  45.00% iterations (1.439e-05)
+[PROGRESS:Update D] 52s -  46.00% iterations (1.439e-05)
+[PROGRESS:Update D] 53s -  47.00% iterations (1.439e-05)
+[PROGRESS:Update D] 54s -  48.00% iterations (1.439e-05)
+[PROGRESS:Update D] 55s -  49.00% iterations (1.439e-05)
+[PROGRESS:Update D] 56s -  50.00% iterations (1.439e-05)
+[PROGRESS:Update D] 57s -  51.00% iterations (1.439e-05)
+[PROGRESS:Update D] 58s -  52.00% iterations (1.439e-05)
+[PROGRESS:Update D] 59s -  53.00% iterations (1.439e-05)
+[PROGRESS:Update D] 59s -  54.00% iterations (1.439e-05)
+[PROGRESS:Update D] 60s -  55.00% iterations (1.439e-05)
+[PROGRESS:Update D] 61s -  56.00% iterations (1.439e-05)
+[PROGRESS:Update D] 62s -  57.00% iterations (1.439e-05)
+[PROGRESS:Update D] 63s -  58.00% iterations (1.439e-05)
+[PROGRESS:Update D] 64s -  59.00% iterations (1.439e-05)
+[PROGRESS:Update D] 65s -  60.00% iterations (1.439e-05)
+[PROGRESS:Update D] 66s -  61.00% iterations (1.439e-05)
+[PROGRESS:Update D] 67s -  62.00% iterations (1.439e-05)
+[PROGRESS:Update D] 68s -  63.00% iterations (1.439e-05)
+[INFO:Update D]: 64 iterations
+[DEBUG:DICODILE] Objective (d) : 3.218e+06  (86s)
+[INFO:DICODILE] - CD iterations 2 / 100 (267s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 87.580s (74.015s) with 99990 iterations (89783 updates).
+[DEBUG:DICODILE] Objective (z) : 3.205e+06 (99s)
+
+[PROGRESS:Update D] 6s -   1.00% iterations (4.127e-02)
+[PROGRESS:Update D] 8s -   2.00% iterations (4.361e-03)
+[PROGRESS:Update D] 11s -   3.00% iterations (1.152e-04)
+[PROGRESS:Update D] 12s -   4.00% iterations (5.758e-05)
+[PROGRESS:Update D] 13s -   5.00% iterations (5.758e-05)
+[PROGRESS:Update D] 14s -   6.00% iterations (5.758e-05)
+[PROGRESS:Update D] 15s -   7.00% iterations (5.758e-05)
+[PROGRESS:Update D] 16s -   8.00% iterations (2.879e-05)
+[PROGRESS:Update D] 17s -   9.00% iterations (2.879e-05)
+[PROGRESS:Update D] 19s -  10.00% iterations (1.439e-05)
+[PROGRESS:Update D] 20s -  11.00% iterations (1.439e-05)
+[PROGRESS:Update D] 21s -  12.00% iterations (1.439e-05)
+[PROGRESS:Update D] 21s -  13.00% iterations (1.439e-05)
+[PROGRESS:Update D] 22s -  14.00% iterations (1.439e-05)
+[PROGRESS:Update D] 23s -  15.00% iterations (1.439e-05)
+[PROGRESS:Update D] 24s -  16.00% iterations (1.439e-05)
+[PROGRESS:Update D] 25s -  17.00% iterations (1.439e-05)
+[PROGRESS:Update D] 26s -  18.00% iterations (1.439e-05)
+[PROGRESS:Update D] 27s -  19.00% iterations (1.439e-05)
+[PROGRESS:Update D] 28s -  20.00% iterations (1.439e-05)
+[PROGRESS:Update D] 29s -  21.00% iterations (1.439e-05)
+[PROGRESS:Update D] 29s -  22.00% iterations (1.439e-05)
+[PROGRESS:Update D] 30s -  23.00% iterations (1.439e-05)
+[PROGRESS:Update D] 31s -  24.00% iterations (1.439e-05)
+[PROGRESS:Update D] 32s -  25.00% iterations (1.439e-05)
+[PROGRESS:Update D] 33s -  26.00% iterations (1.439e-05)
+[PROGRESS:Update D] 34s -  27.00% iterations (1.439e-05)
+[PROGRESS:Update D] 35s -  28.00% iterations (1.439e-05)
+[PROGRESS:Update D] 36s -  29.00% iterations (1.439e-05)
+[PROGRESS:Update D] 37s -  30.00% iterations (1.439e-05)
+[PROGRESS:Update D] 37s -  31.00% iterations (1.439e-05)
+[PROGRESS:Update D] 38s -  32.00% iterations (1.439e-05)
+[PROGRESS:Update D] 39s -  33.00% iterations (1.439e-05)
+[PROGRESS:Update D] 40s -  34.00% iterations (1.439e-05)
+[PROGRESS:Update D] 41s -  35.00% iterations (1.439e-05)
+[PROGRESS:Update D] 42s -  36.00% iterations (1.439e-05)
+[PROGRESS:Update D] 43s -  37.00% iterations (1.439e-05)
+[PROGRESS:Update D] 43s -  38.00% iterations (1.439e-05)
+[PROGRESS:Update D] 44s -  39.00% iterations (1.439e-05)
+[PROGRESS:Update D] 45s -  40.00% iterations (1.439e-05)
+[PROGRESS:Update D] 46s -  41.00% iterations (1.439e-05)
+[PROGRESS:Update D] 47s -  42.00% iterations (1.439e-05)
+[PROGRESS:Update D] 48s -  43.00% iterations (1.439e-05)
+[PROGRESS:Update D] 49s -  44.00% iterations (1.439e-05)
+[PROGRESS:Update D] 50s -  45.00% iterations (1.439e-05)
+[PROGRESS:Update D] 51s -  46.00% iterations (1.439e-05)
+[PROGRESS:Update D] 51s -  47.00% iterations (1.439e-05)
+[PROGRESS:Update D] 52s -  48.00% iterations (1.439e-05)
+[PROGRESS:Update D] 53s -  49.00% iterations (1.439e-05)
+[PROGRESS:Update D] 54s -  50.00% iterations (1.439e-05)
+[PROGRESS:Update D] 55s -  51.00% iterations (1.439e-05)
+[PROGRESS:Update D] 56s -  52.00% iterations (1.439e-05)
+[PROGRESS:Update D] 57s -  53.00% iterations (1.439e-05)
+[PROGRESS:Update D] 57s -  54.00% iterations (1.439e-05)
+[PROGRESS:Update D] 58s -  55.00% iterations (1.439e-05)
+[PROGRESS:Update D] 59s -  56.00% iterations (1.439e-05)
+[PROGRESS:Update D] 60s -  57.00% iterations (1.439e-05)
+[PROGRESS:Update D] 61s -  58.00% iterations (1.439e-05)
+[PROGRESS:Update D] 62s -  59.00% iterations (1.439e-05)
+[PROGRESS:Update D] 63s -  60.00% iterations (1.439e-05)
+[PROGRESS:Update D] 63s -  61.00% iterations (1.439e-05)
+[PROGRESS:Update D] 64s -  62.00% iterations (1.439e-05)
+[PROGRESS:Update D] 65s -  63.00% iterations (1.439e-05)
+[PROGRESS:Update D] 66s -  64.00% iterations (1.439e-05)
+[PROGRESS:Update D] 67s -  65.00% iterations (1.439e-05)
+[PROGRESS:Update D] 68s -  66.00% iterations (1.439e-05)
+[PROGRESS:Update D] 69s -  67.00% iterations (1.439e-05)
+[PROGRESS:Update D] 69s -  68.00% iterations (1.439e-05)
+[PROGRESS:Update D] 70s -  69.00% iterations (1.439e-05)
+[PROGRESS:Update D] 71s -  70.00% iterations (1.439e-05)
+[PROGRESS:Update D] 72s -  71.00% iterations (1.439e-05)
+[PROGRESS:Update D] 73s -  72.00% iterations (1.439e-05)
+[PROGRESS:Update D] 74s -  73.00% iterations (1.439e-05)
+[PROGRESS:Update D] 75s -  74.00% iterations (1.439e-05)
+[PROGRESS:Update D] 76s -  75.00% iterations (1.439e-05)
+[INFO:Update D]: 76 iterations
+[DEBUG:DICODILE] Objective (d) : 3.196e+06  (93s)
+[INFO:DICODILE] - CD iterations 3 / 100 (468s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 83.760s (70.654s) with 99990 iterations (86380 updates).
+[DEBUG:DICODILE] Objective (z) : 3.181e+06 (95s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (6.449e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (6.802e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (6.802e-05)
+[PROGRESS:Update D] 12s -   4.00% iterations (6.802e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (3.400e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (3.400e-05)
+[PROGRESS:Update D] 15s -   7.00% iterations (3.400e-05)
+[PROGRESS:Update D] 16s -   8.00% iterations (3.400e-05)
+[PROGRESS:Update D] 17s -   9.00% iterations (3.400e-05)
+[PROGRESS:Update D] 18s -  10.00% iterations (3.400e-05)
+[PROGRESS:Update D] 19s -  11.00% iterations (3.400e-05)
+[PROGRESS:Update D] 20s -  12.00% iterations (1.700e-05)
+[PROGRESS:Update D] 22s -  13.00% iterations (8.501e-06)
+[INFO:Update D]: 14 iterations
+[DEBUG:DICODILE] Objective (d) : 3.169e+06  (38s)
+[INFO:DICODILE] - CD iterations 4 / 100 (612s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 83.672s (70.477s) with 99990 iterations (84531 updates).
+[DEBUG:DICODILE] Objective (z) : 3.161e+06 (95s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (6.449e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.378e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.378e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (3.378e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.688e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.688e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.688e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (1.688e-05)
+[PROGRESS:Update D] 18s -   9.00% iterations (8.442e-06)
+[PROGRESS:Update D] 19s -  10.00% iterations (8.442e-06)
+[PROGRESS:Update D] 20s -  11.00% iterations (4.221e-06)
+[PROGRESS:Update D] 22s -  12.00% iterations (8.920e-07)
+[INFO:Update D]: 13 iterations
+[DEBUG:DICODILE] Objective (d) : 3.156e+06  (37s)
+[INFO:DICODILE] - CD iterations 5 / 100 (753s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 78.505s (66.035s) with 99990 iterations (78694 updates).
+[DEBUG:DICODILE] Objective (z) : 3.154e+06 (90s)
+
+[PROGRESS:Update D] 7s -   1.00% iterations (5.159e-03)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.404e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.404e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (1.702e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.702e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.702e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.702e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (1.702e-05)
+[PROGRESS:Update D] 18s -   9.00% iterations (1.702e-05)
+[PROGRESS:Update D] 18s -  10.00% iterations (1.702e-05)
+[PROGRESS:Update D] 19s -  11.00% iterations (1.702e-05)
+[PROGRESS:Update D] 20s -  12.00% iterations (1.702e-05)
+[PROGRESS:Update D] 21s -  13.00% iterations (1.702e-05)
+[PROGRESS:Update D] 22s -  14.00% iterations (1.702e-05)
+[PROGRESS:Update D] 23s -  15.00% iterations (1.702e-05)
+[PROGRESS:Update D] 24s -  16.00% iterations (1.702e-05)
+[PROGRESS:Update D] 25s -  17.00% iterations (1.702e-05)
+[INFO:Update D]: 18 iterations
+[DEBUG:DICODILE] Objective (d) : 3.153e+06  (42s)
+[INFO:DICODILE] - CD iterations 6 / 100 (894s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 74.204s (61.928s) with 99990 iterations (73001 updates).
+[DEBUG:DICODILE] Objective (z) : 3.152e+06 (85s)
+
+[PROGRESS:Update D] 7s -   1.00% iterations (5.159e-03)
+[PROGRESS:Update D] 11s -   2.00% iterations (6.811e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.405e-05)
+[PROGRESS:Update D] 14s -   4.00% iterations (1.703e-05)
+[PROGRESS:Update D] 15s -   5.00% iterations (1.703e-05)
+[PROGRESS:Update D] 16s -   6.00% iterations (1.703e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.703e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (1.703e-05)
+[PROGRESS:Update D] 18s -   9.00% iterations (1.703e-05)
+[PROGRESS:Update D] 19s -  10.00% iterations (1.703e-05)
+[PROGRESS:Update D] 20s -  11.00% iterations (1.703e-05)
+[PROGRESS:Update D] 21s -  12.00% iterations (1.703e-05)
+[PROGRESS:Update D] 22s -  13.00% iterations (1.703e-05)
+[INFO:Update D]: 14 iterations
+[DEBUG:DICODILE] Objective (d) : 3.151e+06  (38s)
+[INFO:DICODILE] - CD iterations 7 / 100 (1028s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 70.956s (59.145s) with 99990 iterations (69446 updates).
+[DEBUG:DICODILE] Objective (z) : 3.150e+06 (82s)
+
+[PROGRESS:Update D] 7s -   1.00% iterations (2.580e-03)
+[PROGRESS:Update D] 11s -   2.00% iterations (6.810e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.403e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (1.701e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.701e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.701e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.701e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (1.701e-05)
+[PROGRESS:Update D] 18s -   9.00% iterations (1.701e-05)
+[PROGRESS:Update D] 19s -  10.00% iterations (1.701e-05)
+[PROGRESS:Update D] 20s -  11.00% iterations (8.507e-06)
+[INFO:Update D]: 12 iterations
+[DEBUG:DICODILE] Objective (d) : 3.149e+06  (36s)
+[INFO:DICODILE] - CD iterations 8 / 100 (1155s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 67.206s (56.219s) with 99990 iterations (65101 updates).
+[DEBUG:DICODILE] Objective (z) : 3.149e+06 (78s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (6.449e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.406e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.406e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (1.703e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.703e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.703e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.703e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (8.514e-06)
+[INFO:Update D]: 9 iterations
+[DEBUG:DICODILE] Objective (d) : 3.148e+06  (33s)
+[INFO:DICODILE] - CD iterations 9 / 100 (1275s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 61.448s (52.393s) with 99990 iterations (58950 updates).
+[DEBUG:DICODILE] Objective (z) : 3.147e+06 (72s)
+
+[PROGRESS:Update D] 9s -   1.00% iterations (6.449e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.405e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.405e-05)
+[PROGRESS:Update D] 14s -   4.00% iterations (1.702e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.702e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.702e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.702e-05)
+[PROGRESS:Update D] 18s -   8.00% iterations (8.512e-06)
+[INFO:Update D]: 9 iterations
+[DEBUG:DICODILE] Objective (d) : 3.147e+06  (33s)
+[INFO:DICODILE] - CD iterations 10 / 100 (1391s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 53.672s (44.024s) with 99990 iterations (50727 updates).
+[DEBUG:DICODILE] Objective (z) : 3.146e+06 (65s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (1.290e-03)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.406e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.406e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (1.703e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (1.703e-05)
+[PROGRESS:Update D] 15s -   6.00% iterations (1.703e-05)
+[PROGRESS:Update D] 16s -   7.00% iterations (1.703e-05)
+[PROGRESS:Update D] 17s -   8.00% iterations (1.703e-05)
+[PROGRESS:Update D] 18s -   9.00% iterations (1.703e-05)
+[PROGRESS:Update D] 19s -  10.00% iterations (8.514e-06)
+[PROGRESS:Update D] 20s -  11.00% iterations (8.514e-06)
+[PROGRESS:Update D] 22s -  12.00% iterations (8.996e-07)
+[PROGRESS:Update D] 23s -  13.00% iterations (8.996e-07)
+[PROGRESS:Update D] 26s -  14.00% iterations (4.753e-08)
+[PROGRESS:Update D] 27s -  15.00% iterations (2.376e-08)
+[PROGRESS:Update D] 29s -  16.00% iterations (1.188e-08)
+[INFO:Update D]: 17 iterations
+[DEBUG:DICODILE] Objective (d) : 3.146e+06  (38s)
+[INFO:DICODILE] - CD iterations 11 / 100 (1503s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 45.444s (37.888s) with 99545 iterations (42581 updates).
+[DEBUG:DICODILE] Objective (z) : 3.145e+06 (56s)
+
+[PROGRESS:Update D] 2s -   2.00% iterations (1.256e-07)
+[PROGRESS:Update D] 3s -   3.00% iterations (1.256e-07)
+[PROGRESS:Update D] 3s -   4.00% iterations (1.256e-07)
+[PROGRESS:Update D] 4s -   5.00% iterations (1.256e-07)
+[PROGRESS:Update D] 5s -   6.00% iterations (1.256e-07)
+[PROGRESS:Update D] 6s -   7.00% iterations (1.256e-07)
+[PROGRESS:Update D] 7s -   8.00% iterations (1.256e-07)
+[PROGRESS:Update D] 8s -   9.00% iterations (1.256e-07)
+[PROGRESS:Update D] 9s -  10.00% iterations (1.256e-07)
+[PROGRESS:Update D] 10s -  11.00% iterations (1.256e-07)
+[PROGRESS:Update D] 11s -  12.00% iterations (1.256e-07)
+[PROGRESS:Update D] 11s -  13.00% iterations (1.256e-07)
+[PROGRESS:Update D] 12s -  14.00% iterations (1.256e-07)
+[PROGRESS:Update D] 13s -  15.00% iterations (1.256e-07)
+[PROGRESS:Update D] 14s -  16.00% iterations (1.256e-07)
+[PROGRESS:Update D] 15s -  17.00% iterations (1.256e-07)
+[PROGRESS:Update D] 16s -  18.00% iterations (1.256e-07)
+[PROGRESS:Update D] 17s -  19.00% iterations (1.256e-07)
+[PROGRESS:Update D] 18s -  20.00% iterations (1.256e-07)
+[PROGRESS:Update D] 19s -  21.00% iterations (1.256e-07)
+[PROGRESS:Update D] 20s -  22.00% iterations (1.256e-07)
+[PROGRESS:Update D] 20s -  23.00% iterations (1.256e-07)
+[PROGRESS:Update D] 21s -  24.00% iterations (1.256e-07)
+[PROGRESS:Update D] 22s -  25.00% iterations (1.256e-07)
+[PROGRESS:Update D] 23s -  26.00% iterations (1.256e-07)
+[PROGRESS:Update D] 24s -  27.00% iterations (1.256e-07)
+[PROGRESS:Update D] 25s -  28.00% iterations (1.256e-07)
+[PROGRESS:Update D] 26s -  29.00% iterations (1.256e-07)
+[PROGRESS:Update D] 27s -  30.00% iterations (1.256e-07)
+[PROGRESS:Update D] 28s -  31.00% iterations (1.256e-07)
+[PROGRESS:Update D] 28s -  32.00% iterations (1.256e-07)
+[PROGRESS:Update D] 29s -  33.00% iterations (1.256e-07)
+[PROGRESS:Update D] 30s -  34.00% iterations (1.256e-07)
+[PROGRESS:Update D] 31s -  35.00% iterations (1.256e-07)
+[PROGRESS:Update D] 32s -  36.00% iterations (1.256e-07)
+[PROGRESS:Update D] 33s -  37.00% iterations (1.256e-07)
+[PROGRESS:Update D] 34s -  38.00% iterations (1.256e-07)
+[PROGRESS:Update D] 35s -  39.00% iterations (1.256e-07)
+[PROGRESS:Update D] 36s -  40.00% iterations (1.256e-07)
+[PROGRESS:Update D] 37s -  41.00% iterations (1.256e-07)
+[PROGRESS:Update D] 38s -  42.00% iterations (1.256e-07)
+[PROGRESS:Update D] 38s -  43.00% iterations (1.256e-07)
+[PROGRESS:Update D] 39s -  44.00% iterations (1.256e-07)
+[PROGRESS:Update D] 40s -  45.00% iterations (1.256e-07)
+[PROGRESS:Update D] 41s -  46.00% iterations (1.256e-07)
+[PROGRESS:Update D] 42s -  47.00% iterations (1.256e-07)
+[PROGRESS:Update D] 43s -  48.00% iterations (1.256e-07)
+[PROGRESS:Update D] 44s -  49.00% iterations (1.256e-07)
+[PROGRESS:Update D] 45s -  50.00% iterations (1.256e-07)
+[PROGRESS:Update D] 46s -  51.00% iterations (1.256e-07)
+[PROGRESS:Update D] 47s -  52.00% iterations (1.256e-07)
+[PROGRESS:Update D] 47s -  53.00% iterations (1.256e-07)
+[PROGRESS:Update D] 48s -  54.00% iterations (1.256e-07)
+[PROGRESS:Update D] 49s -  55.00% iterations (1.256e-07)
+[PROGRESS:Update D] 50s -  56.00% iterations (1.256e-07)
+[PROGRESS:Update D] 51s -  57.00% iterations (1.256e-07)
+[PROGRESS:Update D] 52s -  58.00% iterations (1.256e-07)
+[PROGRESS:Update D] 53s -  59.00% iterations (1.256e-07)
+[PROGRESS:Update D] 54s -  60.00% iterations (1.256e-07)
+[PROGRESS:Update D] 55s -  61.00% iterations (1.256e-07)
+[PROGRESS:Update D] 56s -  62.00% iterations (1.256e-07)
+[PROGRESS:Update D] 57s -  63.00% iterations (1.256e-07)
+[PROGRESS:Update D] 57s -  64.00% iterations (1.256e-07)
+[PROGRESS:Update D] 58s -  65.00% iterations (1.256e-07)
+[PROGRESS:Update D] 59s -  66.00% iterations (1.256e-07)
+[PROGRESS:Update D] 60s -  67.00% iterations (1.256e-07)
+[PROGRESS:Update D] 61s -  68.00% iterations (1.256e-07)
+[PROGRESS:Update D] 62s -  69.00% iterations (1.256e-07)
+[PROGRESS:Update D] 63s -  70.00% iterations (1.256e-07)
+[PROGRESS:Update D] 64s -  71.00% iterations (1.256e-07)
+[PROGRESS:Update D] 65s -  72.00% iterations (1.256e-07)
+[PROGRESS:Update D] 65s -  73.00% iterations (1.256e-07)
+[PROGRESS:Update D] 66s -  74.00% iterations (1.256e-07)
+[PROGRESS:Update D] 67s -  75.00% iterations (1.256e-07)
+[PROGRESS:Update D] 68s -  76.00% iterations (1.256e-07)
+[PROGRESS:Update D] 69s -  77.00% iterations (1.256e-07)
+[PROGRESS:Update D] 70s -  78.00% iterations (1.256e-07)
+[PROGRESS:Update D] 71s -  79.00% iterations (1.256e-07)
+[PROGRESS:Update D] 72s -  80.00% iterations (1.256e-07)
+[PROGRESS:Update D] 73s -  81.00% iterations (1.256e-07)
+[PROGRESS:Update D] 73s -  82.00% iterations (1.256e-07)
+[PROGRESS:Update D] 74s -  83.00% iterations (1.256e-07)
+[PROGRESS:Update D] 75s -  84.00% iterations (1.256e-07)
+[PROGRESS:Update D] 76s -  85.00% iterations (1.256e-07)
+[PROGRESS:Update D] 77s -  86.00% iterations (1.256e-07)
+[PROGRESS:Update D] 78s -  87.00% iterations (1.256e-07)
+[PROGRESS:Update D] 79s -  88.00% iterations (1.256e-07)
+[PROGRESS:Update D] 80s -  89.00% iterations (1.256e-07)
+[PROGRESS:Update D] 81s -  90.00% iterations (1.256e-07)
+[PROGRESS:Update D] 82s -  91.00% iterations (1.256e-07)
+[PROGRESS:Update D] 83s -  92.00% iterations (1.256e-07)
+[PROGRESS:Update D] 83s -  93.00% iterations (1.256e-07)
+[PROGRESS:Update D] 84s -  94.00% iterations (1.256e-07)
+[PROGRESS:Update D] 85s -  95.00% iterations (1.256e-07)
+[PROGRESS:Update D] 86s -  96.00% iterations (1.256e-07)
+[PROGRESS:Update D] 87s -  97.00% iterations (1.256e-07)
+[PROGRESS:Update D] 88s -  98.00% iterations (1.256e-07)
+[PROGRESS:Update D] 89s -  99.00% iterations (1.256e-07)
+[INFO:Update D] update did not converge
+
+[INFO:Update D]: 100 iterations
+[DEBUG:DICODILE] Objective (d) : 3.145e+06  (96s)
+[INFO:DICODILE] - CD iterations 12 / 100 (1665s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 22.858s (18.367s) with 85394 iterations (19695 updates).
+[DEBUG:DICODILE] Objective (z) : 3.145e+06 (34s)
+
+[PROGRESS:Update D] 2s -   2.00% iterations (1.256e-05)
+[PROGRESS:Update D] 3s -   3.00% iterations (1.256e-05)
+[PROGRESS:Update D] 4s -   4.00% iterations (1.256e-05)
+[PROGRESS:Update D] 5s -   5.00% iterations (1.256e-05)
+[PROGRESS:Update D] 6s -   6.00% iterations (1.256e-05)
+[PROGRESS:Update D] 6s -   7.00% iterations (1.256e-05)
+[PROGRESS:Update D] 7s -   8.00% iterations (1.256e-05)
+[PROGRESS:Update D] 8s -   9.00% iterations (1.256e-05)
+[PROGRESS:Update D] 9s -  10.00% iterations (1.256e-05)
+[PROGRESS:Update D] 10s -  11.00% iterations (1.256e-05)
+[PROGRESS:Update D] 11s -  12.00% iterations (1.256e-05)
+[PROGRESS:Update D] 12s -  13.00% iterations (1.256e-05)
+[PROGRESS:Update D] 13s -  14.00% iterations (1.256e-05)
+[INFO:Update D]: 15 iterations
+[DEBUG:DICODILE] Objective (d) : 3.145e+06  (29s)
+[INFO:DICODILE] - CD iterations 13 / 100 (1738s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 35.284s (29.357s) with 98715 iterations (31838 updates).
+[DEBUG:DICODILE] Objective (z) : 3.145e+06 (46s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (1.290e-03)
+[PROGRESS:Update D] 11s -   2.00% iterations (3.407e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.407e-05)
+[PROGRESS:Update D] 14s -   4.00% iterations (3.600e-06)
+[INFO:Update D]: 5 iterations
+[DEBUG:DICODILE] Objective (d) : 3.145e+06  (29s)
+[INFO:DICODILE] - CD iterations 14 / 100 (1823s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 33.432s (27.585s) with 93822 iterations (30649 updates).
+[DEBUG:DICODILE] Objective (z) : 3.144e+06 (44s)
+
+[PROGRESS:Update D] 8s -   1.00% iterations (6.449e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (6.814e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (3.407e-05)
+[PROGRESS:Update D] 13s -   4.00% iterations (1.704e-05)
+[PROGRESS:Update D] 14s -   5.00% iterations (8.518e-06)
+[INFO:Update D]: 6 iterations
+[DEBUG:DICODILE] Objective (d) : 3.144e+06  (31s)
+[INFO:DICODILE] - CD iterations 15 / 100 (1907s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 26.702s (21.162s) with 89880 iterations (23397 updates).
+[DEBUG:DICODILE] Objective (z) : 3.144e+06 (37s)
+
+[PROGRESS:Update D] 9s -   1.00% iterations (3.225e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (6.814e-05)
+[PROGRESS:Update D] 12s -   3.00% iterations (6.814e-05)
+[PROGRESS:Update D] 14s -   4.00% iterations (7.200e-06)
+[INFO:Update D]: 5 iterations
+[DEBUG:DICODILE] Objective (d) : 3.144e+06  (30s)
+[INFO:DICODILE] - CD iterations 16 / 100 (1984s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 23.582s (18.951s) with 84428 iterations (20246 updates).
+[DEBUG:DICODILE] Objective (z) : 3.144e+06 (35s)
+
+[PROGRESS:Update D] 10s -   1.00% iterations (1.612e-04)
+[PROGRESS:Update D] 11s -   2.00% iterations (1.612e-04)
+[INFO:Update D]: 3 iterations
+[DEBUG:DICODILE] Objective (d) : 3.144e+06  (29s)
+[INFO:DICODILE] - CD iterations 17 / 100 (2057s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 18.543s (15.111s) with 67841 iterations (16078 updates).
+[DEBUG:DICODILE] Objective (z) : 3.144e+06 (29s)
+
+[PROGRESS:Update D] 13s -   1.00% iterations (1.260e-06)
+[INFO:Update D]: 2 iterations
+[DEBUG:DICODILE] Objective (d) : 3.144e+06  (28s)
+[INFO:DICODILE] - CD iterations 18 / 100 (2124s)
+[DEBUG:DICODILE] lambda = 4.898e+00
+
+[INFO:DICOD-10] converged in 1.028s (0.640s) with 11434 iterations (420 updates).
+[DEBUG:DICODILE] Objective (z) : 3.144e+06 (12s)
+
+[INFO:Update D]: 1 iterations
+[DEBUG:DICODILE] Objective (d) : 3.144e+06  (26s)
+[INFO:DICODILE] Converged after 19 iteration, (dz, du) = 3.334e-08, 0.000e+00
+/usr/local/lib/python3.8/site-packages/numpy/core/fromnumeric.py:3419: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/usr/local/lib/python3.8/site-packages/numpy/core/_methods.py:188: RuntimeWarning: invalid value encountered in double_scalars
+  ret = ret.dtype.type(ret / rcount)
+
+[INFO:DICOD-10] converged in 0.356s (0.130s) with 890 iterations (0 updates).
+[INFO:DICODILE] Finished in 1992s
+[DICOD] final cost : [3327550.7345729885, 3322537.6288340446, 3295555.539502192, 3229322.048456204, 3218404.003060943, 3204985.367891468, 3195763.4673375282, 3181235.9125103075, 3168575.9742318825, 3160825.3881939296, 3156351.505361652, 3154270.899121689, 3152842.399230372, 3151833.2622345355, 3151054.2095471043, 3150234.810806378, 3149495.7249835376, 3148694.6465486274, 3147982.01849518, 3147329.266782183, 3146786.6018830957, 3146275.1319211135, 3145873.656472574, 3145425.4759644745, 3145294.9118728656, 3145270.0023248717, 3144977.0886293706, 3144732.37356796, 3144552.2732770825, 3144304.3919632346, 3144223.7710202388, 3144107.8737501046, 3144068.465093335, 3144002.7776916386, 3143978.2454516813, 3143943.211881023, 3143943.1509722993, 3143943.0461661234, 3143943.0461661234, 3143943.0461661234]
+</pre></div>
+</div>
+<p>Let’s compare the initially generated random patches in <cite>D_init</cite>
+with the atoms in <cite>D_hat</cite> recovered with <cite>dicodile</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">display_dictionaries</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_init</span></a><span class="p">,</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_hat</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="plot text" class="sphx-glr-single-img" src="../_images/sphx_glr_plot_text_005.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;Figure size 640x480 with 24 Axes&gt;
+</pre></div>
+</div>
+<p>Now we will reconstruct the image from <cite>z_hat</cite> and <cite>D_hat</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_hat</span></a> <span class="o">=</span> <span class="n">reconstruct</span><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">z_hat</span></a><span class="p">,</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D_hat</span></a><span class="p">)</span>
+<a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_hat</span></a> <span class="o">=</span> <a href="https://numpy.org/devdocs/reference/generated/numpy.clip.html#numpy.clip" title="numpy.clip" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">clip</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_hat</span></a><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Let’s plot the reconstructed image <cite>X_hat</cite> together with the
+original image <cite>X_original</cite> and the noisy image <cite>X</cite> that was input
+to <cite>dicodile</cite>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="matplotlib.figure.Figure" class="sphx-glr-backref-module-matplotlib-figure sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">f</span></a><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">ax3</span><span class="p">)</span> <span class="o">=</span> <a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.subplots.html#matplotlib.pyplot.subplots" title="matplotlib.pyplot.subplots" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span></a><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mf">6.4</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow" title="matplotlib.axes.Axes.imshow" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax1</span><span class="o">.</span><span class="n">imshow</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_original</span></a><span class="p">[</span><span class="mi">190</span><span class="p">:</span><span class="mi">490</span><span class="p">,</span> <span class="mi">250</span><span class="p">:</span><span class="mi">750</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.set_title.html#matplotlib.axes.Axes.set_title" title="matplotlib.axes.Axes.set_title" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span></a><span class="p">(</span><span class="s1">&#39;Original image&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.axis.html#matplotlib.axes.Axes.axis" title="matplotlib.axes.Axes.axis" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax1</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow" title="matplotlib.axes.Axes.imshow" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax2</span><span class="o">.</span><span class="n">imshow</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">190</span><span class="p">:</span><span class="mi">490</span><span class="p">,</span> <span class="mi">250</span><span class="p">:</span><span class="mi">750</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.set_title.html#matplotlib.axes.Axes.set_title" title="matplotlib.axes.Axes.set_title" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span></a><span class="p">(</span><span class="s1">&#39;Noisy image&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.axis.html#matplotlib.axes.Axes.axis" title="matplotlib.axes.Axes.axis" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax2</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow" title="matplotlib.axes.Axes.imshow" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax3</span><span class="o">.</span><span class="n">imshow</span></a><span class="p">(</span><a href="https://numpy.org/devdocs/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">X_hat</span></a><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">190</span><span class="p">:</span><span class="mi">490</span><span class="p">,</span> <span class="mi">250</span><span class="p">:</span><span class="mi">750</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.set_title.html#matplotlib.axes.Axes.set_title" title="matplotlib.axes.Axes.set_title" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span></a><span class="p">(</span><span class="s1">&#39;Recovered image&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.axis.html#matplotlib.axes.Axes.axis" title="matplotlib.axes.Axes.axis" class="sphx-glr-backref-module-matplotlib-axes sphx-glr-backref-type-py-method"><span class="n">ax3</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.tight_layout.html#matplotlib.pyplot.tight_layout" title="matplotlib.pyplot.tight_layout" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="Original image, Noisy image, Recovered image" class="sphx-glr-single-img" src="../_images/sphx_glr_plot_text_006.png" />
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 37 minutes  48.131 seconds)</p>
+<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plot-text-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/2c03e532b496d3a0bc76f31a6ae973bd/plot_text.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_text.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/bde2b0381a189a129315618badc6e30c/plot_text.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_text.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2020-2021, Dicodile Developers. Last updated 2021-03-25 10:22 UTC.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

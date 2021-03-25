@@ -80,10 +80,10 @@ We will first download the Mandrill image.
 
     Downloading data from http://sipi.usc.edu/database/download.php?vol=misc&img=4.2.03 (1 byte)
 
-    file_sizes:   0%|                                    | 0.00/1.00 [00:00<?, ?B/s]    file_sizes: 106kB [00:00, 1.06MB/s]                                                 file_sizes: 787kB [00:00, 4.04MB/s]
+    file_sizes:   0%|                                    | 0.00/1.00 [00:00<?, ?B/s]    file_sizes: 106kB [00:00, 888kB/s]                                                  file_sizes: 787kB [00:00, 3.93MB/s]
     Successfully downloaded file to /github/home/data/dicodile/images/standard_images/mandrill_color.tif
 
-    <matplotlib.image.AxesImage object at 0x7f64122fc760>
+    <matplotlib.image.AxesImage object at 0x7fbe1957b730>
 
 
 
@@ -168,28 +168,28 @@ Run `dicodile`.
  .. code-block:: none
 
     [DEBUG:DICODILE] Lambda_max = 11.274413430904202
-    Started 9 workers in 4.98s
+    Started 9 workers in 5.33s
     [INFO:DICODILE] - CD iterations 0 / 3 (0s)
     [DEBUG:DICODILE] lambda = 1.127e+00
-    [INFO:DICOD-9] converged in 26.450s (19.955s) with 89991 iterations (85430 updates).
-    [DEBUG:DICODILE] Objective (z) : 3.378e+04 (29s)
-    [PROGRESS:Update D] 1s -   1.00% iterations (3.226e-04)    [PROGRESS:Update D] 1s -   2.00% iterations (1.588e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   4.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   5.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   6.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   7.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   8.00% iterations (7.931e-05)    [PROGRESS:Update D] 2s -   9.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  10.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  11.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  12.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  13.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  14.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  15.00% iterations (7.931e-05)    [PROGRESS:Update D] 3s -  16.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  17.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  18.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  19.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  20.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  21.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  22.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  23.00% iterations (7.931e-05)    [PROGRESS:Update D] 4s -  24.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  25.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  26.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  27.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  28.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  29.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  30.00% iterations (7.931e-05)    [PROGRESS:Update D] 5s -  31.00% iterations (7.931e-05)    [PROGRESS:Update D] 6s -  32.00% iterations (7.931e-05)    [PROGRESS:Update D] 6s -  33.00% iterations (7.931e-05)    [PROGRESS:Update D] 6s -  34.00% iterations (7.931e-05)    [PROGRESS:Update D] 6s -  35.00% iterations (3.966e-05)    [PROGRESS:Update D] 6s -  36.00% iterations (4.190e-06)    [INFO:Update D]: 37 iterations
-    [DEBUG:DICODILE] Objective (d) : 3.350e+04  (11s)
-    [INFO:DICODILE] - CD iterations 1 / 3 (43s)
+    [INFO:DICOD-9] converged in 28.284s (21.750s) with 89991 iterations (85670 updates).
+    [DEBUG:DICODILE] Objective (z) : 3.377e+04 (31s)
+    [PROGRESS:Update D] 1s -   1.00% iterations (3.226e-04)    [PROGRESS:Update D] 2s -   2.00% iterations (1.587e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (7.927e-05)    [PROGRESS:Update D] 2s -   4.00% iterations (7.927e-05)    [PROGRESS:Update D] 2s -   5.00% iterations (7.927e-05)    [PROGRESS:Update D] 2s -   6.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -   7.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -   8.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -   9.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -  10.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -  11.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -  12.00% iterations (7.927e-05)    [PROGRESS:Update D] 3s -  13.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  14.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  15.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  16.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  17.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  18.00% iterations (7.927e-05)    [PROGRESS:Update D] 4s -  19.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  20.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  21.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  22.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  23.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  24.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  25.00% iterations (7.927e-05)    [PROGRESS:Update D] 5s -  26.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  27.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  28.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  29.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  30.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  31.00% iterations (7.927e-05)    [PROGRESS:Update D] 6s -  32.00% iterations (7.927e-05)    [PROGRESS:Update D] 7s -  33.00% iterations (7.927e-05)    [PROGRESS:Update D] 7s -  34.00% iterations (7.927e-05)    [PROGRESS:Update D] 7s -  35.00% iterations (7.927e-05)    [INFO:Update D]: 36 iterations
+    [DEBUG:DICODILE] Objective (d) : 3.349e+04  (12s)
+    [INFO:DICODILE] - CD iterations 1 / 3 (46s)
     [DEBUG:DICODILE] lambda = 1.127e+00
-    [INFO:DICOD-9] converged in 25.976s (19.985s) with 89991 iterations (85295 updates).
-    [DEBUG:DICODILE] Objective (z) : 3.301e+04 (32s)
-    [PROGRESS:Update D] 1s -   1.00% iterations (1.290e-03)    [PROGRESS:Update D] 1s -   2.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   4.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   5.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   6.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   7.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   8.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   9.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  10.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  11.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  12.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  13.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  14.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  15.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  16.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  17.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  18.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  19.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  20.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  21.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  22.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  23.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  24.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  25.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  26.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  27.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  28.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  29.00% iterations (6.777e-05)    [PROGRESS:Update D] 5s -  30.00% iterations (7.161e-06)    [INFO:Update D]: 31 iterations
-    [DEBUG:DICODILE] Objective (d) : 3.300e+04  (11s)
-    [INFO:DICODILE] - CD iterations 2 / 3 (88s)
+    [INFO:DICOD-9] converged in 27.784s (21.070s) with 89991 iterations (85292 updates).
+    [DEBUG:DICODILE] Objective (z) : 3.301e+04 (34s)
+    [PROGRESS:Update D] 1s -   1.00% iterations (1.290e-03)    [PROGRESS:Update D] 2s -   2.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   4.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   5.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   6.00% iterations (1.355e-04)    [PROGRESS:Update D] 2s -   7.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -   8.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -   9.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  10.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  11.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  12.00% iterations (1.355e-04)    [PROGRESS:Update D] 3s -  13.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  14.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  15.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  16.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  17.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  18.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  19.00% iterations (1.355e-04)    [PROGRESS:Update D] 4s -  20.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  21.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  22.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  23.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  24.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  25.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  26.00% iterations (1.355e-04)    [PROGRESS:Update D] 5s -  27.00% iterations (1.355e-04)    [PROGRESS:Update D] 6s -  28.00% iterations (1.355e-04)    [PROGRESS:Update D] 6s -  29.00% iterations (1.355e-04)    [PROGRESS:Update D] 6s -  30.00% iterations (6.777e-05)    [PROGRESS:Update D] 6s -  31.00% iterations (1.432e-05)    [INFO:Update D]: 32 iterations
+    [DEBUG:DICODILE] Objective (d) : 3.299e+04  (12s)
+    [INFO:DICODILE] - CD iterations 2 / 3 (94s)
     [DEBUG:DICODILE] lambda = 1.127e+00
-    [INFO:DICOD-9] converged in 25.051s (19.028s) with 89991 iterations (85221 updates).
-    [DEBUG:DICODILE] Objective (z) : 3.281e+04 (32s)
-    [PROGRESS:Update D] 1s -   1.00% iterations (1.290e-03)    [PROGRESS:Update D] 2s -   2.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   4.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   5.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   6.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   7.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   8.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   9.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  10.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  11.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  12.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  13.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  14.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  15.00% iterations (6.806e-05)    [PROGRESS:Update D] 3s -  16.00% iterations (3.403e-05)    [INFO:Update D]: 17 iterations
-    [DEBUG:DICODILE] Objective (d) : 3.280e+04  (10s)
-    [INFO:DICOD-9] converged in 25.732s (19.625s) with 89991 iterations (84885 updates).
-    [INFO:DICODILE] Finished in 125s
-    [DICOD] final cost : [115793.69054978853, 33778.57835064171, 33498.564311051334, 33014.06771626993, 32996.0341290748, 32807.02223826774, 32799.34309644237, 32692.515782852588]
+    [INFO:DICOD-9] converged in 27.888s (21.407s) with 89991 iterations (85044 updates).
+    [DEBUG:DICODILE] Objective (z) : 3.281e+04 (36s)
+    [PROGRESS:Update D] 1s -   1.00% iterations (1.290e-03)    [PROGRESS:Update D] 2s -   2.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   3.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   4.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   5.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   6.00% iterations (1.361e-04)    [PROGRESS:Update D] 2s -   7.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -   8.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -   9.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  10.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  11.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  12.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  13.00% iterations (1.361e-04)    [PROGRESS:Update D] 3s -  14.00% iterations (1.361e-04)    [PROGRESS:Update D] 4s -  15.00% iterations (1.361e-04)    [PROGRESS:Update D] 4s -  16.00% iterations (1.361e-04)    [PROGRESS:Update D] 4s -  17.00% iterations (1.361e-04)    [PROGRESS:Update D] 4s -  18.00% iterations (1.361e-04)    [PROGRESS:Update D] 4s -  19.00% iterations (6.803e-05)    [PROGRESS:Update D] 4s -  20.00% iterations (3.401e-05)    [INFO:Update D]: 21 iterations
+    [DEBUG:DICODILE] Objective (d) : 3.280e+04  (11s)
+    [INFO:DICOD-9] converged in 28.436s (21.625s) with 89991 iterations (85015 updates).
+    [INFO:DICODILE] Finished in 136s
+    [DICOD] final cost : [115793.69054978853, 33773.092910958156, 33493.164152453246, 33010.975349361994, 32992.870769195666, 32805.84941790166, 32797.93028753912, 32691.515457849524]
 
 
 
@@ -279,7 +279,7 @@ Plot the reconstructed image.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 3 minutes  9.537 seconds)
+   **Total running time of the script:** ( 3 minutes  28.048 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_mandrill.py:

@@ -35,6 +35,27 @@ Examples Gallery
    :hidden:
 
    /auto_examples/plot_mandrill
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates pattern recovery on a noisy text image using DiCoDiLe algorithm.">
+
+.. only:: html
+
+ .. figure:: /auto_examples/images/thumb/sphx_glr_plot_text_thumb.png
+     :alt: DiCoDiLe on text images
+
+     :ref:`sphx_glr_auto_examples_plot_text.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/plot_text
 .. raw:: html
 
     <div class="sphx-glr-clear"></div>
