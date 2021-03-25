@@ -13,14 +13,13 @@ TMP = pathlib.Path('/tmp')
 if not TMP.exists():
     TMP = pathlib.Path('.')
 
-
 TEXT_DATA_DIR = DATA_HOME / 'images' / 'text'
 HEADER_FILE = os.path.join(os.path.dirname(__file__), 'header.tex')
 
 
 ##############################################################################
 # Command line to generate the image from the text using pandoc, pdfcrop
-# and IamgeMagik. One should make sure these utilities are available on
+# and ImageMagik. One should make sure these utilities are available on
 # the pass to use the function in this module.
 #
 
@@ -45,20 +44,21 @@ CONVERT_CMD = """convert \
 
 
 def convert_str_to_png(text, margin=12):
-    """Returns the image associated to a string of character
+    """Returns the image associated to a string of characters.
 
-    PArameters
+    Parameters
     ----------
     text: str
         Text to encode as an image.
     margin: int (default: 12)
         Margin to add around the text. To generate a dictionary element, one
-        should use 0 as a margin
+        should use 0 as a margin.
 
     Returns
     -------
     im : ndarray, shape (height, width)
         image associated to `text`.
+
     """
     filename = str(TMP / 'sample')
     with open(f"{filename}.md", 'w') as f:
@@ -72,8 +72,21 @@ def convert_str_to_png(text, margin=12):
 
 
 def get_centered_padding(shape, expected_shape):
-    """Compute a padding to have an array centered in the expected_shape
+    """Compute a padding to have an array centered in the expected_shape.
+
+    Parameters
+    ----------
+    shape: tuple
+      Original array dimensions.
+    expected_shape: ndarray, tuple
+      Expected array dimensions.
+
+    Returns
+    -------
+    padding: list
+        padding necessary for original array to have the `expected_shape`.
     """
+
     padding = []
     for s, es in zip(shape, expected_shape):
         pad = es - s

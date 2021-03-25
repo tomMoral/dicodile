@@ -1,12 +1,10 @@
-import os
-import pathlib
-import numpy as np
-import pandas as pd
-from scipy import signal
 from datetime import datetime
+import numpy as np
+import os
+import pandas as pd
+import pathlib
+from scipy import signal
 from scipy.optimize import linear_sum_assignment
-
-from dicodile.utils import check_random_state
 
 # Import for online DL
 import spams
@@ -15,10 +13,11 @@ from sklearn.feature_extraction.image import extract_patches_2d
 # Import for CDL
 from dicodile import dicodile
 from dicodile.config import DATA_HOME
+
 # Import to initiate the dictionary
-from dicodile.utils.dictionary import prox_d
 from dicodile.update_d.update_d import tukey_window
-from dicodile.utils.dictionary import init_dictionary
+from dicodile.utils import check_random_state
+from dicodile.utils.dictionary import init_dictionary, prox_d
 
 
 # Caching utility
