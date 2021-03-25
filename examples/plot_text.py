@@ -29,21 +29,26 @@ X_original, D = fetch_letters_pami()
 
 
 ###############################################################################
-# We will work on the copy `X` of the original image and we need to
-# reshape image data `X` and `D` to fit to expected signal shape of
-# `dicodile`:
+# We will work on the copy `X` of the original image and we need to reshape
+# image data `X` to fit to the expected signal shape of `dicodile`:
 #
 # `(n_channels, *sig_support)`
 
 X = X_original.copy()
-
 X = X.reshape(1, *X.shape)
+print(X.shape)
+
+###############################################################################
+# Reshape `D` to fit to dictionary format:
+#
+# `(n_atoms, n_channels, *atom_support)`
+
 D = D.reshape(4, 1, *D.shape[-2:])
 
 # We pad `D` in order to have atoms with 0 on the border,
 # compatible with windowed dictionary.
 D = np.pad(D, [(0, 0), (0, 0), (4, 4), (4, 4)])
-
+print(D.shape)
 
 ###############################################################################
 # Let's display an extract of the original text image `X_original` and
@@ -80,6 +85,8 @@ D_init = init_dictionary(X, n_atoms=n_atoms, atom_support=atom_support,
 atom_support = D_init.shape[-2:]
 tw = tukey_window(atom_support)[None, None]
 D_init *= tw
+
+print(D_init.shape)
 
 ###############################################################################
 # Let's display an extract of noisy `X` and random dictionary `D_init`
