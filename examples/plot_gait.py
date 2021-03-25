@@ -169,7 +169,7 @@ print(X_mc_subset.shape)
 # Initialize the dictionary (note that the call is identical
 # to the single-channel version)
 
-D_mc_init = init_dictionary(X_mc_subset,
+D_init_mc = init_dictionary(X_mc_subset,
                             n_atoms=8,
                             atom_support=(300,),
                             random_state=60,
@@ -180,7 +180,7 @@ D_mc_init = init_dictionary(X_mc_subset,
 # version here as well)
 
 D_hat_mc, z_hat_mc, pobj_mc, times_mc = dicodile(X_mc_subset,
-                                                 D_mc_init,
+                                                 D_init_mc,
                                                  n_iter=3,
                                                  n_workers=4,
                                                  dicod_kwargs={"max_iter": 10000},  # noqa: E501
