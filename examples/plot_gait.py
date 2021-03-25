@@ -71,7 +71,8 @@ X = X.reshape(1, *X.shape)
 
 print(X.shape)
 
-D_init = init_dictionary(X, n_atoms=8, atom_support=(300,), random_state=60)
+D_init = init_dictionary(X, n_atoms=8, atom_support=(300,), random_state=60,
+                         window=True)
 
 ###############################################################################
 # Note the use of ``reshape`` to shape the signal as per ``dicodile``
@@ -175,7 +176,8 @@ X_mc_subset.shape
 D_mc_init = init_dictionary(X_mc_subset,
                             n_atoms=8,
                             atom_support=(300,),
-                            random_state=60)
+                            random_state=60,
+                            window=True)
 
 ###############################################################################
 # And run DiCoDiLe (note that the call is identical to the single-channel
