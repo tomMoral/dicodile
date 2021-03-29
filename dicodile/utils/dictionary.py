@@ -98,7 +98,7 @@ def _get_patch(X, pt, atom_support):
     return X[patch_slice]
 
 
-def init_dictionary(X, n_atoms, atom_support, random_state=None, window=False):
+def init_dictionary(X, n_atoms, atom_support, random_state=None):
     rng = check_random_state(random_state)
 
     X_std = X.std()
@@ -117,8 +117,6 @@ def init_dictionary(X, n_atoms, atom_support, random_state=None, window=False):
         D[k] = patch
 
     D = prox_d(D)
-    if window:
-        D *= tukey_window(atom_support)
 
     return D
 
