@@ -15,12 +15,21 @@ jobs:
       matrix:
         mpi_install: [system, conda]
         python: [3.8]
+    env:
+      DICODILE_DATA_HOME: /home/runner/data
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python }}
           channels: conda-forge
+      - name: Cache test data
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-test-data
+        with:
+          path: ${{ env.DICODILE_DATA_HOME }}
+          key: ${{ env.cache-name }}
       - name: Install MPI
         run: |
           conda --version
