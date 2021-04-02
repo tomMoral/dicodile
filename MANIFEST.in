@@ -1,0 +1,28 @@
+include *.rst
+
+include pytest.ini
+include dicodile/update_z/tests/hostfile_test
+
+recursive-include dicodile *.py
+recursive-include dicodile *.tex
+
+# Include doc generation files
+recursive-include docs *.gitkeep
+recursive-include docs *.bat
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs *.txt
+recursive-include docs *.inc
+recursive-include docs *.png
+recursive-include docs Makefile
+prune docs/_build
+prune docs/generated
+prune docs/auto_examples
+recursive-include examples *.py
+recursive-include examples *.txt
+
+exclude .pre-commit-config.yaml
+exclude dicodile_env.yml
+
+prune benchmarks
+prune ci
