@@ -34,7 +34,6 @@ setup(name=DISTNAME,
           'Operating System :: Unix',
       ],
       platforms='any',
-      version='0.1.dev1',
       packages=packages,
       install_requires=[
           'numpy',
