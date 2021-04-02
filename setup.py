@@ -1,4 +1,4 @@
-from packaging import version
+from pkg_resources import packaging
 from setuptools import setup
 import setuptools
 
@@ -19,7 +19,8 @@ packages = ['dicodile',
             'dicodile.data']
 
 min_setuptools_ver = "46.4.0"
-if version.parse(setuptools.__version__) < version.parse(min_setuptools_ver):
+if packaging.version.parse(setuptools.__version__) < \
+        packaging.version.parse(min_setuptools_ver):
     raise ValueError(f"""Expected setuptools >= {min_setuptools_ver},
                       found {setuptools.__version__} instead.
                       Please update setuptools.""")
