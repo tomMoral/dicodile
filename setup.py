@@ -1,4 +1,6 @@
+from packaging import version
 from setuptools import setup
+import setuptools
 
 descr = """Distributed Convolutional Dictionary Learning"""
 
@@ -15,6 +17,12 @@ packages = ['dicodile',
             'dicodile.update_d',
             'dicodile.update_z',
             'dicodile.data']
+
+min_setuptools_ver = "46.4.0"
+if version.parse(setuptools.__version__) < version.parse(min_setuptools_ver):
+    raise ValueError(f"""Expected setuptools >= {min_setuptools_ver},
+                      found {setuptools.__version__} instead.
+                      Please update setuptools.""")
 
 setup(name=DISTNAME,
       maintainer=MAINTAINER,
