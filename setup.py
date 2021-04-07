@@ -1,6 +1,6 @@
-from pkg_resources import packaging
 from setuptools import setup
-import setuptools
+import setuptools_scm  # noqa: F401
+import toml  # noqa: F401
 
 descr = """Distributed Convolutional Dictionary Learning"""
 
@@ -17,13 +17,6 @@ packages = ['dicodile',
             'dicodile.update_d',
             'dicodile.update_z',
             'dicodile.data']
-
-min_setuptools_ver = "46.4.0"
-if packaging.version.parse(setuptools.__version__) < \
-        packaging.version.parse(min_setuptools_ver):
-    raise ValueError(f"""Expected setuptools >= {min_setuptools_ver},
-                      found {setuptools.__version__} instead.
-                      Please update setuptools.""")
 
 setup(name=DISTNAME,
       maintainer=MAINTAINER,

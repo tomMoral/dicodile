@@ -30,3 +30,5 @@ _build
 generated
 auto_examples
 
+# Auto-generated
+dicodile/version.py
