@@ -6,6 +6,7 @@ __pycache__
 *.egg-info
 .cache
 /.vscode
+.ipynb_checkpoints
 .pytest_cache
 
 # Project config
@@ -30,4 +31,5 @@ _build
 generated
 auto_examples
 
-.ipynb_checkpoints
+# Auto-generated
+dicodile/version.py
