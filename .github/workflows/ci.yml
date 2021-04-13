@@ -95,7 +95,7 @@ jobs:
         --wheel
         --outdir dist/
     - name: Publish distribution 📦 to Test PyPI
-      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags') && github.repository == 'tomMoral/dicodile'
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags')) && github.repository == 'tomMoral/dicodile'
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
