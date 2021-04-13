@@ -1,0 +1,110 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Run flake8
+        run: |
+          pip install flake8
+          flake8
+  test:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        mpi_install: [system, conda]
+        python: [3.8]
+    env:
+      DICODILE_DATA_HOME: /home/runner/data
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python }}
+          channels: conda-forge
+      - name: Cache test data
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-test-data
+        with:
+          path: ${{ env.DICODILE_DATA_HOME }}
+          key: ${{ env.cache-name }}
+      - name: Install MPI
+        run: |
+          conda --version
+          which python
+          ./ci/install_mpi.sh
+        env:
+          MPI_INSTALL: ${{ matrix.mpi_install }}
+      - name: Run unit tests
+        run: |
+          pip install -e .[test]
+          echo "localhost slots=16">hostfile
+          pytest --cov-report=xml --cov=dicodile
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests 
+          fail_ci_if_error: true 
+          verbose: true
+  check-manifest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: pip install check-manifest
+    - name: Check MANIFEST
+      run: check-manifest
+  build-n-publish:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+    runs-on: ubuntu-20.04
+    needs: [lint, test, check-manifest]
+    steps:
+    - uses: actions/checkout@master
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Install pypa/build
+      run: >-
+        python -m
+        pip install
+        build
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: >-
+        python -m
+        build
+        --sdist
+        --wheel
+        --outdir dist/
+    - name: Publish distribution 📦 to Test PyPI
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main || startsWith(github.ref, 'refs/tags') && github.repository == 'tomMoral/dicodile'
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository_url: https://test.pypi.org/legacy/
+        # do not fail if the TestPyPi release already
+        # exists
+        skip_existing: true
+    - name: Publish distribution 📦 to PyPI
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && github.repository == 'tomMoral/dicodile'
+      uses: pypa/gh-action-pypi-publish@v1.4.2
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
