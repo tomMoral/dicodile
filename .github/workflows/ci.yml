@@ -5,6 +5,7 @@ on:
     branches: main
 
 jobs:
+  # flake8 linting
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +17,20 @@ jobs:
         run: |
           pip install flake8
           flake8
+  # check manifest/sources consistency
+  check-manifest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: pip install check-manifest
+    - name: Check MANIFEST
+      run: check-manifest
+  # unit tests
   test:
     runs-on: ubuntu-20.04
     defaults:
@@ -59,18 +74,7 @@ jobs:
           flags: unittests 
           fail_ci_if_error: true 
           verbose: true
-  check-manifest:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: pip install check-manifest
-    - name: Check MANIFEST
-      run: check-manifest
+  # build and publish to PyPI and TestPyPi
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-20.04
