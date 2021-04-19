@@ -80,7 +80,9 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [lint, test, check-manifest]
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
