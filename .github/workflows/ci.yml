@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         mpi_install: [system, conda]
-        python: [3.8]
+        python: [3.8, 3.9]
     env:
       DICODILE_DATA_HOME: /home/runner/data
     steps:
