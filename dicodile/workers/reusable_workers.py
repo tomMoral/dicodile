@@ -33,7 +33,7 @@ class Workers:
 
     def __del__(self):
         if not self.shutdown:
-            shutdown_reusable_workers(_workers=self)
+            shutdown_reusable_workers()
 
 
 def get_reusable_workers(n_workers=4, hostfile=None):
@@ -52,32 +52,27 @@ def get_reusable_workers(n_workers=4, hostfile=None):
     return workers.comm
 
 
-def send_command_to_reusable_workers(tag, _workers=None, verbose=0):
-    if _workers is None:
-        global workers
-        _workers = workers
+def send_command_to_reusable_workers(tag, verbose=0):
+    global workers
 
     msg = np.empty(1, dtype='i')
     msg[0] = tag
     t_start = time.time()
-    for i_worker in range(_workers.n_workers):
-        _workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
+    for i_worker in range(workers.n_workers):
+        workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
     if verbose > 5:
         print("Sent message {} in {:.3f}s".format(tag, time.time() - t_start))
 
 
-def shutdown_reusable_workers(_workers=None):
-    if _workers is None:
-        global workers
-        _workers = workers
+def shutdown_reusable_workers():
+    global workers
 
-    if _workers is not None:
-        send_command_to_reusable_workers(constants.TAG_WORKER_STOP,
-                                         _workers=_workers)
-        _workers.comm.Barrier()
-        _workers.comm.Disconnect()
+    if workers is not None:
+        send_command_to_reusable_workers(constants.TAG_WORKER_STOP)
+        workers.comm.Barrier()
+        workers.comm.Disconnect()
         MPI.COMM_SELF.Barrier()
-        _workers.shutdown = True
+        workers.shutdown = True
 
 
 def _spawn_workers(n_workers, hostfile=None):
