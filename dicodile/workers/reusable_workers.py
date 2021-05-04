@@ -6,7 +6,6 @@ import os
 import sys
 import time
 import warnings
-import threading
 import numpy as np
 from mpi4py import MPI
 
@@ -14,7 +13,7 @@ from ..utils import constants
 from ..utils import debug_flags as flags
 
 # global worker communicator
-thread_locals = threading.local()
+workers = None
 
 
 SYSTEM_HOSTFILE = os.environ.get("MPI_HOSTFILE", None)
@@ -33,56 +32,47 @@ class Workers:
         self.shutdown = False
 
     def __del__(self):
-
         if not self.shutdown:
-            shutdown_reusable_workers(_workers=self)
+            shutdown_reusable_workers()
 
 
 def get_reusable_workers(n_workers=4, hostfile=None):
 
-    global thread_locals
-    _workers = getattr(thread_locals, '_workers', None)
-    if _workers is None:
-        thread_locals._workers = Workers(n_workers, hostfile)
-        # util.Finalize(None, shutdown_reusable_workers, exitpriority=20)
+    global workers
+    if workers is None:
+        workers = Workers(n_workers, hostfile)
     else:
-        if _workers.n_workers != n_workers:
+        if workers.n_workers != n_workers:
             warnings.warn("You should not require different size")
             shutdown_reusable_workers()
-            del _workers
+            workers = None
             time.sleep(.5)
             return get_reusable_workers(n_workers=n_workers, hostfile=hostfile)
 
-    return thread_locals._workers.comm
+    return workers.comm
 
 
-def send_command_to_reusable_workers(tag, _workers=None, verbose=0):
-    if _workers is None:
-        global thread_locals
-        _workers = thread_locals._workers
+def send_command_to_reusable_workers(tag, verbose=0):
+    global workers
 
     msg = np.empty(1, dtype='i')
     msg[0] = tag
     t_start = time.time()
-    for i_worker in range(_workers.n_workers):
-        _workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
+    for i_worker in range(workers.n_workers):
+        workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
     if verbose > 5:
         print("Sent message {} in {:.3f}s".format(tag, time.time() - t_start))
 
 
-def shutdown_reusable_workers(_workers=None):
-    if _workers is None:
-        global thread_locals
-        _workers = getattr(thread_locals, '_workers', None)
-        del thread_locals._workers
+def shutdown_reusable_workers():
+    global workers
 
-    if _workers is not None:
-        send_command_to_reusable_workers(constants.TAG_WORKER_STOP,
-                                         _workers=_workers)
-        _workers.comm.Barrier()
-        _workers.comm.Disconnect()
+    if workers is not None:
+        send_command_to_reusable_workers(constants.TAG_WORKER_STOP)
+        workers.comm.Barrier()
+        workers.comm.Disconnect()
         MPI.COMM_SELF.Barrier()
-        _workers.shutdown = True
+        workers.shutdown = True
 
 
 def _spawn_workers(n_workers, hostfile=None):
