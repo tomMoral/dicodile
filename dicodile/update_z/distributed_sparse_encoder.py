@@ -11,10 +11,10 @@ from ..utils import debug_flags as flags
 from ..utils.debugs import main_check_beta
 from ..utils.shape_helpers import get_valid_support
 
-from .dicod import recv_z_hat, recv_z_nnz
-from .dicod import _gather_run_statistics
-from .dicod import _send_task, _send_D, _send_signal
-from .dicod import recv_cost, recv_sufficient_statistics
+from .communication_primitive import recv_z_hat, recv_z_nnz
+from .communication_primitive import _gather_run_statistics
+from .communication_primitive import _send_task, _send_D, _send_signal
+from .communication_primitive import recv_cost, recv_sufficient_statistics
 
 
 class DistributedSparseEncoder:
