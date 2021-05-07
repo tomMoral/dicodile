@@ -28,6 +28,7 @@ jobs:
           conda --version
           which python
           ./ci/install_mpi.sh
+          ip addr
         env:
           MPI_INSTALL: ${{ matrix.mpi_install }}
           MPI_IMPL: ${{ matrix.mpi_impl }}
