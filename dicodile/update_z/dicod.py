@@ -19,7 +19,6 @@ from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
 
 from ..workers.reusable_workers import get_reusable_workers
-from ..workers.reusable_workers import send_command_to_reusable_workers
 
 
 log = logging.getLogger('dicod')
@@ -125,26 +124,27 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support, warm_start=warm_start
     )
 
-    comm = _spawn_workers(n_workers, hostfile)
-    t_transfert, workers_segments = _send_task(comm, X_i, D, z0, DtD, w_world,
+    workers = _spawn_workers(n_workers, hostfile)
+    t_transfert, workers_segments = _send_task(workers.comm, X_i,
+                                               D, z0, DtD, w_world,
                                                params)
 
     if flags.CHECK_WARM_BETA:
-        main_check_beta(comm, workers_segments)
+        main_check_beta(workers.comm, workers_segments)
 
     if verbose > 0:
         print('\r[INFO:DICOD-{}] End transfert - {:.4}s'
               .format(workers_segments.effective_n_seg, t_transfert).ljust(80))
 
     # Wait for the result computation
-    comm.Barrier()
+    workers.comm.Barrier()
     run_statistics = _gather_run_statistics(
-        comm, workers_segments, verbose=verbose)
+        workers.comm, workers_segments, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
-        comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
-        timing=timing, verbose=verbose)
-    comm.Barrier()
+        workers.comm, D.shape, valid_support, workers_segments,
+        return_ztz=return_ztz, timing=timing, verbose=verbose)
+    workers.comm.Barrier()
 
     if timing:
         p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfert, t_reduce,
@@ -199,9 +199,9 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_workers,
 
 
 def _spawn_workers(n_workers, hostfile):
-    comm = get_reusable_workers(n_workers, hostfile=hostfile)
-    send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICOD)
-    return comm
+    workers = get_reusable_workers(n_workers, hostfile=hostfile)
+    workers.send_command(constants.TAG_WORKER_RUN_DICOD)
+    return workers
 
 
 def _send_task(comm, X, D, z0, DtD, w_world, params):
