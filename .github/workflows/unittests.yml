@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: |
           pip install -e .[test]
-          mpiexec -np 1 --host localhost:16 python -m pytest --cov-report=xml --cov=dicodile
+          mpiexec -np 1 --mca btl_tcp_if_include eth0 --host localhost:16 python -m pytest --cov-report=xml --cov=dicodile
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
