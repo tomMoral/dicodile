@@ -13,7 +13,6 @@ VERBOSE = 100
 N_WORKERS = 4
 
 
-@pytest.mark.filterwarnings("ignore", message="require different size")
 @pytest.mark.parametrize('signal_support, atom_support',
                          [((800,), (50,)), ((100, 100), (10, 8))])
 @pytest.mark.parametrize('n_workers', [2, 6, N_WORKERS])
