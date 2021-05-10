@@ -125,16 +125,16 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     )
 
     workers = _spawn_workers(n_workers, hostfile)
-    t_transfert, workers_segments = _send_task(workers.comm, X_i,
-                                               D, z0, DtD, w_world,
-                                               params)
+    t_transfer, workers_segments = _send_task(workers.comm, X_i,
+                                              D, z0, DtD, w_world,
+                                              params)
 
     if flags.CHECK_WARM_BETA:
         main_check_beta(workers.comm, workers_segments)
 
     if verbose > 0:
-        print('\r[INFO:DICOD-{}] End transfert - {:.4}s'
-              .format(workers_segments.effective_n_seg, t_transfert).ljust(80))
+        print('\r[INFO:DICOD-{}] End transfer - {:.4}s'
+              .format(workers_segments.effective_n_seg, t_transfer).ljust(80))
 
     # Wait for the result computation
     workers.comm.Barrier()
@@ -147,7 +147,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     workers.comm.Barrier()
 
     if timing:
-        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfert, t_reduce,
+        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfer, t_reduce,
                                  n_workers=n_workers,
                                  valid_support=valid_support, z0=z0)
     else:
