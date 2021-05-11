@@ -156,7 +156,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
                   run_statistics['runtime'],
                   cost]]
 
-    shutdown_reusable_workers()
+#    shutdown_reusable_workers()
     return z_hat, ztz, ztX, p_obj, run_statistics
 
 
