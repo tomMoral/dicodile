@@ -154,6 +154,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         p_obj = [[run_statistics['n_updates'],
                   run_statistics['runtime'],
                   cost]]
+
     return z_hat, ztz, ztX, p_obj, run_statistics
 
 

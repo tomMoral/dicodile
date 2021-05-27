@@ -4,7 +4,8 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.csc import compute_objective
-from ..workers.reusable_workers import get_reusable_workers
+from ..workers.reusable_workers import get_reusable_workers, \
+    shutdown_reusable_workers
 from ..workers.reusable_workers import send_command_to_reusable_workers
 
 from ..utils import debug_flags as flags
@@ -138,6 +139,9 @@ class DistributedSparseEncoder:
 
     def release_workers(self):
         send_command_to_reusable_workers(constants.TAG_DICODILE_STOP)
+
+    def shut_down_workers(self):
+        shutdown_reusable_workers()
 
     def check_cost(self, X, D_hat, reg):
         cost = self.get_cost()

@@ -73,6 +73,7 @@ def shutdown_reusable_workers():
         workers.comm.Disconnect()
         MPI.COMM_SELF.Barrier()
         workers.shutdown = True
+        workers = None
 
 
 def _spawn_workers(n_workers, hostfile=None):
