@@ -66,7 +66,8 @@ jobs:
       - name: Run unit tests
         run: |
           pip install -e .[test]
-          mpiexec -np 1 --host localhost:16 python -m pytest --cov-report=xml --cov=dicodile
+          echo "localhost slots=16">hostfile
+          pytest --cov-report=xml --cov=dicodile
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
