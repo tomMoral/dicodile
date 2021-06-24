@@ -199,7 +199,7 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_workers,
 
 
 def _spawn_workers(n_workers, hostfile):
-    workers = get_reusable_workers(n_workers, hostfile=hostfile)
+    workers = Workers(n_workers, hostfile=hostfile)
     workers.send_command(constants.TAG_WORKER_RUN_DICOD)
     return workers
 
