@@ -77,7 +77,7 @@ class DistributedSparseEncoder:
 
         self.workers.send_command(constants.TAG_DICODILE_SET_D,
                                   verbose=self.verbose)
-        _send_D(self.workers.comm, D, DtD)
+        _send_D(self.workers, D, DtD)
 
     def set_worker_params(self, params=None, **kwargs):
         if params is None:

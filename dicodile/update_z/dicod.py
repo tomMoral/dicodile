@@ -210,7 +210,7 @@ def _send_task(workers, X, D, z0, DtD, w_world, params):
 
     _send_params(workers, params)
 
-    _send_D(workers.comm, D, DtD)
+    _send_D(workers, D, DtD)
 
     workers_segments = _send_signal(workers.comm, w_world, atom_support, X, z0)
 
@@ -222,10 +222,10 @@ def _send_params(workers, params):
     workers.comm.bcast(params, root=MPI.ROOT)
 
 
-def _send_D(comm, D, DtD=None):
-    broadcast_array(comm, D)
+def _send_D(workers, D, DtD=None):
+    broadcast_array(workers.comm, D)
     if DtD is not None:
-        broadcast_array(comm, DtD)
+        broadcast_array(workers.comm, DtD)
 
 
 def _send_signal(comm, w_world, atom_support, X, z0=None):
