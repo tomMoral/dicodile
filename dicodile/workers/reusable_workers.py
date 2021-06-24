@@ -20,7 +20,7 @@ INTERACTIVE_EXEC = "xterm"
 INTERACTIVE_ARGS = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
-class Workers:
+class MPIWorkers:
     def __init__(self, n_workers, hostfile):
         self.comm = _spawn_workers(n_workers, hostfile)
         self.n_workers = n_workers

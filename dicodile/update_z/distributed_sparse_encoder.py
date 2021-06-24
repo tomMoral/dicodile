@@ -4,7 +4,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.csc import compute_objective
-from ..workers.reusable_workers import Workers
+from ..workers.reusable_workers import MPIWorkers
 
 from ..utils import debug_flags as flags
 from ..utils.debugs import main_check_beta
@@ -47,7 +47,7 @@ class DistributedSparseEncoder:
         self.effective_n_workers = effective_n_workers
 
         # Create the workers with MPI
-        self.workers = Workers(effective_n_workers, hostfile=self.hostfile)
+        self.workers = MPIWorkers(effective_n_workers, hostfile=self.hostfile)
         self.workers.send_command(constants.TAG_WORKER_RUN_DICODILE,
                                   verbose=self.verbose)
 

@@ -18,7 +18,7 @@ from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
 
-from ..workers.reusable_workers import Workers
+from ..workers.reusable_workers import MPIWorkers
 
 
 log = logging.getLogger('dicod')
@@ -199,7 +199,7 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_workers,
 
 
 def _spawn_workers(n_workers, hostfile):
-    workers = Workers(n_workers, hostfile=hostfile)
+    workers = MPIWorkers(n_workers, hostfile=hostfile)
     workers.send_command(constants.TAG_WORKER_RUN_DICOD)
     return workers
 
