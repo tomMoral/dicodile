@@ -18,7 +18,7 @@ from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
 
-from ..workers.reusable_workers import get_reusable_workers
+from ..workers.reusable_workers import Workers
 
 
 log = logging.getLogger('dicod')

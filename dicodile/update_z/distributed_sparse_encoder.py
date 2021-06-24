@@ -4,7 +4,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.csc import compute_objective
-from ..workers.reusable_workers import get_reusable_workers
+from ..workers.reusable_workers import Workers
 
 from ..utils import debug_flags as flags
 from ..utils.debugs import main_check_beta
@@ -32,7 +32,7 @@ class DistributedSparseEncoder:
 
     def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
 
-        # compute the partition fo the signals
+        # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
@@ -47,8 +47,7 @@ class DistributedSparseEncoder:
         self.effective_n_workers = effective_n_workers
 
         # Create the workers with MPI
-        self.workers = get_reusable_workers(effective_n_workers,
-                                            hostfile=self.hostfile)
+        self.workers = Workers(effective_n_workers, hostfile=self.hostfile)
         self.workers.send_command(constants.TAG_WORKER_RUN_DICODILE,
                                   verbose=self.verbose)
 

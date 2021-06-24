@@ -50,10 +50,6 @@ class Workers:
             self.shutdown = True
 
 
-def get_reusable_workers(n_workers=4, hostfile=None):
-    return Workers(n_workers, hostfile)
-
-
 def _spawn_workers(n_workers, hostfile=None):
     t_start = time.time()
     info = MPI.Info.Create()
