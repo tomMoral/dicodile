@@ -97,7 +97,7 @@ class DistributedSparseEncoder:
 
         self.workers.send_command(constants.TAG_DICODILE_SET_SIGNAL,
                                   verbose=self.verbose)
-        self.workers_segments = _send_signal(self.workers.comm, self.w_world,
+        self.workers_segments = _send_signal(self.workers, self.w_world,
                                              atom_support, X, z0)
         self._ref_X = weakref.ref(X)
 

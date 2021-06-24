@@ -212,7 +212,7 @@ def _send_task(workers, X, D, z0, DtD, w_world, params):
 
     _send_D(workers, D, DtD)
 
-    workers_segments = _send_signal(workers.comm, w_world, atom_support, X, z0)
+    workers_segments = _send_signal(workers, w_world, atom_support, X, z0)
 
     t_init = time.time() - t_start
     return t_init, workers_segments
@@ -228,8 +228,8 @@ def _send_D(workers, D, DtD=None):
         broadcast_array(workers.comm, DtD)
 
 
-def _send_signal(comm, w_world, atom_support, X, z0=None):
-    n_workers = comm.Get_remote_size()
+def _send_signal(workers, w_world, atom_support, X, z0=None):
+    n_workers = workers.comm.Get_remote_size()
     n_channels, *full_support = X.shape
     valid_support = get_valid_support(full_support, atom_support)
     overlap = tuple(np.array(atom_support) - 1)
@@ -263,23 +263,23 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
         | (np.array(X_info['workers_topology']) == 1)), msg
 
     # Broadcast the info about this signal to the
-    comm.bcast(X_info, root=MPI.ROOT)
+    workers.comm.bcast(X_info, root=MPI.ROOT)
 
     X = np.array(X, dtype='d')
 
     for i_seg in range(n_workers):
         if z0 is not None:
             worker_slice = workers_segments.get_seg_slice(i_seg)
-            _send_array(comm, i_seg, z0[worker_slice])
+            _send_array(workers.comm, i_seg, z0[worker_slice])
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
         ])
-        _send_array(comm, i_seg, X[X_worker_slice])
+        _send_array(workers.comm, i_seg, X[X_worker_slice])
 
     # Synchronize the multiple send with a Barrier
-    comm.Barrier()
+    workers.comm.Barrier()
     return workers_segments
 
 
