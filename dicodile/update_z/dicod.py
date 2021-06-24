@@ -208,7 +208,7 @@ def _send_task(workers, X, D, z0, DtD, w_world, params):
     t_start = time.time()
     n_atoms, n_channels, *atom_support = D.shape
 
-    _send_params(workers.comm, params)
+    _send_params(workers, params)
 
     _send_D(workers.comm, D, DtD)
 
@@ -218,8 +218,8 @@ def _send_task(workers, X, D, z0, DtD, w_world, params):
     return t_init, workers_segments
 
 
-def _send_params(comm, params):
-    comm.bcast(params, root=MPI.ROOT)
+def _send_params(workers, params):
+    workers.comm.bcast(params, root=MPI.ROOT)
 
 
 def _send_D(comm, D, DtD=None):
