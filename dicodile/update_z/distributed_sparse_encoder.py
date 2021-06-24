@@ -63,7 +63,7 @@ class DistributedSparseEncoder:
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.workers.comm, X, D_hat, z0, DtD, w_world, self.params
+            self.workers, X, D_hat, z0, DtD, w_world, self.params
         )
 
     def set_worker_D(self, D, DtD=None):

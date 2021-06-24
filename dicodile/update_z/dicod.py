@@ -125,7 +125,7 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
     )
 
     workers = _spawn_workers(n_workers, hostfile)
-    t_transfer, workers_segments = _send_task(workers.comm, X_i,
+    t_transfer, workers_segments = _send_task(workers, X_i,
                                               D, z0, DtD, w_world,
                                               params)
 
@@ -204,15 +204,15 @@ def _spawn_workers(n_workers, hostfile):
     return workers
 
 
-def _send_task(comm, X, D, z0, DtD, w_world, params):
+def _send_task(workers, X, D, z0, DtD, w_world, params):
     t_start = time.time()
     n_atoms, n_channels, *atom_support = D.shape
 
-    _send_params(comm, params)
+    _send_params(workers.comm, params)
 
-    _send_D(comm, D, DtD)
+    _send_D(workers.comm, D, DtD)
 
-    workers_segments = _send_signal(comm, w_world, atom_support, X, z0)
+    workers_segments = _send_signal(workers.comm, w_world, atom_support, X, z0)
 
     t_init = time.time() - t_start
     return t_init, workers_segments
