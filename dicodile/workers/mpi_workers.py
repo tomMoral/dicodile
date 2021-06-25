@@ -55,7 +55,7 @@ class MPIWorkers:
                 tag, time.time() - t_start))
 
     def shutdown_workers(self):
-        """
+        """Shut down workers.
         """
         if not self.shutdown:
             self.send_command(constants.TAG_WORKER_STOP)
