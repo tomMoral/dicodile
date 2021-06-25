@@ -32,6 +32,19 @@ class MPIWorkers:
             self.shutdown_reusable_workers()
 
     def send_command(self, tag, verbose=0):
+        """Send a command (tag) to the workers.
+
+        Parameters
+        ----------
+        tag : int
+            Command tag to send.
+        verbose : int
+            If > 5, print a trace message.
+
+        See Also
+        --------
+        dicodile.constants : tag constant definitions
+        """
         msg = np.empty(1, dtype='i')
         msg[0] = tag
         t_start = time.time()
@@ -42,6 +55,8 @@ class MPIWorkers:
                 tag, time.time() - t_start))
 
     def shutdown_reusable_workers(self):
+        """
+        """
         if not self.shutdown:
             self.send_command(constants.TAG_WORKER_STOP)
             self.comm.Barrier()
