@@ -29,7 +29,7 @@ class MPIWorkers:
 
     def __del__(self):
         if not self.shutdown:
-            self.shutdown_reusable_workers()
+            self.shutdown_workers()
 
     def send_command(self, tag, verbose=0):
         """Send a command (tag) to the workers.
@@ -54,7 +54,7 @@ class MPIWorkers:
             print("Sent message {} in {:.3f}s".format(
                 tag, time.time() - t_start))
 
-    def shutdown_reusable_workers(self):
+    def shutdown_workers(self):
         """
         """
         if not self.shutdown:

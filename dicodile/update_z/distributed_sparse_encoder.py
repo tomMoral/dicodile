@@ -141,7 +141,7 @@ class DistributedSparseEncoder:
             constants.TAG_DICODILE_STOP)
 
     def shutdown_workers(self):
-        self.workers.shutdown_reusable_workers()
+        self.workers.shutdown_workers()
 
     def check_cost(self, X, D_hat, reg):
         cost = self.get_cost()
