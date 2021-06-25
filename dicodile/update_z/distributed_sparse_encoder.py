@@ -4,7 +4,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.csc import compute_objective
-from ..workers.reusable_workers import MPIWorkers
+from ..workers.mpi_workers import MPIWorkers
 
 from ..utils import debug_flags as flags
 from ..utils.debugs import main_check_beta
