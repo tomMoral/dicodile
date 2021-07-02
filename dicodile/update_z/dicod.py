@@ -18,8 +18,7 @@ from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
 
-from ..workers.reusable_workers import get_reusable_workers
-from ..workers.reusable_workers import send_command_to_reusable_workers
+from ..workers.mpi_workers import MPIWorkers
 
 
 log = logging.getLogger('dicod')
@@ -125,29 +124,30 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         freeze_support=freeze_support, warm_start=warm_start
     )
 
-    comm = _spawn_workers(n_workers, hostfile)
-    t_transfert, workers_segments = _send_task(comm, X_i, D, z0, DtD, w_world,
-                                               params)
+    workers = _spawn_workers(n_workers, hostfile)
+    t_transfer, workers_segments = _send_task(workers, X_i,
+                                              D, z0, DtD, w_world,
+                                              params)
 
     if flags.CHECK_WARM_BETA:
-        main_check_beta(comm, workers_segments)
+        main_check_beta(workers.comm, workers_segments)
 
     if verbose > 0:
-        print('\r[INFO:DICOD-{}] End transfert - {:.4}s'
-              .format(workers_segments.effective_n_seg, t_transfert).ljust(80))
+        print('\r[INFO:DICOD-{}] End transfer - {:.4}s'
+              .format(workers_segments.effective_n_seg, t_transfer).ljust(80))
 
     # Wait for the result computation
-    comm.Barrier()
+    workers.comm.Barrier()
     run_statistics = _gather_run_statistics(
-        comm, workers_segments, verbose=verbose)
+        workers.comm, workers_segments, verbose=verbose)
 
     z_hat, ztz, ztX, cost, _log, t_reduce = _recv_result(
-        comm, D.shape, valid_support, workers_segments, return_ztz=return_ztz,
-        timing=timing, verbose=verbose)
-    comm.Barrier()
+        workers.comm, D.shape, valid_support, workers_segments,
+        return_ztz=return_ztz, timing=timing, verbose=verbose)
+    workers.comm.Barrier()
 
     if timing:
-        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfert, t_reduce,
+        p_obj = reconstruct_pobj(X_i, D, reg, _log, t_transfer, t_reduce,
                                  n_workers=n_workers,
                                  valid_support=valid_support, z0=z0)
     else:
@@ -199,37 +199,37 @@ def reconstruct_pobj(X, D, reg, _log, t_init, t_reduce, n_workers,
 
 
 def _spawn_workers(n_workers, hostfile):
-    comm = get_reusable_workers(n_workers, hostfile=hostfile)
-    send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICOD)
-    return comm
+    workers = MPIWorkers(n_workers, hostfile=hostfile)
+    workers.send_command(constants.TAG_WORKER_RUN_DICOD)
+    return workers
 
 
-def _send_task(comm, X, D, z0, DtD, w_world, params):
+def _send_task(workers, X, D, z0, DtD, w_world, params):
     t_start = time.time()
     n_atoms, n_channels, *atom_support = D.shape
 
-    _send_params(comm, params)
+    _send_params(workers, params)
 
-    _send_D(comm, D, DtD)
+    _send_D(workers, D, DtD)
 
-    workers_segments = _send_signal(comm, w_world, atom_support, X, z0)
+    workers_segments = _send_signal(workers, w_world, atom_support, X, z0)
 
     t_init = time.time() - t_start
     return t_init, workers_segments
 
 
-def _send_params(comm, params):
-    comm.bcast(params, root=MPI.ROOT)
+def _send_params(workers, params):
+    workers.comm.bcast(params, root=MPI.ROOT)
 
 
-def _send_D(comm, D, DtD=None):
-    broadcast_array(comm, D)
+def _send_D(workers, D, DtD=None):
+    broadcast_array(workers.comm, D)
     if DtD is not None:
-        broadcast_array(comm, DtD)
+        broadcast_array(workers.comm, DtD)
 
 
-def _send_signal(comm, w_world, atom_support, X, z0=None):
-    n_workers = comm.Get_remote_size()
+def _send_signal(workers, w_world, atom_support, X, z0=None):
+    n_workers = workers.comm.Get_remote_size()
     n_channels, *full_support = X.shape
     valid_support = get_valid_support(full_support, atom_support)
     overlap = tuple(np.array(atom_support) - 1)
@@ -263,23 +263,23 @@ def _send_signal(comm, w_world, atom_support, X, z0=None):
         | (np.array(X_info['workers_topology']) == 1)), msg
 
     # Broadcast the info about this signal to the
-    comm.bcast(X_info, root=MPI.ROOT)
+    workers.comm.bcast(X_info, root=MPI.ROOT)
 
     X = np.array(X, dtype='d')
 
     for i_seg in range(n_workers):
         if z0 is not None:
             worker_slice = workers_segments.get_seg_slice(i_seg)
-            _send_array(comm, i_seg, z0[worker_slice])
+            _send_array(workers.comm, i_seg, z0[worker_slice])
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
         ])
-        _send_array(comm, i_seg, X[X_worker_slice])
+        _send_array(workers.comm, i_seg, X[X_worker_slice])
 
     # Synchronize the multiple send with a Barrier
-    comm.Barrier()
+    workers.comm.Barrier()
     return workers_segments
 
 

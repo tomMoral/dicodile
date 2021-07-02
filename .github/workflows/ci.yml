@@ -67,6 +67,7 @@ jobs:
         run: |
           pip install -e .[test]
           echo "localhost slots=16">hostfile
+          export OMPI_MCA_btl_tcp_if_exclude="docker0"
           pytest --cov-report=xml --cov=dicodile
       - name: Upload coverage
         uses: codecov/codecov-action@v1

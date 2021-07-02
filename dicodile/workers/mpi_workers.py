@@ -5,15 +5,11 @@ Author : tommoral <thomas.moreau@inria.fr>
 import os
 import sys
 import time
-import warnings
 import numpy as np
 from mpi4py import MPI
 
 from ..utils import constants
 from ..utils import debug_flags as flags
-
-# global worker communicator
-workers = None
 
 
 SYSTEM_HOSTFILE = os.environ.get("MPI_HOSTFILE", None)
@@ -24,7 +20,7 @@ INTERACTIVE_EXEC = "xterm"
 INTERACTIVE_ARGS = ["-fa", "Monospace", "-fs", "12", "-e", "ipython", "-i"]
 
 
-class Workers:
+class MPIWorkers:
     def __init__(self, n_workers, hostfile):
         self.comm = _spawn_workers(n_workers, hostfile)
         self.n_workers = n_workers
@@ -33,47 +29,40 @@ class Workers:
 
     def __del__(self):
         if not self.shutdown:
-            shutdown_reusable_workers()
+            self.shutdown_workers()
 
+    def send_command(self, tag, verbose=0):
+        """Send a command (tag) to the workers.
 
-def get_reusable_workers(n_workers=4, hostfile=None):
+        Parameters
+        ----------
+        tag : int
+            Command tag to send.
+        verbose : int
+            If > 5, print a trace message.
 
-    global workers
-    if workers is None:
-        workers = Workers(n_workers, hostfile)
-    else:
-        if workers.n_workers != n_workers:
-            warnings.warn("You should not require different size")
-            shutdown_reusable_workers()
-            workers = None
-            time.sleep(.5)
-            return get_reusable_workers(n_workers=n_workers, hostfile=hostfile)
+        See Also
+        --------
+        dicodile.constants : tag constant definitions
+        """
+        msg = np.empty(1, dtype='i')
+        msg[0] = tag
+        t_start = time.time()
+        for i_worker in range(self.n_workers):
+            self.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
+        if verbose > 5:
+            print("Sent message {} in {:.3f}s".format(
+                tag, time.time() - t_start))
 
-    return workers.comm
-
-
-def send_command_to_reusable_workers(tag, verbose=0):
-    global workers
-
-    msg = np.empty(1, dtype='i')
-    msg[0] = tag
-    t_start = time.time()
-    for i_worker in range(workers.n_workers):
-        workers.comm.Send([msg, MPI.INT], dest=i_worker, tag=tag)
-    if verbose > 5:
-        print("Sent message {} in {:.3f}s".format(tag, time.time() - t_start))
-
-
-def shutdown_reusable_workers():
-    global workers
-
-    if workers is not None:
-        send_command_to_reusable_workers(constants.TAG_WORKER_STOP)
-        workers.comm.Barrier()
-        workers.comm.Disconnect()
-        MPI.COMM_SELF.Barrier()
-        workers.shutdown = True
-        workers = None
+    def shutdown_workers(self):
+        """Shut down workers.
+        """
+        if not self.shutdown:
+            self.send_command(constants.TAG_WORKER_STOP)
+            self.comm.Barrier()
+            self.comm.Disconnect()
+            MPI.COMM_SELF.Barrier()
+            self.shutdown = True
 
 
 def _spawn_workers(n_workers, hostfile=None):

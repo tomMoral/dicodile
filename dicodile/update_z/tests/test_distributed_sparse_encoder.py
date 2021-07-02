@@ -52,4 +52,4 @@ def test_distributed_sparse_encoder():
     assert np.allclose(ztz, ztz_distrib)
     assert np.allclose(ztX, ztX_distrib)
 
-    encoder.shut_down_workers()
+    encoder.shutdown_workers()

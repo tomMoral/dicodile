@@ -228,7 +228,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     runtime = np.sum(times)
 
     encoder.release_workers()
-    encoder.shut_down_workers()
+    encoder.shutdown_workers()
 
     print("[INFO:{}] Finished in {:.0f}s".format(name, runtime))
     return D_hat, z_hat, pobj, times

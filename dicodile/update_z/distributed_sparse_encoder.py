@@ -4,9 +4,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils.csc import compute_objective
-from ..workers.reusable_workers import get_reusable_workers, \
-    shutdown_reusable_workers
-from ..workers.reusable_workers import send_command_to_reusable_workers
+from ..workers.mpi_workers import MPIWorkers
 
 from ..utils import debug_flags as flags
 from ..utils.debugs import main_check_beta
@@ -34,7 +32,7 @@ class DistributedSparseEncoder:
 
     def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
 
-        # compute the partition fo the signals
+        # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
@@ -49,10 +47,9 @@ class DistributedSparseEncoder:
         self.effective_n_workers = effective_n_workers
 
         # Create the workers with MPI
-        self.comm = get_reusable_workers(effective_n_workers,
-                                         hostfile=self.hostfile)
-        send_command_to_reusable_workers(constants.TAG_WORKER_RUN_DICODILE,
-                                         verbose=self.verbose)
+        self.workers = MPIWorkers(effective_n_workers, hostfile=self.hostfile)
+        self.workers.send_command(constants.TAG_WORKER_RUN_DICODILE,
+                                  verbose=self.verbose)
 
         w_world = self.w_world
         if self.w_world != 'auto' and self.w_world > effective_n_workers:
@@ -63,10 +60,10 @@ class DistributedSparseEncoder:
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
 
-        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_TASK,
-                                         verbose=self.verbose)
+        self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
+                                  verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.comm, X, D_hat, z0, DtD, w_world, self.params
+            self.workers, X, D_hat, z0, DtD, w_world, self.params
         )
 
     def set_worker_D(self, D, DtD=None):
@@ -78,9 +75,9 @@ class DistributedSparseEncoder:
             raise ValueError("The pre-computed value DtD need to be passed "
                              "each time D is updated.")
 
-        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_D,
-                                         verbose=self.verbose)
-        _send_D(self.comm, D, DtD)
+        self.workers.send_command(constants.TAG_DICODILE_SET_D,
+                                  verbose=self.verbose)
+        _send_D(self.workers, D, DtD)
 
     def set_worker_params(self, params=None, **kwargs):
         if params is None:
@@ -88,9 +85,9 @@ class DistributedSparseEncoder:
             params = kwargs
         self.params.update(params)
 
-        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_PARAMS,
-                                         verbose=self.verbose)
-        self.comm.bcast(self.params, root=MPI.ROOT)
+        self.workers.send_command(constants.TAG_DICODILE_SET_PARAMS,
+                                  verbose=self.verbose)
+        self.workers.comm.bcast(self.params, root=MPI.ROOT)
 
     def set_worker_signal(self, X, z0=None):
 
@@ -98,50 +95,53 @@ class DistributedSparseEncoder:
         if self.is_same_signal(X):
             return
 
-        send_command_to_reusable_workers(constants.TAG_DICODILE_SET_SIGNAL,
-                                         verbose=self.verbose)
-        self.workers_segments = _send_signal(self.comm, self.w_world,
+        self.workers.send_command(constants.TAG_DICODILE_SET_SIGNAL,
+                                  verbose=self.verbose)
+        self.workers_segments = _send_signal(self.workers, self.w_world,
                                              atom_support, X, z0)
         self._ref_X = weakref.ref(X)
 
     def process_z_hat(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_COMPUTE_Z_HAT,
-                                         verbose=self.verbose)
+        self.workers.send_command(constants.TAG_DICODILE_COMPUTE_Z_HAT,
+                                  verbose=self.verbose)
 
         if flags.CHECK_WARM_BETA:
-            main_check_beta(self.comm, self.workers_segments)
+            main_check_beta(self.workers.comm, self.workers_segments)
 
         # Then wait for the end of the computation
-        self.comm.Barrier()
-        return _gather_run_statistics(self.comm, self.workers_segments,
+        self.workers.comm.Barrier()
+        return _gather_run_statistics(self.workers.comm, self.workers_segments,
                                       verbose=self.verbose)
 
     def get_cost(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_GET_COST,
-                                         verbose=self.verbose)
-        return recv_cost(self.comm)
+        self.workers.send_command(constants.TAG_DICODILE_GET_COST,
+                                  verbose=self.verbose)
+        return recv_cost(self.workers.comm)
 
     def get_z_hat(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_GET_Z_HAT,
-                                         verbose=self.verbose)
-        return recv_z_hat(self.comm, self.D_shape[0], self.workers_segments)
+        self.workers.send_command(constants.TAG_DICODILE_GET_Z_HAT,
+                                  verbose=self.verbose)
+        return recv_z_hat(self.workers.comm,
+                          self.D_shape[0],
+                          self.workers_segments)
 
     def get_z_nnz(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_GET_Z_NNZ,
-                                         verbose=self.verbose)
-        return recv_z_nnz(self.comm, self.D_shape[0])
+        self.workers.send_command(constants.TAG_DICODILE_GET_Z_NNZ,
+                                  verbose=self.verbose)
+        return recv_z_nnz(self.workers.comm, self.D_shape[0])
 
     def get_sufficient_statistics(self):
-        send_command_to_reusable_workers(
+        self.workers.send_command(
             constants.TAG_DICODILE_GET_SUFFICIENT_STAT,
             verbose=self.verbose)
-        return recv_sufficient_statistics(self.comm, self.D_shape)
+        return recv_sufficient_statistics(self.workers.comm, self.D_shape)
 
     def release_workers(self):
-        send_command_to_reusable_workers(constants.TAG_DICODILE_STOP)
+        self.workers.send_command(
+            constants.TAG_DICODILE_STOP)
 
-    def shut_down_workers(self):
-        shutdown_reusable_workers()
+    def shutdown_workers(self):
+        self.workers.shutdown_workers()
 
     def check_cost(self, X, D_hat, reg):
         cost = self.get_cost()
