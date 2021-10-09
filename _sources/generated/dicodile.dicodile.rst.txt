@@ -1,4 +1,4 @@
-dicodile.dicodile
+﻿dicodile.dicodile
 =================
 
 .. currentmodule:: dicodile

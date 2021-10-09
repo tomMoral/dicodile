@@ -5,12 +5,12 @@
 
 Computation times
 =================
-**37:23.278** total execution time for **auto_examples** files:
+**45:24.536** total execution time for **auto_examples** files:
 
 +-----------------------------------------------------------------------+-----------+--------+
-| :ref:`sphx_glr_auto_examples_plot_text.py` (``plot_text.py``)         | 28:43.824 | 0.0 MB |
+| :ref:`sphx_glr_auto_examples_plot_text.py` (``plot_text.py``)         | 40:35.501 | 0.0 MB |
 +-----------------------------------------------------------------------+-----------+--------+
-| :ref:`sphx_glr_auto_examples_plot_gait.py` (``plot_gait.py``)         | 05:50.004 | 0.0 MB |
+| :ref:`sphx_glr_auto_examples_plot_mandrill.py` (``plot_mandrill.py``) | 03:11.652 | 0.0 MB |
 +-----------------------------------------------------------------------+-----------+--------+
-| :ref:`sphx_glr_auto_examples_plot_mandrill.py` (``plot_mandrill.py``) | 02:49.450 | 0.0 MB |
+| :ref:`sphx_glr_auto_examples_plot_gait.py` (``plot_gait.py``)         | 01:37.383 | 0.0 MB |
 +-----------------------------------------------------------------------+-----------+--------+
