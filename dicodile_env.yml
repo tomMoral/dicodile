@@ -16,7 +16,5 @@ dependencies:
   - python-spams
   - mpi4py
   - pip:
-    - git+https://github.com/dask/dask-jobqueue.git
-    - threadpoolctl
     - -e .
 
