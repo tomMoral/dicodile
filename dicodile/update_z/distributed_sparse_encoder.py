@@ -30,7 +30,8 @@ class DistributedSparseEncoder:
         self.hostfile = hostfile
         self.verbose = verbose
 
-    def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
+    def init_workers(self, X, D_hat, reg, params, z0=None,
+                     DtD=None, rank1=False):
 
         # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
@@ -59,6 +60,7 @@ class DistributedSparseEncoder:
         self.params['reg'] = reg
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
+        self.params['rank1'] = rank1
 
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
