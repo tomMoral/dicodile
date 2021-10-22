@@ -121,7 +121,10 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
         soft_lock=soft_lock, precomputed_DtD=DtD is not None,
-        freeze_support=freeze_support, warm_start=warm_start
+        freeze_support=freeze_support, warm_start=warm_start, rank1=False
+        # XXX since we do not support rank1 in standalone DiCoDiLe,
+        # (only in DistributedSparseEncoder for z-encoding),
+        # we set rank1 to False here.
     )
 
     workers = _spawn_workers(n_workers, hostfile)

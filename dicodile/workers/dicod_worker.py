@@ -654,6 +654,7 @@ class DICODWorker:
         self.warm_start = params['warm_start']
         self.freeze_support = params['freeze_support']
         self.precomputed_DtD = params['precomputed_DtD']
+        self.rank1 = params['rank1']
 
         # Set the random_state and add salt to avoid collapse between workers
         if not hasattr(self, 'random_state'):
@@ -668,11 +669,14 @@ class DICODWorker:
         """Receive a dictionary D"""
         if self._backend == "mpi":
             comm = MPI.Comm.Get_parent()
-            self.D = recv_broadcasted_array(comm)
-            _, _, *atom_support = self.D.shape
-            self.overlap = np.array(atom_support) - 1
-            if self.precomputed_DtD:
-                self.DtD = recv_broadcasted_array(comm)
+            if not self.rank1:
+                self.D = recv_broadcasted_array(comm)
+                _, _, *atom_support = self.D.shape
+                self.overlap = np.array(atom_support) - 1
+                if self.precomputed_DtD:
+                    self.DtD = recv_broadcasted_array(comm)
+            else:
+                raise NotImplementedError("No support for rank1 yet")
             return self.D
         else:
             raise NotImplementedError("Backend {} is not implemented"
