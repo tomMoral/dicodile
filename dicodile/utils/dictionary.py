@@ -162,3 +162,18 @@ def tukey_window(atom_support):
         tukey_window_ *= signal.tukey(ax_shape)[tuple(broadcast_idx)]
     tukey_window_ += 1e-9 * (tukey_window_ == 0)
     return tukey_window_
+
+
+def get_D(uv_hat, n_channels):
+    """Compute the rank 1 dictionary associated with the given uv
+    Parameter
+    ---------
+    uv: array (n_atoms, n_channels + n_times_atom)
+    n_channels: int
+        number of channels in the original multivariate series
+    Return
+    ------
+    D: array (n_atoms, n_channels, n_times_atom)
+    """
+
+    return uv_hat[:, :n_channels, None] * uv_hat[:, None, n_channels:]

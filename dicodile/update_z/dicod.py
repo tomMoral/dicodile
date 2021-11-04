@@ -207,9 +207,17 @@ def _spawn_workers(n_workers, hostfile):
     return workers
 
 
-def _send_task(workers, X, D, z0, DtD, w_world, params):
+def _send_task(workers, X, D, z0, DtD, w_world, params,
+               rank1=False, n_channels=0):
     t_start = time.time()
-    n_atoms, n_channels, *atom_support = D.shape
+    if rank1:
+        assert n_channels > 0, \
+            "n_channels is required to compute rank-1 encoding"
+        # XXX recompute atom support -- is that correct?
+        atom_support = (D.shape[-1] - n_channels,)
+
+    else:
+        n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(workers, params)
 

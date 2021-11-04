@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from dicodile.utils import check_random_state
-from dicodile.utils.dictionary import compute_DtD
+from dicodile.utils.dictionary import compute_DtD, get_D
 from dicodile.utils.csc import compute_objective
 from dicodile.utils.csc import compute_ztX, compute_ztz
 
@@ -10,7 +10,8 @@ from dicodile.update_z.distributed_sparse_encoder import\
     DistributedSparseEncoder
 
 
-def test_distributed_sparse_encoder():
+@pytest.mark.parametrize('rank1', [True, False])
+def test_distributed_sparse_encoder(rank1):
     rng = check_random_state(42)
 
     n_atoms = 10
@@ -25,17 +26,25 @@ def test_distributed_sparse_encoder():
                   freeze_support=False, warm_start=False, random_state=27)
 
     X = rng.randn(n_channels, n_times)
-    D = rng.randn(n_atoms, n_channels, n_times_atom)
+    if not rank1:
+        D = rng.randn(n_atoms, n_channels, n_times_atom)
+    else:
+        D = rng.randn(n_atoms, n_channels+n_times_atom)
     sum_axis = tuple(range(1, D.ndim))
     D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
-    DtD = compute_DtD(D)
+    if not rank1:
+        DtD = compute_DtD(D)
+    else:
+        DtD = None
 
     encoder = DistributedSparseEncoder(n_workers=2)
 
-    encoder.init_workers(X, D, reg, params, DtD=DtD)
+    encoder.init_workers(X, D, reg, params, DtD=DtD,
+                         rank1=rank1, n_channels=n_channels)
 
-    with pytest.raises(ValueError, match=r"pre-computed value DtD"):
-        encoder.set_worker_D(D)
+    # XXX should that moved to a separate test?
+    # with pytest.raises(ValueError, match=r"pre-computed value DtD"):
+    #    encoder.set_worker_D(D)
 
     encoder.process_z_hat()
     z_hat = encoder.get_z_hat()
@@ -43,6 +52,8 @@ def test_distributed_sparse_encoder():
     # Check that distributed computations are correct for cost and sufficient
     # statistics
     cost_distrib = encoder.get_cost()
+    if rank1:
+        D = get_D(D, n_channels)
     cost = compute_objective(X, z_hat, D, reg)
     assert np.allclose(cost, cost_distrib)
 

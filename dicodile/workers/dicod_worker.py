@@ -17,7 +17,7 @@ from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
-from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
+from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms, get_D
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
 from dicodile.update_z.coordinate_descent import _check_convergence
@@ -655,6 +655,8 @@ class DICODWorker:
         self.freeze_support = params['freeze_support']
         self.precomputed_DtD = params['precomputed_DtD']
         self.rank1 = params['rank1']
+        if self.rank1:  # XXX?
+            self.n_channels = params['n_channels']  # XXX?
 
         # Set the random_state and add salt to avoid collapse between workers
         if not hasattr(self, 'random_state'):
@@ -669,14 +671,15 @@ class DICODWorker:
         """Receive a dictionary D"""
         if self._backend == "mpi":
             comm = MPI.Comm.Get_parent()
-            if not self.rank1:
-                self.D = recv_broadcasted_array(comm)
-                _, _, *atom_support = self.D.shape
-                self.overlap = np.array(atom_support) - 1
-                if self.precomputed_DtD:
-                    self.DtD = recv_broadcasted_array(comm)
+            if self.rank1:
+                self.uv = recv_broadcasted_array(comm)
+                self.D = get_D(self.uv, self.n_channels)
             else:
-                raise NotImplementedError("No support for rank1 yet")
+                self.D = recv_broadcasted_array(comm)
+            _, _, *atom_support = self.D.shape
+            self.overlap = np.array(atom_support) - 1
+            if self.precomputed_DtD:
+                self.DtD = recv_broadcasted_array(comm)
             return self.D
         else:
             raise NotImplementedError("Backend {} is not implemented"

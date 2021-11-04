@@ -2,6 +2,8 @@ import weakref
 import numpy as np
 from mpi4py import MPI
 
+from dicodile.utils.dictionary import get_D
+
 from ..utils import constants
 from ..utils.csc import compute_objective
 from ..workers.mpi_workers import MPIWorkers
@@ -31,7 +33,15 @@ class DistributedSparseEncoder:
         self.verbose = verbose
 
     def init_workers(self, X, D_hat, reg, params, z0=None,
-                     DtD=None, rank1=False):
+                     DtD=None, rank1=False, n_channels=0):  # XXX
+
+        self.rank1 = rank1
+
+        if rank1:
+            assert n_channels > 0, \
+                "n_channels is required to compute rank-1 encoding"
+            uv_hat = D_hat
+            D_hat = get_D(D_hat, n_channels)
 
         # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
@@ -61,17 +71,25 @@ class DistributedSparseEncoder:
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
         self.params['rank1'] = rank1
+        self.params['n_channels'] = n_channels
 
+        if rank1:
+            D_hat = uv_hat
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.workers, X, D_hat, z0, DtD, w_world, self.params
+            self.workers, X, D_hat, z0, DtD, w_world, self.params,
+            rank1, n_channels
         )
 
     def set_worker_D(self, D, DtD=None):
-        msg = "The support of the dictionary cannot be changed on an encoder."
-        assert D.shape[1:] == self.D_shape[1:], msg
-        self.D_shape = D.shape
+        if self.rank1:
+            pass
+            # XXX similar assert with uv_shape or ...?
+        else:
+            msg = "Cannot change dictionary support on an encoder."
+            assert D.shape[1:] == self.D_shape[1:], msg
+            self.D_shape = D.shape
 
         if self.params['precomputed_DtD'] and DtD is None:
             raise ValueError("The pre-computed value DtD need to be passed "
