@@ -48,6 +48,9 @@ class DistributedSparseEncoder:
         n_channels, *sig_support = X.shape
         n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
 
+        if rank1:
+            self.uv_shape = D_hat.shape
+
         # compute effective n_workers to not have smaller worker support than
         # 4 times the atom_support
         valid_support = get_valid_support(sig_support, atom_support)
@@ -83,13 +86,12 @@ class DistributedSparseEncoder:
         )
 
     def set_worker_D(self, D, DtD=None):
+        msg = "Cannot change dictionary support on an encoder."
         if self.rank1:
-            pass
-            # XXX similar assert with uv_shape or ...?
+            assert D.shape[1:] == self.uv_shape[1:], msg
         else:
-            msg = "Cannot change dictionary support on an encoder."
             assert D.shape[1:] == self.D_shape[1:], msg
-            self.D_shape = D.shape
+            self.D_shape = D.shape  # XXX in case number of atoms change?
 
         if self.params['precomputed_DtD'] and DtD is None:
             raise ValueError("The pre-computed value DtD need to be passed "
