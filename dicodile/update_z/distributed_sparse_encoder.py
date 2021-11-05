@@ -38,6 +38,8 @@ class DistributedSparseEncoder:
         self.rank1 = rank1
 
         if rank1:
+            assert D_hat.ndim == 2, "Rank-1 learning requires a 1-dimensional "
+            "signal over N channels"
             uv_hat = D_hat
             self.uv_shape = uv_hat.shape
             n_atoms, _, *atom_support = self.D_shape = \
