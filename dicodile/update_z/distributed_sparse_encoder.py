@@ -41,14 +41,12 @@ class DistributedSparseEncoder:
 
         if rank1:
             uv_hat = D_hat
+            self.uv_shape = uv_hat.shape
             D_hat = get_D(D_hat, n_channels)
 
         # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
         n_atoms, _, *atom_support = self.D_shape = D_hat.shape
-
-        if rank1:
-            self.uv_shape = D_hat.shape
 
         # compute effective n_workers to not have smaller worker support than
         # 4 times the atom_support
