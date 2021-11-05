@@ -2,8 +2,6 @@ import weakref
 import numpy as np
 from mpi4py import MPI
 
-from dicodile.utils.dictionary import get_D
-
 from ..utils import constants
 from ..utils.csc import compute_objective
 from ..workers.mpi_workers import MPIWorkers
@@ -42,11 +40,12 @@ class DistributedSparseEncoder:
         if rank1:
             uv_hat = D_hat
             self.uv_shape = uv_hat.shape
-            D_hat = get_D(D_hat, n_channels)
-
-        # compute the partition for the signals
-        assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
-        n_atoms, _, *atom_support = self.D_shape = D_hat.shape
+            n_atoms, _, *atom_support = self.D_shape = \
+                _d_shape_from_uv(uv_hat, n_channels)
+        else:
+            # compute the partition for the signals
+            assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
+            n_atoms, _, *atom_support = self.D_shape = D_hat.shape
 
         # compute effective n_workers to not have smaller worker support than
         # 4 times the atom_support
@@ -73,8 +72,6 @@ class DistributedSparseEncoder:
         self.params['rank1'] = rank1
         self.params['n_channels'] = n_channels
 
-        if rank1:
-            D_hat = uv_hat
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
@@ -173,3 +170,11 @@ class DistributedSparseEncoder:
         if not hasattr(self, '_ref_X') or self._ref_X() is not X:
             return False
         return True
+
+
+def _d_shape_from_uv(uv, n_channels):
+    """
+    Given a ndarray `uv` of shape (n_atoms, n_channels + n_times_atoms)
+    and the channel count, return (n_atoms, n_channels, n_times_atom)
+    """
+    return (uv.shape[0], n_channels, uv.shape[1] - n_channels)
