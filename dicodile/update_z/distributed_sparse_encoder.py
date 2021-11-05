@@ -33,20 +33,19 @@ class DistributedSparseEncoder:
         self.verbose = verbose
 
     def init_workers(self, X, D_hat, reg, params, z0=None,
-                     DtD=None, rank1=False, n_channels=0):  # XXX
+                     DtD=None, rank1=False):
+
+        n_channels, *sig_support = X.shape
 
         self.rank1 = rank1
 
         if rank1:
-            assert n_channels > 0, \
-                "n_channels is required to compute rank-1 encoding"
             uv_hat = D_hat
             D_hat = get_D(D_hat, n_channels)
 
         # compute the partition for the signals
         assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
-        n_channels, *sig_support = X.shape
-        n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
+        n_atoms, _, *atom_support = self.D_shape = D_hat.shape
 
         if rank1:
             self.uv_shape = D_hat.shape
@@ -82,7 +81,7 @@ class DistributedSparseEncoder:
                                   verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
             self.workers, X, D_hat, z0, DtD, w_world, self.params,
-            rank1, n_channels
+            rank1
         )
 
     def set_worker_D(self, D, DtD=None):
