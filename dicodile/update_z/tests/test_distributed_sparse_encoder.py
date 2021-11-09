@@ -29,7 +29,7 @@ def test_distributed_sparse_encoder(rank1):
     if not rank1:
         D = rng.randn(n_atoms, n_channels, n_times_atom)
     else:
-        D = rng.randn(n_atoms, n_channels+n_times_atom)
+        D = rng.randn(n_atoms, n_channels + n_times_atom)
     sum_axis = tuple(range(1, D.ndim))
     D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
     if not rank1:
