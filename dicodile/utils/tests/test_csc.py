@@ -4,7 +4,9 @@ from scipy.signal import fftconvolve
 
 from dicodile.utils.csc import reconstruct
 from dicodile.utils.csc import compute_ztz
+from dicodile.utils.csc import _dense_convolve_multi_uv
 from dicodile.utils import check_random_state
+from dicodile.utils.shape_helpers import get_valid_support
 
 
 @pytest.mark.parametrize('valid_support, atom_support', [((500,), (30,)),
@@ -30,3 +32,18 @@ def test_ztz(valid_support, atom_support, sparsity):
     X_hat = reconstruct(z, D)
 
     assert np.isclose(cost, np.dot(X_hat.ravel(), X_hat.ravel()))
+
+def test_dense_convolve_multi_uv_shape():
+
+    n_channels = 3
+    sig_shape = (n_channels, 800, 600)
+    atom_shape = (n_channels, 40, 30)
+    n_atoms = 25
+    valid_support = get_valid_support(sig_support=sig_shape, atom_support=atom_shape)
+
+    z_hat = np.ones((n_atoms, *valid_support))
+    u = np.ones((n_atoms, n_channels))
+    v = np.ones((n_atoms, *atom_shape))
+    Xi = _dense_convolve_multi_uv(z_hat, (u,v))
+
+    assert Xi.shape == sig_shape
