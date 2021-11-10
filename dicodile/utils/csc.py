@@ -91,11 +91,91 @@ def soft_thresholding(x, mu, positive=False):
 
 
 def reconstruct(z_hat, D):
-    X_hat = np.sum([[signal.fftconvolve(z_k, d_kp) for d_kp in d_k]
-                    for z_k, d_k in zip(z_hat, D)], axis=0)
+    X_hat = _choose_convolve_multi(z_hat, D)
     return X_hat
 
 
 def compute_objective(X, z_hat, D, reg):
     res = (X - reconstruct(z_hat, D)).ravel()
     return 0.5 * np.dot(res, res) + reg * abs(z_hat).sum()
+
+
+def _choose_convolve_multi(z_hat, D):
+    """Choose between _dense_convolve and _sparse_convolve with a heuristic
+    on the sparsity of z_i, and perform the convolution.
+
+    z_hat : array, shape(n_atoms, *valid_support)
+        Activations
+    D : array
+        The atoms. Can either be full rank with shape shape
+        (n_atoms, n_channels, *atom_support) or rank 1 with
+        a tuple with shapes (n_atoms, n_channels) and
+        (n_atoms, *atom_support).
+    """
+    assert z_hat.shape[0] == D.shape[0]
+    if isinstance(D, tuple):
+        return _dense_convolve_multi_uv(z_hat, uv=D)
+    else:
+        return _dense_convolve_multi(z_hat, D)
+
+
+def _dense_convolve_multi(z_hat, D):
+    """Convolve z_i[k] and ds[k] for each atom k, and return the sum."""
+    return np.sum([[signal.fftconvolve(zk, dkp) for dkp in dk]
+                   for zk, dk in zip(z_hat, D)], 0)
+
+
+def _dense_convolve_multi_uv(z_hat, uv):
+    """Convolve z_i[k] and uv[k] for each atom k, and return the sum."""
+    u, v = uv
+    n_atoms, n_times_valid = z_i.shape
+    n_atoms, n_times_atom = v.shape
+    n_times = n_times_valid + n_times_atom - 1
+
+    # XXX - fix Xi shape
+    Xi = np.zeros((n_channels, n_times))
+    for zik, uk, vk in zip(z_i, u, v):
+        zik_vk = signal.fftconvolve(zik, vk)
+        Xi += zik_vk[None, :] * uk[:, None]
+
+    return Xi
+
+
+def _dense_transpose_convolve(residual_i, D=None, n_channels=None):
+    """Convolve residual[i] with the transpose for each atom k
+
+    Parameters
+    ----------
+    residual_i : array, shape (n_channels, *signal_support)
+    D : array, shape (n_atoms, n_channels, n_times_atom) or
+        tuple(array), shape (n_atoms, n_channels) x (n_atoms, *atom_support)
+
+    Return
+    ------
+    grad_zi : array, shape (n_atoms, n_times_valid)
+
+    """
+
+    if isinstance(D, tuple):
+        u, v = D
+        flip_axis = tuple(range(1, v.ndim))
+        # multiply by the spatial filter u
+        uR_i = np.dot(u, residual_i)  # shape (n_atoms, *atom_support)
+
+        # Now do the dot product with the transpose of D (D.T) which is
+        # the conv by the reversed filter (keeping valid mode)
+        return np.array([
+            signal.fftconvolve(uR_ik, v_k, mode='valid')
+            for (uR_ik, v_k) in zip(uR_i, np.flip(v, flip_axis))
+        ])
+    else:
+        flip_axis = tuple(range(2, D.ndim))
+        return np.sum([[signal.fftconvolve(res_ip, d_kp, mode='valid')
+                        for res_ip, d_kp in zip(residual_i, d_k)]
+                       for d_k in np.flip(D, flip_axis)], axis=1)
+
+# D: (n_atoms, n_channels, *atom_support)
+
+# uv -> (u, v)
+# v: (n_atoms, w, h)
+# u: (n_atoms, n_channels)

@@ -699,7 +699,8 @@ class DICODWorker:
         self.workers_segments = Segmentation(
             n_seg=self.workers_topology,
             signal_support=self.valid_support,
-            overlap=self.overlap)
+            overlap=self.overlap
+        )
 
         # Receive X and z from the master node.
         worker_support = self.workers_segments.get_seg_support(self.rank)

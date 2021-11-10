@@ -270,6 +270,7 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     else:
         residual = -X_i
 
+    # XXX - This  corresponds to `csc.py::_dense_transpose_convolve`
     flip_axis = tuple(range(2, D.ndim))
     beta = np.sum(
         [[fftconvolve(dkp, res_p, mode='valid')
