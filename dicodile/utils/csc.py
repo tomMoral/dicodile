@@ -6,7 +6,7 @@ Author : tommoral <thomas.moreau@inria.fr>
 import numpy as np
 from scipy import signal
 
-from .shape_helpers import get_valid_support
+from .shape_helpers import get_full_support, get_valid_support
 
 
 def compute_ztz(z, atom_support, padding_support=None):
@@ -103,10 +103,11 @@ def compute_objective(X, z_hat, D, reg):
 def _is_rank1(D):
     return isinstance(D, tuple)
 
+
 def _choose_convolve_multi(z_hat, D):
     """Convolve z_hat and D for rank-1 and full rank cases.
 
-    z_hat : array, shape(n_atoms, *valid_support)
+    z_hat : array, shape (n_atoms, *valid_support)
         Activations
     D : array
         The atoms. Can either be full rank with shape shape
@@ -130,15 +131,19 @@ def _dense_convolve_multi(z_hat, D):
 
 
 def _dense_convolve_multi_uv(z_hat, uv):
-    """Convolve z_i[k] and uv[k] for each atom k, and return the sum."""
+    """Convolve z_hat[k] and uv[k] for each atom k, and return the sum.
+    
+    z_hat : array, shape (n_atoms, *valid_support)
+        Activations
+    uv : (array, array) tuple, shapes (n_atoms, n_channels) and
+         (n_atoms, *atom_support)
+    """
     u, v = uv
-    n_atoms, n_times_valid = z_i.shape
-    n_atoms, n_times_atom = v.shape
-    n_times = n_times_valid + n_times_atom - 1
+    n_atoms, valid_support = z_hat.shape
+    n_atoms, atom_support = v.shape
 
-    # XXX - fix Xi shape
-    Xi = np.zeros((n_channels, n_times))
-    for zik, uk, vk in zip(z_i, u, v):
+    Xi = np.zeros(get_full_support(valid_support, atom_support))
+    for zik, uk, vk in zip(z_hat, u, v):
         zik_vk = signal.fftconvolve(zik, vk)
         Xi += zik_vk[None, :] * uk[:, None]
 
