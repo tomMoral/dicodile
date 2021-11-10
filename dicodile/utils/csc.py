@@ -100,9 +100,11 @@ def compute_objective(X, z_hat, D, reg):
     return 0.5 * np.dot(res, res) + reg * abs(z_hat).sum()
 
 
+def _is_rank1(D):
+    return isinstance(D, tuple)
+
 def _choose_convolve_multi(z_hat, D):
-    """Choose between _dense_convolve and _sparse_convolve with a heuristic
-    on the sparsity of z_i, and perform the convolution.
+    """Convolve z_hat and D for rank-1 and full rank cases.
 
     z_hat : array, shape(n_atoms, *valid_support)
         Activations
@@ -112,10 +114,12 @@ def _choose_convolve_multi(z_hat, D):
         a tuple with shapes (n_atoms, n_channels) and
         (n_atoms, *atom_support).
     """
-    assert z_hat.shape[0] == D.shape[0]
-    if isinstance(D, tuple):
+    if _is_rank1(D):
+        u, v = D
+        assert z_hat.shape[0] == u.shape[0] == v.shape[0]
         return _dense_convolve_multi_uv(z_hat, uv=D)
     else:
+        assert z_hat.shape[0] == D.shape[0]
         return _dense_convolve_multi(z_hat, D)
 
 
