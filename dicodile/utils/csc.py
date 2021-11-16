@@ -132,20 +132,25 @@ def _dense_convolve_multi(z_hat, D):
 
 def _dense_convolve_multi_uv(z_hat, uv):
     """Convolve z_hat[k] and uv[k] for each atom k, and return the sum.
-    
+
     z_hat : array, shape (n_atoms, *valid_support)
         Activations
     uv : (array, array) tuple, shapes (n_atoms, n_channels) and
          (n_atoms, *atom_support)
+        The atoms.
     """
     u, v = uv
-    n_atoms, valid_support = z_hat.shape
-    n_atoms, atom_support = v.shape
+    n_channels, = u.shape[1:]
+    n_atoms, *valid_support = z_hat.shape
+    n_atoms, *atom_support = v.shape
 
-    Xi = np.zeros(get_full_support(valid_support, atom_support))
+    Xi = np.zeros((n_channels, *get_full_support(valid_support, atom_support)))
+
     for zik, uk, vk in zip(z_hat, u, v):
         zik_vk = signal.fftconvolve(zik, vk)
-        Xi += zik_vk[None, :] * uk[:, None]
+        # Add a new dimension for each dimension in atom_support to uk
+        uk = uk.reshape(*uk.shape, *(1,) * len(atom_support))
+        Xi += zik_vk[None, :] * uk
 
     return Xi
 
@@ -165,7 +170,7 @@ def _dense_transpose_convolve(residual_i, D=None, n_channels=None):
 
     """
 
-    if isinstance(D, tuple):
+    if _is_rank1(D):
         u, v = D
         flip_axis = tuple(range(1, v.ndim))
         # multiply by the spatial filter u
