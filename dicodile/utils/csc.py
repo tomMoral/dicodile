@@ -187,9 +187,3 @@ def _dense_transpose_convolve(residual_i, D=None, n_channels=None):
         return np.sum([[signal.fftconvolve(res_ip, d_kp, mode='valid')
                         for res_ip, d_kp in zip(residual_i, d_k)]
                        for d_k in np.flip(D, flip_axis)], axis=1)
-
-# D: (n_atoms, n_channels, *atom_support)
-
-# uv -> (u, v)
-# v: (n_atoms, w, h)
-# u: (n_atoms, n_channels)

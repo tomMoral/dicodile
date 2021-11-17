@@ -655,8 +655,6 @@ class DICODWorker:
         self.freeze_support = params['freeze_support']
         self.precomputed_DtD = params['precomputed_DtD']
         self.rank1 = params['rank1']
-        if self.rank1:  # XXX?
-            self.n_channels = params['n_channels']  # XXX?
 
         # Set the random_state and add salt to avoid collapse between workers
         if not hasattr(self, 'random_state'):
@@ -672,8 +670,9 @@ class DICODWorker:
         if self._backend == "mpi":
             comm = MPI.Comm.Get_parent()
             if self.rank1:
-                self.uv = recv_broadcasted_array(comm)
-                self.D = get_D(self.uv, self.n_channels)
+                self.u = recv_broadcasted_array(comm)
+                self.v = recv_broadcasted_array(comm)
+                self.D = get_D(self.u, self.v)
             else:
                 self.D = recv_broadcasted_array(comm)
             _, _, *atom_support = self.D.shape

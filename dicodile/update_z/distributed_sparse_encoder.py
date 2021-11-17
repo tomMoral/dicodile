@@ -38,12 +38,9 @@ class DistributedSparseEncoder:
         self.rank1 = rank1
 
         if rank1:
-            assert D_hat.ndim == 2, "Rank-1 learning requires a 1-dimensional "
-            "signal over N channels"
-            uv_hat = D_hat
-            self.uv_shape = uv_hat.shape
+            (u_hat, v_hat) = D_hat
             n_atoms, _, *atom_support = self.D_shape = \
-                _d_shape_from_uv(uv_hat, n_channels)
+                _d_shape_from_uv(u_hat, v_hat)
         else:
             # compute the partition for the signals
             assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
@@ -72,7 +69,6 @@ class DistributedSparseEncoder:
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
         self.params['rank1'] = rank1
-        self.params['n_channels'] = n_channels
 
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
@@ -81,11 +77,9 @@ class DistributedSparseEncoder:
             rank1
         )
 
-    def set_worker_D(self, D, DtD=None):
+    def set_worker_D(self, D, rank1, DtD=None):
         msg = "Cannot change dictionary support on an encoder."
-        if self.rank1:
-            assert D.shape[1:] == self.uv_shape[1:], msg
-        else:
+        if not rank1:
             assert D.shape[1:] == self.D_shape[1:], msg
             self.D_shape = D.shape  # XXX in case number of atoms change?
 
@@ -174,9 +168,15 @@ class DistributedSparseEncoder:
         return True
 
 
-def _d_shape_from_uv(uv, n_channels):
+def _d_shape_from_uv(u, v):
     """
-    Given a ndarray `uv` of shape (n_atoms, n_channels + n_times_atoms)
-    and the channel count, return (n_atoms, n_channels, n_times_atom)
+    Parameters
+    ----------
+    u: ndarray, shape (n_atoms, n_channels)
+    v: ndarray, shape (n_atoms, *atom_support)
+
+    Return
+    ------
+    (n_atoms, n_channels, *atom_support)
     """
-    return (uv.shape[0], n_channels, uv.shape[1] - n_channels)
+    return (u.shape[0], u.shape[1], *v.shape[1:])

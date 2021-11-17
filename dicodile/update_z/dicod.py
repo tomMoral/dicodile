@@ -211,15 +211,15 @@ def _send_task(workers, X, D, z0, DtD, w_world, params,
                rank1=False):
     t_start = time.time()
     if rank1:
-        n_channels = X.shape[0]
-        atom_support = (D.shape[-1] - n_channels,)
+        u, v = D
+        atom_support = v.shape[1:]
 
     else:
         n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(workers, params)
 
-    _send_D(workers, D, DtD)
+    _send_D(workers, D, rank1, DtD)
 
     workers_segments = _send_signal(workers, w_world, atom_support, X, z0)
 
@@ -231,8 +231,13 @@ def _send_params(workers, params):
     workers.comm.bcast(params, root=MPI.ROOT)
 
 
-def _send_D(workers, D, DtD=None):
-    broadcast_array(workers.comm, D)
+def _send_D(workers, D, rank1, DtD=None):
+    if rank1:
+        u, v = D
+        broadcast_array(workers.comm, u)
+        broadcast_array(workers.comm, v)
+    else:
+        broadcast_array(workers.comm, D)
     if DtD is not None:
         broadcast_array(workers.comm, DtD)
 

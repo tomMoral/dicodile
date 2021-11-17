@@ -16,8 +16,8 @@ def test_distributed_sparse_encoder(rank1):
 
     n_atoms = 10
     n_channels = 3
-    n_times_atom = 10
-    n_times = 10 * n_times_atom
+    atom_support = (10,)
+    n_times = 10 * atom_support[0]
     reg = 5e-1
 
     params = dict(tol=1e-2, n_seg='auto', timing=False, timeout=None,
@@ -27,11 +27,14 @@ def test_distributed_sparse_encoder(rank1):
 
     X = rng.randn(n_channels, n_times)
     if not rank1:
-        D = rng.randn(n_atoms, n_channels, n_times_atom)
+        D = rng.randn(n_atoms, n_channels, *atom_support)
+        sum_axis = tuple(range(1, D.ndim))
+        D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
     else:
-        D = rng.randn(n_atoms, n_channels + n_times_atom)
-    sum_axis = tuple(range(1, D.ndim))
-    D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
+        u = rng.randn(n_atoms, n_channels)
+        v = rng.randn(n_atoms, *atom_support)
+        # XXX normalize?
+        D = u, v
     if not rank1:
         DtD = compute_DtD(D)
     else:
@@ -53,12 +56,13 @@ def test_distributed_sparse_encoder(rank1):
     # statistics
     cost_distrib = encoder.get_cost()
     if rank1:
-        D = get_D(D, n_channels)
+        u, v = D
+        D = get_D(u, v)
     cost = compute_objective(X, z_hat, D, reg)
     assert np.allclose(cost, cost_distrib)
 
     ztz_distrib, ztX_distrib = encoder.get_sufficient_statistics()
-    ztz = compute_ztz(z_hat, (n_times_atom,))
+    ztz = compute_ztz(z_hat, atom_support)
     ztX = compute_ztX(z_hat, X)
     assert np.allclose(ztz, ztz_distrib)
     assert np.allclose(ztX, ztX_distrib)
