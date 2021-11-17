@@ -164,16 +164,19 @@ def tukey_window(atom_support):
     return tukey_window_
 
 
-def get_D(uv_hat, n_channels):
-    """Compute the rank 1 dictionary associated with the given uv
-    Parameter
-    ---------
-    uv: array (n_atoms, n_channels + n_times_atom)
-    n_channels: int
-        number of channels in the original multivariate series
+def get_D(u, v):
+    """Compute the rank-1 dictionary associated with u and v
+
+    Parameters
+    ----------
+    u: array (n_atoms, n_channels)
+    v: array (n_atoms, *atom_support)
+
     Return
     ------
-    D: array (n_atoms, n_channels, n_times_atom)
+    D: array (n_atoms, n_channels, *atom_support)
     """
-
-    return uv_hat[:, :n_channels, None] * uv_hat[:, None, n_channels:]
+    n_atoms, *atom_support = v.shape
+    u = u.reshape(*u.shape, *[1 for _ in atom_support])
+    v = v.reshape(n_atoms, 1, *atom_support)
+    return u*v
