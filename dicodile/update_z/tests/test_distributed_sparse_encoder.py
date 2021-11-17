@@ -42,8 +42,7 @@ def test_distributed_sparse_encoder(rank1):
 
     encoder = DistributedSparseEncoder(n_workers=2)
 
-    encoder.init_workers(X, D, reg, params, DtD=DtD,
-                         rank1=rank1)
+    encoder.init_workers(X, D, reg, params, DtD=DtD)
 
     # XXX should that moved to a separate test?
     # with pytest.raises(ValueError, match=r"pre-computed value DtD"):

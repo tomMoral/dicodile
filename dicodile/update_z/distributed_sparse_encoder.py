@@ -3,7 +3,7 @@ import numpy as np
 from mpi4py import MPI
 
 from ..utils import constants
-from ..utils.csc import compute_objective
+from ..utils.csc import _is_rank1, compute_objective
 from ..workers.mpi_workers import MPIWorkers
 
 from ..utils import debug_flags as flags
@@ -31,11 +31,11 @@ class DistributedSparseEncoder:
         self.verbose = verbose
 
     def init_workers(self, X, D_hat, reg, params, z0=None,
-                     DtD=None, rank1=False):
+                     DtD=None):
 
         n_channels, *sig_support = X.shape
 
-        self.rank1 = rank1
+        rank1 = _is_rank1(D_hat)
 
         if rank1:
             (u_hat, v_hat) = D_hat
@@ -73,13 +73,12 @@ class DistributedSparseEncoder:
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
         self.t_init, self.workers_segments = _send_task(
-            self.workers, X, D_hat, z0, DtD, w_world, self.params,
-            rank1
+            self.workers, X, D_hat, z0, DtD, w_world, self.params
         )
 
-    def set_worker_D(self, D, rank1, DtD=None):
+    def set_worker_D(self, D, DtD=None):
         msg = "Cannot change dictionary support on an encoder."
-        if not rank1:
+        if not _is_rank1(D):
             assert D.shape[1:] == self.D_shape[1:], msg
             self.D_shape = D.shape  # XXX in case number of atoms change?
 

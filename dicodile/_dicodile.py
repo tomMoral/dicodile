@@ -190,10 +190,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
             if verbose > 1:
                 print('[INFO:{}] Resampled atom {}'.format(name, k0))
 
-        # Update the dictionary D_hat in the encoder
-        # Currently, the dicodile API does not cover rank1 --
-        # the rank1 support is meant to be used from alphaCSC
-        encoder.set_worker_D(D_hat, rank1=False)
+        encoder.set_worker_D(D_hat)
 
         # monitor cost function
         pobj.append(encoder.get_cost())

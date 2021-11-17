@@ -10,7 +10,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils import debug_flags as flags
-from ..utils.csc import compute_objective
+from ..utils.csc import _is_rank1, compute_objective
 from ..utils.debugs import main_check_beta
 from .coordinate_descent import STRATEGIES
 from ..utils.segmentation import Segmentation
@@ -121,10 +121,8 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
         soft_lock=soft_lock, precomputed_DtD=DtD is not None,
-        freeze_support=freeze_support, warm_start=warm_start, rank1=False
-        # XXX since we do not support rank1 in standalone DiCoDiLe,
-        # (only in DistributedSparseEncoder for z-encoding),
-        # we set rank1 to False here.
+        freeze_support=freeze_support, warm_start=warm_start,
+        rank1=_is_rank1(D)
     )
 
     workers = _spawn_workers(n_workers, hostfile)
@@ -207,10 +205,9 @@ def _spawn_workers(n_workers, hostfile):
     return workers
 
 
-def _send_task(workers, X, D, z0, DtD, w_world, params,
-               rank1=False):
+def _send_task(workers, X, D, z0, DtD, w_world, params):
     t_start = time.time()
-    if rank1:
+    if _is_rank1(D):
         u, v = D
         atom_support = v.shape[1:]
 
@@ -219,7 +216,7 @@ def _send_task(workers, X, D, z0, DtD, w_world, params,
 
     _send_params(workers, params)
 
-    _send_D(workers, D, rank1, DtD)
+    _send_D(workers, D, DtD)
 
     workers_segments = _send_signal(workers, w_world, atom_support, X, z0)
 
@@ -231,8 +228,8 @@ def _send_params(workers, params):
     workers.comm.bcast(params, root=MPI.ROOT)
 
 
-def _send_D(workers, D, rank1, DtD=None):
-    if rank1:
+def _send_D(workers, D, DtD=None):
+    if _is_rank1(D):
         u, v = D
         broadcast_array(workers.comm, u)
         broadcast_array(workers.comm, v)
