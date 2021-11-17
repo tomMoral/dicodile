@@ -35,14 +35,12 @@ def test_ztz(valid_support, atom_support, sparsity):
     assert np.isclose(cost, np.dot(X_hat.ravel(), X_hat.ravel()))
 
 
-@pytest.mark.parametrize('atom_single_channel_shape',
+@pytest.mark.parametrize('atom_support',
                          [(35, ), (40, 30), (10, 12, 3)])
 def test_dense_convolve_multi_uv_shape(atom_support):
 
     n_channels = 3
     sig_shape = (n_channels, *[8 * n for n in atom_support])
-    atom_shape = (n_channels, *atom_support)
-    atom_support = atom_shape[1:]
     n_atoms = 25
     valid_support = get_valid_support(sig_support=sig_shape[1:],
                                       atom_support=atom_support)
