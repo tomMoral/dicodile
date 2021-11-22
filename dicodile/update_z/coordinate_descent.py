@@ -5,10 +5,9 @@ Author : tommoral <thomas.moreau@inria.fr>
 
 import time
 import numpy as np
-from scipy.signal import fftconvolve
 
 
-from dicodile.utils.csc import reconstruct
+from dicodile.utils.csc import dense_transpose_convolve, reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils.segmentation import Segmentation
@@ -270,12 +269,7 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     else:
         residual = -X_i
 
-    # XXX - This  corresponds to `csc.py::_dense_transpose_convolve`
-    flip_axis = tuple(range(2, D.ndim))
-    beta = np.sum(
-        [[fftconvolve(dkp, res_p, mode='valid')
-          for dkp, res_p in zip(dk, residual)]
-         for dk in np.flip(D, flip_axis)], axis=1)
+    beta = dense_transpose_convolve(residual_i=residual, D=D)
 
     if z_i is not None:
         assert z_i.shape == beta.shape
