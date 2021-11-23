@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import signal
 
-from .csc import reconstruct
+from .csc import _is_rank1, reconstruct
 from . import check_random_state
 from .shape_helpers import get_valid_support
 
@@ -142,8 +142,18 @@ def compute_DtD(D):
     Parameters
     ----------
     D : ndarray, shape (n_atoms, n_channels, *atom_support)
+        or (u, v) tuple of ndarrays, shapes
+        (n_atoms, n_channels) x (n_atoms, *atom_support)
         Current dictionary for the sparse coding
     """
+    if _is_rank1(D):
+        u, v = D
+        return _compute_DtD_uv(u, v)
+    else:
+        return _compute_DtD_D(D)
+
+
+def _compute_DtD_D(D):
     # Average over the channels
     flip_axis = tuple(range(2, D.ndim))
     DtD = np.sum([[[signal.fftconvolve(di_p, dj_p, mode='full')
@@ -151,6 +161,15 @@ def compute_DtD(D):
                    for dj in D]
                   for di in np.flip(D, axis=flip_axis)], axis=2)
     return DtD
+
+
+def _compute_DtD_uv(u, v):
+    n_atoms = v.shape[0]
+    atom_support = v.shape[1:]
+    vtv = _compute_DtD_D(v.reshape(n_atoms, 1, *atom_support))
+    uut = u @ u.T
+    uut = uut.reshape(*uut.shape, *[1 for _ in atom_support])
+    return vtv * uut
 
 
 def tukey_window(atom_support):

@@ -35,13 +35,9 @@ def test_distributed_sparse_encoder(rank1):
         v = rng.randn(n_atoms, *atom_support)
         # XXX normalize?
         D = u, v
-    if not rank1:
-        DtD = compute_DtD(D)
-    else:
-        DtD = None
 
+    DtD = compute_DtD(D)
     encoder = DistributedSparseEncoder(n_workers=2)
-
     encoder.init_workers(X, D, reg, params, DtD=DtD)
 
     # XXX should that moved to a separate test?
