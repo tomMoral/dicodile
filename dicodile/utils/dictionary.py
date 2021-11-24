@@ -166,7 +166,11 @@ def _compute_DtD_D(D):
 def _compute_DtD_uv(u, v):
     n_atoms = v.shape[0]
     atom_support = v.shape[1:]
+    # Compute vtv using `_compute_DtD_D` as if `n_channels=1`
     vtv = _compute_DtD_D(v.reshape(n_atoms, 1, *atom_support))
+
+    # Compute the channel-wise correlation and
+    # resize it for broadcasting
     uut = u @ u.T
     uut = uut.reshape(*uut.shape, *[1 for _ in atom_support])
     return vtv * uut
