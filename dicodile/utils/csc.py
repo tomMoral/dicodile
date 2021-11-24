@@ -155,7 +155,7 @@ def _dense_convolve_multi_uv(z_hat, uv):
     return Xi
 
 
-def dense_transpose_convolve(residual_i, D):
+def _dense_transpose_convolve(residual_i, D):
     """Convolve residual[i] with the transpose for each atom k
 
     Parameters

@@ -7,7 +7,7 @@ import time
 import numpy as np
 
 
-from dicodile.utils.csc import dense_transpose_convolve, reconstruct
+from dicodile.utils.csc import _dense_transpose_convolve, reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils.segmentation import Segmentation
@@ -269,7 +269,7 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     else:
         residual = -X_i
 
-    beta = dense_transpose_convolve(residual_i=residual, D=D)
+    beta = _dense_transpose_convolve(residual_i=residual, D=D)
 
     if z_i is not None:
         assert z_i.shape == beta.shape
