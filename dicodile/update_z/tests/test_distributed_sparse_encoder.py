@@ -40,10 +40,6 @@ def test_distributed_sparse_encoder(rank1):
     encoder = DistributedSparseEncoder(n_workers=2)
     encoder.init_workers(X, D, reg, params, DtD=DtD)
 
-    # XXX should that moved to a separate test?
-    # with pytest.raises(ValueError, match=r"pre-computed value DtD"):
-    #    encoder.set_worker_D(D)
-
     encoder.process_z_hat()
     z_hat = encoder.get_z_hat()
 
@@ -63,3 +59,30 @@ def test_distributed_sparse_encoder(rank1):
     assert np.allclose(ztX, ztX_distrib)
 
     encoder.shutdown_workers()
+
+
+def test_pre_computed_DtD_should_always_be_passed_to_set_worker_D():
+    rng = check_random_state(42)
+
+    n_atoms = 10
+    n_channels = 3
+    atom_support = (10,)
+    n_times = 10 * atom_support[0]
+    reg = 5e-1
+
+    params = dict(tol=1e-2, n_seg='auto', timing=False, timeout=None,
+                  verbose=100, strategy='greedy', max_iter=100000,
+                  soft_lock='border', z_positive=True, return_ztz=False,
+                  freeze_support=False, warm_start=False, random_state=27)
+
+    X = rng.randn(n_channels, n_times)
+    D = rng.randn(n_atoms, n_channels, *atom_support)
+    sum_axis = tuple(range(1, D.ndim))
+    D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
+
+    DtD = compute_DtD(D)
+    encoder = DistributedSparseEncoder(n_workers=2)
+    encoder.init_workers(X, D, reg, params, DtD=DtD)
+
+    with pytest.raises(ValueError, match=r"pre-computed value DtD"):
+        encoder.set_worker_D(D)
