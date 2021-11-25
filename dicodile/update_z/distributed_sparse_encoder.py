@@ -178,4 +178,4 @@ def _d_shape_from_uv(u, v):
     ------
     (n_atoms, n_channels, *atom_support)
     """
-    return (u.shape[0], u.shape[1], *v.shape[1:])
+    return (*u.shape, *v.shape[1:])
