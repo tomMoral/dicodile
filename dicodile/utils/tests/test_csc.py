@@ -2,9 +2,8 @@ import pytest
 import numpy as np
 from scipy.signal import fftconvolve
 
-from dicodile.utils.csc import _dense_convolve_multi, reconstruct
-from dicodile.utils.csc import compute_ztz
-from dicodile.utils.csc import _dense_convolve_multi_uv
+from dicodile.utils.csc import _choose_convolve_multi, \
+    compute_ztz, _dense_convolve_multi_uv, reconstruct
 from dicodile.utils.dictionary import compute_DtD, get_D
 from dicodile.utils import check_random_state
 from dicodile.utils.shape_helpers import get_valid_support
@@ -66,10 +65,10 @@ def test_convolve_uv_and_convolve_d_match():
 
     u = rng.uniform(size=(n_atoms, n_channels))
     v = rng.uniform(size=(n_atoms, *atom_support))
-    uv_convolution = _dense_convolve_multi_uv(z_hat, (u, v))
+    uv_convolution = _choose_convolve_multi(z_hat, (u, v))
 
     d = get_D(u, v)
-    d_convolution = _dense_convolve_multi(z_hat, d)
+    d_convolution = _choose_convolve_multi(z_hat, d)
 
     assert np.allclose(uv_convolution, d_convolution)
 
