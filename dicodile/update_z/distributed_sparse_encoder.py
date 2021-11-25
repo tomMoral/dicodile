@@ -81,6 +81,11 @@ class DistributedSparseEncoder:
         if not _is_rank1(D):
             assert D.shape[1:] == self.D_shape[1:], msg
             self.D_shape = D.shape  # XXX in case number of atoms change?
+        else:
+            u, v = D
+            d_shape = _d_shape_from_uv(u, v)
+            assert d_shape[1:] == self.D_shape[1:], msg
+            self.D_shape = d_shape
 
         if self.params['precomputed_DtD'] and DtD is None:
             raise ValueError("The pre-computed value DtD need to be passed "
