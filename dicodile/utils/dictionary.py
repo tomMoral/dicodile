@@ -136,6 +136,12 @@ def compute_norm_atoms(D):
     return norm_atoms[:, 0]
 
 
+def compute_norm_atoms_from_DtD(DtD, n_atoms, atom_support):
+    t0 = np.array(atom_support) - 1
+    norm_atoms = np.array([DtD[(k, k, *t0)] for k in range(n_atoms)])
+    return norm_atoms.reshape(*norm_atoms.shape, *[1 for _ in atom_support])
+
+
 def compute_DtD(D):
     """Compute the transpose convolution between the atoms
 
@@ -203,3 +209,32 @@ def get_D(u, v):
     u = u.reshape(*u.shape, *[1 for _ in atom_support])
     v = v.reshape(n_atoms, 1, *atom_support)
     return u*v
+
+
+def D_shape(D):
+    """
+    Parameters
+    ----------
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
+        or (u, v) tuple of ndarrays, shapes
+        (n_atoms, n_channels) x (n_atoms, *atom_support)
+        Current dictionary for the sparse coding
+    """
+    if _is_rank1(D):
+        return _d_shape_from_uv(*D)
+    else:
+        return D.shape
+
+
+def _d_shape_from_uv(u, v):
+    """
+    Parameters
+    ----------
+    u: ndarray, shape (n_atoms, n_channels)
+    v: ndarray, shape (n_atoms, *atom_support)
+
+    Return
+    ------
+    (n_atoms, n_channels, *atom_support)
+    """
+    return (*u.shape, *v.shape[1:])

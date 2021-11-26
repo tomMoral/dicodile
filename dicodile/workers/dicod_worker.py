@@ -17,7 +17,8 @@ from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
-from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms, get_D
+from dicodile.utils.dictionary import D_shape, compute_DtD,\
+    compute_norm_atoms_from_DtD
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
 from dicodile.update_z.coordinate_descent import _check_convergence
@@ -55,7 +56,7 @@ class DICODWorker:
     def compute_z_hat(self):
 
         # compute the number of coordinates
-        n_atoms, *_ = self.D.shape
+        n_atoms, *_ = D_shape(self.D)
         seg_in_support = self.workers_segments.get_seg_support(
             self.rank, inner=True)
         n_coordinates = n_atoms * np.prod(seg_in_support)
@@ -215,7 +216,7 @@ class DICODWorker:
 
         if flags.CHECK_FINAL_BETA:
             worker_check_beta(
-                self.rank, self.workers_segments, self.beta, self.D.shape
+                self.rank, self.workers_segments, self.beta, D_shape(self.D)
             )
 
         t_select_coord = np.mean(t_select_coord)
@@ -237,11 +238,15 @@ class DICODWorker:
 
         # Pre-compute some quantities
         constants = {}
-        constants['norm_atoms'] = compute_norm_atoms(self.D)
         if self.precomputed_DtD:
             constants['DtD'] = self.DtD
         else:
             constants['DtD'] = compute_DtD(self.D)
+
+        n_atoms, _, *atom_support = D_shape(self.D)
+        constants['norm_atoms'] = compute_norm_atoms_from_DtD(constants['DtD'],
+                                                              n_atoms,
+                                                              atom_support)
         self.constants = constants
 
         # List of all pending messages sent
@@ -274,7 +279,7 @@ class DICODWorker:
 
         if flags.CHECK_WARM_BETA:
             worker_check_beta(self.rank, self.workers_segments, self.beta,
-                              self.D.shape)
+                              D_shape(self.D))
 
         if self.freeze_support:
             assert self.z0 is not None
@@ -424,7 +429,7 @@ class DICODWorker:
         return status
 
     def compute_sufficient_statistics(self):
-        _, _, *atom_support = self.D.shape
+        _, _, *atom_support = D_shape(self.D)
         z_slice = (Ellipsis,) + tuple([
             slice(start, end)
             for start, end in self.local_segments.inner_bounds
@@ -672,10 +677,10 @@ class DICODWorker:
             if self.rank1:
                 self.u = recv_broadcasted_array(comm)
                 self.v = recv_broadcasted_array(comm)
-                self.D = get_D(self.u, self.v)
+                self.D = (self.u, self.v)
             else:
                 self.D = recv_broadcasted_array(comm)
-            _, _, *atom_support = self.D.shape
+            _, _, *atom_support = D_shape(self.D)
             self.overlap = np.array(atom_support) - 1
             if self.precomputed_DtD:
                 self.DtD = recv_broadcasted_array(comm)
@@ -686,7 +691,7 @@ class DICODWorker:
 
     def recv_signal(self):
 
-        n_atoms, n_channels, *atom_support = self.D.shape
+        n_atoms, n_channels, *atom_support = D_shape(self.D)
 
         comm = MPI.Comm.Get_parent()
         X_info = comm.bcast(None, root=0)
@@ -716,7 +721,7 @@ class DICODWorker:
 
         # If n_seg is not specified, compute the shape of the local segments
         # as the size of an interfering zone.
-        n_atoms, _, *atom_support = self.D.shape
+        n_atoms, _, *atom_support = D_shape(self.D)
         n_seg = self.n_seg
         local_seg_support = None
         if self.n_seg == 'auto':

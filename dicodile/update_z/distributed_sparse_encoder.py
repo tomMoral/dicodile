@@ -2,6 +2,8 @@ import weakref
 import numpy as np
 from mpi4py import MPI
 
+from dicodile.utils.dictionary import D_shape
+
 from ..utils import constants
 from ..utils.csc import _is_rank1, compute_objective
 from ..workers.mpi_workers import MPIWorkers
@@ -35,16 +37,8 @@ class DistributedSparseEncoder:
 
         n_channels, *sig_support = X.shape
 
-        rank1 = _is_rank1(D_hat)
-
-        if rank1:
-            (u_hat, v_hat) = D_hat
-            n_atoms, _, *atom_support = self.D_shape = \
-                _d_shape_from_uv(u_hat, v_hat)
-        else:
-            # compute the partition for the signals
-            assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
-            n_atoms, _, *atom_support = self.D_shape = D_hat.shape
+        n_atoms, _, *atom_support = self.D_shape = D_shape(D_hat)
+        assert len(self.D_shape) - 1 == X.ndim, (self.D_shape, X.shape)
 
         # compute effective n_workers to not have smaller worker support than
         # 4 times the atom_support
@@ -68,7 +62,7 @@ class DistributedSparseEncoder:
         self.params['reg'] = reg
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
-        self.params['rank1'] = rank1
+        self.params['rank1'] = _is_rank1(D_hat)
 
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
@@ -83,7 +77,7 @@ class DistributedSparseEncoder:
             self.D_shape = D.shape  # XXX in case number of atoms change?
         else:
             u, v = D
-            d_shape = _d_shape_from_uv(u, v)
+            d_shape = D_shape(u, v)
             assert d_shape[1:] == self.D_shape[1:], msg
             self.D_shape = d_shape
 
@@ -170,17 +164,3 @@ class DistributedSparseEncoder:
         if not hasattr(self, '_ref_X') or self._ref_X() is not X:
             return False
         return True
-
-
-def _d_shape_from_uv(u, v):
-    """
-    Parameters
-    ----------
-    u: ndarray, shape (n_atoms, n_channels)
-    v: ndarray, shape (n_atoms, *atom_support)
-
-    Return
-    ------
-    (n_atoms, n_channels, *atom_support)
-    """
-    return (*u.shape, *v.shape[1:])
