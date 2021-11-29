@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 from scipy.signal import fftconvolve
 
-from dicodile.utils.csc import _choose_convolve_multi, \
-    compute_ztz, _dense_convolve_multi_uv, reconstruct
+from dicodile.utils.csc import _choose_convolve_multi,\
+    _dense_transpose_convolve, compute_ztz,\
+    _dense_convolve_multi_uv, reconstruct
 from dicodile.utils.dictionary import compute_DtD, get_D
 from dicodile.utils import check_random_state
 from dicodile.utils.shape_helpers import get_valid_support
@@ -88,3 +89,20 @@ def test_rank1_DtD_matches_full_DtD(atom_support):
     uv_dtd = compute_DtD((u, v))
 
     assert np.allclose(d_dtd, uv_dtd)
+
+
+def test_dense_transpose_convolve_uv_and_D_match():
+    n_channels = 3
+    n_atoms = 25
+    atom_support = (40, 32)
+    signal_support = (800, 600)
+    rng = np.random.default_rng(seed=42)
+    u = rng.uniform(size=(n_atoms, n_channels))
+    v = rng.uniform(size=(n_atoms, *atom_support))
+    D = get_D(u, v)
+    residuals_i = np.ones((n_channels, *signal_support))
+
+    dtc_d = _dense_transpose_convolve(residuals_i, D)
+    dtc_uv = _dense_transpose_convolve(residuals_i, (u, v))
+
+    assert np.allclose(dtc_uv, dtc_d)
