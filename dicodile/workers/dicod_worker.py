@@ -18,7 +18,7 @@ from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.dictionary import D_shape, compute_DtD,\
-    compute_norm_atoms_from_DtD
+    norm_atoms_from_DtD_reshaped
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
 from dicodile.update_z.coordinate_descent import _check_convergence
@@ -244,9 +244,11 @@ class DICODWorker:
             constants['DtD'] = compute_DtD(self.D)
 
         n_atoms, _, *atom_support = D_shape(self.D)
-        constants['norm_atoms'] = compute_norm_atoms_from_DtD(constants['DtD'],
-                                                              n_atoms,
-                                                              atom_support)
+        constants['norm_atoms'] = norm_atoms_from_DtD_reshaped(
+            constants['DtD'],
+            n_atoms,
+            atom_support
+            )
         self.constants = constants
 
         # List of all pending messages sent

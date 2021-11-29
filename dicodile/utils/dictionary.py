@@ -138,7 +138,11 @@ def compute_norm_atoms(D):
 
 def compute_norm_atoms_from_DtD(DtD, n_atoms, atom_support):
     t0 = np.array(atom_support) - 1
-    norm_atoms = np.array([DtD[(k, k, *t0)] for k in range(n_atoms)])
+    return np.array([DtD[(k, k, *t0)] for k in range(n_atoms)])
+
+
+def norm_atoms_from_DtD_reshaped(DtD, n_atoms, atom_support):
+    norm_atoms = compute_norm_atoms_from_DtD(DtD, n_atoms, atom_support)
     return norm_atoms.reshape(*norm_atoms.shape, *[1 for _ in atom_support])
 
 
