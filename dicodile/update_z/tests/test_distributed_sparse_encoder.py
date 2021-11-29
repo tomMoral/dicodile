@@ -10,6 +10,12 @@ from dicodile.update_z.distributed_sparse_encoder import\
     DistributedSparseEncoder
 
 
+def _prox_d(D):
+    sum_axis = tuple(range(1, D.ndim))
+    norm_d = np.maximum(1, np.linalg.norm(D, axis=sum_axis, keepdims=True))
+    return D / norm_d
+
+
 @pytest.mark.parametrize('rank1', [True, False])
 def test_distributed_sparse_encoder(rank1):
     rng = check_random_state(42)
@@ -31,9 +37,9 @@ def test_distributed_sparse_encoder(rank1):
         sum_axis = tuple(range(1, D.ndim))
         D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
     else:
-        u = rng.randn(n_atoms, n_channels)
-        v = rng.randn(n_atoms, *atom_support)
-        # XXX normalize?
+        u = _prox_d(rng.randn(n_atoms, n_channels))
+        v = _prox_d(rng.randn(n_atoms, *atom_support))
+
         D = u, v
 
     DtD = compute_DtD(D)
