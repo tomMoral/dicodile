@@ -174,7 +174,8 @@ def _dense_transpose_convolve(residual_i, D):
         u, v = D
         flip_axis = tuple(range(1, v.ndim))
         # multiply by the spatial filter u
-        uR_i = np.dot(u, residual_i)  # shape (n_atoms, *atom_support)
+        # shape (n_atoms, *atom_support))
+        uR_i = np.tensordot(u, residual_i, (1, 0))
 
         # Now do the dot product with the transpose of D (D.T) which is
         # the conv by the reversed filter (keeping valid mode)
