@@ -77,7 +77,7 @@ class DistributedSparseEncoder:
             self.D_shape = D.shape  # XXX in case number of atoms change?
         else:
             u, v = D
-            d_shape = D_shape(u, v)
+            d_shape = D_shape((u, v))
             assert d_shape[1:] == self.D_shape[1:], msg
             self.D_shape = d_shape
 
