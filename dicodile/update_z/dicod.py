@@ -10,7 +10,7 @@ from mpi4py import MPI
 
 from ..utils import constants
 from ..utils import debug_flags as flags
-from ..utils.csc import compute_objective
+from ..utils.csc import _is_rank1, compute_objective
 from ..utils.debugs import main_check_beta
 from .coordinate_descent import STRATEGIES
 from ..utils.segmentation import Segmentation
@@ -121,7 +121,8 @@ def dicod(X_i, D, reg, z0=None, DtD=None, n_seg='auto', strategy='greedy',
         n_seg=n_seg, z_positive=z_positive, verbose=verbose, timing=timing,
         debug=debug, random_state=random_state, reg=reg, return_ztz=return_ztz,
         soft_lock=soft_lock, precomputed_DtD=DtD is not None,
-        freeze_support=freeze_support, warm_start=warm_start
+        freeze_support=freeze_support, warm_start=warm_start,
+        rank1=_is_rank1(D)
     )
 
     workers = _spawn_workers(n_workers, hostfile)
@@ -206,7 +207,12 @@ def _spawn_workers(n_workers, hostfile):
 
 def _send_task(workers, X, D, z0, DtD, w_world, params):
     t_start = time.time()
-    n_atoms, n_channels, *atom_support = D.shape
+    if _is_rank1(D):
+        u, v = D
+        atom_support = v.shape[1:]
+
+    else:
+        n_atoms, n_channels, *atom_support = D.shape
 
     _send_params(workers, params)
 
@@ -223,7 +229,12 @@ def _send_params(workers, params):
 
 
 def _send_D(workers, D, DtD=None):
-    broadcast_array(workers.comm, D)
+    if _is_rank1(D):
+        u, v = D
+        broadcast_array(workers.comm, u)
+        broadcast_array(workers.comm, v)
+    else:
+        broadcast_array(workers.comm, D)
     if DtD is not None:
         broadcast_array(workers.comm, DtD)
 

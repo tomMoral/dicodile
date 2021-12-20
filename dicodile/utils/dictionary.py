@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import signal
 
-from .csc import reconstruct
+from .csc import _is_rank1, reconstruct
 from . import check_random_state
 from .shape_helpers import get_valid_support
 
@@ -136,14 +136,34 @@ def compute_norm_atoms(D):
     return norm_atoms[:, 0]
 
 
+def compute_norm_atoms_from_DtD(DtD, n_atoms, atom_support):
+    t0 = np.array(atom_support) - 1
+    return np.array([DtD[(k, k, *t0)] for k in range(n_atoms)])
+
+
+def norm_atoms_from_DtD_reshaped(DtD, n_atoms, atom_support):
+    norm_atoms = compute_norm_atoms_from_DtD(DtD, n_atoms, atom_support)
+    return norm_atoms.reshape(*norm_atoms.shape, *[1 for _ in atom_support])
+
+
 def compute_DtD(D):
     """Compute the transpose convolution between the atoms
 
     Parameters
     ----------
     D : ndarray, shape (n_atoms, n_channels, *atom_support)
+        or (u, v) tuple of ndarrays, shapes
+        (n_atoms, n_channels) x (n_atoms, *atom_support)
         Current dictionary for the sparse coding
     """
+    if _is_rank1(D):
+        u, v = D
+        return _compute_DtD_uv(u, v)
+    else:
+        return _compute_DtD_D(D)
+
+
+def _compute_DtD_D(D):
     # Average over the channels
     flip_axis = tuple(range(2, D.ndim))
     DtD = np.sum([[[signal.fftconvolve(di_p, dj_p, mode='full')
@@ -151,6 +171,19 @@ def compute_DtD(D):
                    for dj in D]
                   for di in np.flip(D, axis=flip_axis)], axis=2)
     return DtD
+
+
+def _compute_DtD_uv(u, v):
+    n_atoms = v.shape[0]
+    atom_support = v.shape[1:]
+    # Compute vtv using `_compute_DtD_D` as if `n_channels=1`
+    vtv = _compute_DtD_D(v.reshape(n_atoms, 1, *atom_support))
+
+    # Compute the channel-wise correlation and
+    # resize it for broadcasting
+    uut = u @ u.T
+    uut = uut.reshape(*uut.shape, *[1 for _ in atom_support])
+    return vtv * uut
 
 
 def tukey_window(atom_support):
@@ -162,3 +195,50 @@ def tukey_window(atom_support):
         tukey_window_ *= signal.tukey(ax_shape)[tuple(broadcast_idx)]
     tukey_window_ += 1e-9 * (tukey_window_ == 0)
     return tukey_window_
+
+
+def get_D(u, v):
+    """Compute the rank-1 dictionary associated with u and v
+
+    Parameters
+    ----------
+    u: array (n_atoms, n_channels)
+    v: array (n_atoms, *atom_support)
+
+    Return
+    ------
+    D: array (n_atoms, n_channels, *atom_support)
+    """
+    n_atoms, *atom_support = v.shape
+    u = u.reshape(*u.shape, *[1 for _ in atom_support])
+    v = v.reshape(n_atoms, 1, *atom_support)
+    return u*v
+
+
+def D_shape(D):
+    """
+    Parameters
+    ----------
+    D : ndarray, shape (n_atoms, n_channels, *atom_support)
+        or (u, v) tuple of ndarrays, shapes
+        (n_atoms, n_channels) x (n_atoms, *atom_support)
+        Current dictionary for the sparse coding
+    """
+    if _is_rank1(D):
+        return _d_shape_from_uv(*D)
+    else:
+        return D.shape
+
+
+def _d_shape_from_uv(u, v):
+    """
+    Parameters
+    ----------
+    u: ndarray, shape (n_atoms, n_channels)
+    v: ndarray, shape (n_atoms, *atom_support)
+
+    Return
+    ------
+    (n_atoms, n_channels, *atom_support)
+    """
+    return (*u.shape, *v.shape[1:])

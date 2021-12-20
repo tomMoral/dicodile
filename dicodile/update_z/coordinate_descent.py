@@ -5,10 +5,9 @@ Author : tommoral <thomas.moreau@inria.fr>
 
 import time
 import numpy as np
-from scipy.signal import fftconvolve
 
 
-from dicodile.utils.csc import reconstruct
+from dicodile.utils.csc import _dense_transpose_convolve, reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils.segmentation import Segmentation
@@ -16,7 +15,8 @@ from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.csc import compute_objective, soft_thresholding
-from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms
+from dicodile.utils.dictionary import D_shape, compute_DtD,\
+    compute_norm_atoms, norm_atoms_from_DtD_reshaped
 
 
 STRATEGIES = {'greedy', 'random', 'cyclic', 'cyclic-r', 'gs-r', 'gs-q'}
@@ -270,11 +270,7 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     else:
         residual = -X_i
 
-    flip_axis = tuple(range(2, D.ndim))
-    beta = np.sum(
-        [[fftconvolve(dkp, res_p, mode='valid')
-          for dkp, res_p in zip(dk, residual)]
-         for dk in np.flip(D, flip_axis)], axis=1)
+    beta = _dense_transpose_convolve(residual_i=residual, D=D)
 
     if z_i is not None:
         assert z_i.shape == beta.shape
@@ -382,7 +378,7 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
         Auxillary variables holding the optimal value for the coordinate update
     """
     n_atoms, *valid_support = beta.shape
-    n_atoms, n_channels, *atom_support = D.shape
+    n_atoms, n_channels, *atom_support = D_shape(D)
 
     if 'DtD' in constants:
         DtD = constants['DtD']
@@ -391,7 +387,7 @@ def coordinate_update(k0, pt0, dz, beta, dz_opt, dE, z_hat, D, reg, constants,
     if 'norm_atoms' in constants:
         norm_atoms = constants['norm_atoms']
     else:
-        norm_atoms = compute_norm_atoms(D)
+        norm_atoms = norm_atoms_from_DtD_reshaped(DtD, n_atoms, atom_support)
 
     # define the bounds for the beta update
     update_slice, DtD_slice = (Ellipsis,), (Ellipsis, k0)

@@ -2,8 +2,10 @@ import weakref
 import numpy as np
 from mpi4py import MPI
 
+from dicodile.utils.dictionary import D_shape
+
 from ..utils import constants
-from ..utils.csc import compute_objective
+from ..utils.csc import _is_rank1, compute_objective
 from ..workers.mpi_workers import MPIWorkers
 
 from ..utils import debug_flags as flags
@@ -30,12 +32,13 @@ class DistributedSparseEncoder:
         self.hostfile = hostfile
         self.verbose = verbose
 
-    def init_workers(self, X, D_hat, reg, params, z0=None, DtD=None):
+    def init_workers(self, X, D_hat, reg, params, z0=None,
+                     DtD=None):
 
-        # compute the partition for the signals
-        assert D_hat.ndim - 1 == X.ndim, (D_hat.shape, X.shape)
         n_channels, *sig_support = X.shape
-        n_atoms, n_channels, *atom_support = self.D_shape = D_hat.shape
+
+        n_atoms, _, *atom_support = self.D_shape = D_shape(D_hat)
+        assert len(self.D_shape) - 1 == X.ndim, (self.D_shape, X.shape)
 
         # compute effective n_workers to not have smaller worker support than
         # 4 times the atom_support
@@ -59,6 +62,7 @@ class DistributedSparseEncoder:
         self.params['reg'] = reg
         self.params['precomputed_DtD'] = DtD is not None
         self.params['verbose'] = self.verbose
+        self.params['rank1'] = _is_rank1(D_hat)
 
         self.workers.send_command(constants.TAG_DICODILE_SET_TASK,
                                   verbose=self.verbose)
@@ -67,9 +71,15 @@ class DistributedSparseEncoder:
         )
 
     def set_worker_D(self, D, DtD=None):
-        msg = "The support of the dictionary cannot be changed on an encoder."
-        assert D.shape[1:] == self.D_shape[1:], msg
-        self.D_shape = D.shape
+        msg = "Cannot change dictionary support on an encoder."
+        if not _is_rank1(D):
+            assert D.shape[1:] == self.D_shape[1:], msg
+            self.D_shape = D.shape  # XXX in case number of atoms change?
+        else:
+            u, v = D
+            d_shape = D_shape((u, v))
+            assert d_shape[1:] == self.D_shape[1:], msg
+            self.D_shape = d_shape
 
         if self.params['precomputed_DtD'] and DtD is None:
             raise ValueError("The pre-computed value DtD need to be passed "
