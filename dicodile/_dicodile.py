@@ -4,7 +4,6 @@ import numpy as np
 
 from .update_d.update_d import update_d
 from .utils.dictionary import get_lambda_max
-from .utils.dictionary import get_max_error_dict
 
 from .update_z.distributed_sparse_encoder import DistributedSparseEncoder
 
@@ -185,8 +184,11 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         null_atom_indices = np.where(z_nnz == 0)[0]
         if len(null_atom_indices) > 0:
             k0 = null_atom_indices[0]
-            z_hat = encoder.get_z_hat()
-            D_hat[k0] = get_max_error_dict(X, z_hat, D_hat, window=window)[0]
+            # XXX
+            assert bool(False)
+            # z_hat = encoder.get_z_hat() -- we should not need that anymore :-)
+            # D_hat[k0] = get_max_error_dict(X, z_hat, D_hat, window=window)[0]
+            D_hat[k0] = encoder.compute_and_get_max_error_patch()
             if verbose > 1:
                 print('[INFO:{}] Resampled atom {}'.format(name, k0))
 

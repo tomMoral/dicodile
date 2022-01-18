@@ -43,7 +43,7 @@ def get_max_error_dict(X, z, D, window=False):
 
     d0 = prox_d(d0)
 
-    return d0
+    return d0, patch_rec_error
 
 
 def prox_d(D):

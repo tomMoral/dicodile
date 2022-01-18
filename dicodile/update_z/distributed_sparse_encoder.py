@@ -136,6 +136,16 @@ class DistributedSparseEncoder:
             verbose=self.verbose)
         return recv_sufficient_statistics(self.workers.comm, self.D_shape)
 
+    def compute_and_get_max_error_patch(self):
+        self.workers.send_command(
+            constants.TAG_DICODILE_GET_MAX_ERROR_PATCH,
+            verbose=self.verbose)
+        max_errors = recv_max_error_patches(self.workers.comm)  # XXX
+        # find largest patch in max_errors and return it
+        patch_idx = np.argmax(max_errors[1::2])  # XXX maybe interleaving errors with patch is bad practice?
+        return max_errors[1::2][patch_idx]
+        
+
     def release_workers(self):
         self.workers.send_command(
             constants.TAG_DICODILE_STOP)

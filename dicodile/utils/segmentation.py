@@ -47,7 +47,7 @@ class Segmentation:
                        for size_full_ax, (_, end) in zip(self.full_support,
                                                          self.inner_bounds)])
 
-        # compute the size of each segments and the number of segments
+        # compute the size of each segment and the number of segments
         if seg_support is not None:
             if isinstance(seg_support, int):
                 seg_support = [seg_support] * self.n_axis
@@ -84,7 +84,7 @@ class Segmentation:
         self.effective_n_seg = 1
         self.n_seg_per_axis = []
         for size_ax, size_seg_ax in zip(self.signal_support, self.seg_support):
-            # Make sure that n_seg_ax is of type in (and not np.int*)
+            # Make sure that n_seg_ax is of type int (and not np.int*)
             n_seg_ax = max(1, int(size_ax // size_seg_ax))
             self.n_seg_per_axis.append(n_seg_ax)
             self.effective_n_seg *= n_seg_ax
@@ -95,7 +95,7 @@ class Segmentation:
         self.effective_n_seg = 1
         self.seg_support = []
         for size_ax, n_seg_ax in zip(self.signal_support, self.n_seg_per_axis):
-            # Make sure that n_seg_ax is of type in (and not np.int*)
+            # Make sure that n_seg_ax is of type int (and not np.int*)
             size_seg_ax = size_ax // n_seg_ax
             size_seg_ax += (size_ax % n_seg_ax >= n_seg_ax // 2)
             self.seg_support.append(size_seg_ax)

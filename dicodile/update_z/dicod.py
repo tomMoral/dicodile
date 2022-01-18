@@ -379,5 +379,8 @@ def recv_cost(comm):
     return cost[0]
 
 
+def recv_max_error_patches(comm, max_error_patch, max_error_cost):
+    raise NotImplementedError("wip")
+
 # Update the docstring
 dicod.__doc__.format(STRATEGIES)
