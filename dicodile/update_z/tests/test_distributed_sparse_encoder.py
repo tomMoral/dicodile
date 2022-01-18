@@ -53,3 +53,34 @@ def test_distributed_sparse_encoder():
     assert np.allclose(ztX, ztX_distrib)
 
     encoder.shutdown_workers()
+
+def test_compute_max_error_patch():
+    rng = check_random_state(42)
+
+    n_atoms = 2
+    n_channels = 3
+    n_times_atom = 10
+    n_times = 10 * n_times_atom
+    reg = 5e-1
+
+    params = dict(tol=1e-2, n_seg='auto', timing=False, timeout=None,
+                  verbose=100, strategy='greedy', max_iter=100000,
+                  soft_lock='border', z_positive=True, return_ztz=False,
+                  freeze_support=False, warm_start=False, random_state=27)
+
+    X = rng.randn(n_channels, n_times)
+    D = rng.randn(n_atoms, n_channels, n_times_atom)
+    sum_axis = tuple(range(1, D.ndim))
+    D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
+
+    encoder = DistributedSparseEncoder(n_workers=2)
+
+    encoder.init_workers(X, D, reg, params, DtD=None)
+
+    encoder.process_z_hat()
+    z_hat = encoder.get_z_hat()
+
+    max_error_patch = encoder.compute_and_get_max_error_patch()
+    assert max_error_patch.shape == (n_atoms, n_channels, n_times_atom)
+
+    encoder.shutdown_workers()
