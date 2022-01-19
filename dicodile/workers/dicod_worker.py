@@ -530,8 +530,8 @@ class DICODWorker:
         diff = (X_hat_worker[X_hat_slice] - self.X_worker[X_hat_slice]).ravel()
         cost = .5 * np.dot(diff, diff)
         return cost + self.reg * abs(self.z_hat[inner_slice]).sum()
-
-    def return_z_hat(self):
+    
+    def _get_z_hat(self):
         if flags.GET_OVERLAP_Z_HAT:
             res_slice = (Ellipsis,)
         else:
@@ -539,8 +539,10 @@ class DICODWorker:
                 slice(start, end)
                 for start, end in self.local_segments.inner_bounds
             ])
-        z_worker = self.z_hat[res_slice].ravel()
-        self.return_array(z_worker)
+        return self.z_hat[res_slice].ravel()
+
+    def return_z_hat(self):
+        self.return_array(self._get_z_hat())
 
     def return_z_nnz(self):
         res_slice = (Ellipsis,) + tuple([
@@ -571,7 +573,7 @@ class DICODWorker:
         self.gather_array(arr)
     
     def compute_and_return_max_error_patch(self):
-        max_error_patch, max_error = get_max_error_dict(self.X, self.z, self.D, window=False)
+        max_error_patch, max_error = get_max_error_dict(self.X_worker, self._get_z_hat(), self.D, window=False)  # XXX window?
         self.gather_array([max_error_patch, max_error])  # XXX ???
 
     ###########################################################################
