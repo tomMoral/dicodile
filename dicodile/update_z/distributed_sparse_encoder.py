@@ -144,7 +144,7 @@ class DistributedSparseEncoder:
         max_errors = recv_max_error_patches(self.workers.comm)  # XXX
         # find largest patch in max_errors and return it
         patch_idx = np.argmax(max_errors[1::2])  # XXX maybe interleaving errors with patch is bad practice?
-        return max_errors[1::2][patch_idx]
+        return max_errors[::2][patch_idx]
         
 
     def release_workers(self):
