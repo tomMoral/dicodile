@@ -82,6 +82,6 @@ def test_compute_max_error_patch():
     print(f"{z_hat.shape=}")  # XXX
 
     max_error_patch = encoder.compute_and_get_max_error_patch()
-    assert max_error_patch.shape == (n_atoms, n_channels, n_times_atom)
+    assert max_error_patch.shape == (n_channels, n_times_atom)
 
     encoder.shutdown_workers()
