@@ -573,8 +573,6 @@ class DICODWorker:
         self.gather_array(arr)
     
     def compute_and_return_max_error_patch(self):
-        #  XXX inner bounds for X_worker and z?
-        #  (_get_z_hat is already restricted to inner bounds IIUC)
         _, _, *atom_support = self.D.shape
 
         max_error_patch, max_error = get_max_error_dict(self.X_worker, self.z_hat, self.D, window=False, local_segments=self.local_segments)  # XXX window?
