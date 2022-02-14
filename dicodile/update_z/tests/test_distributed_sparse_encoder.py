@@ -54,8 +54,8 @@ def test_distributed_sparse_encoder():
 
     encoder.shutdown_workers()
 
-#@pytest.mark.parametrize("n_workers", [1,2,3])
-def test_compute_max_error_patch():
+@pytest.mark.parametrize("n_workers", [1,2,3])
+def test_compute_max_error_patch_shape(n_workers):
     rng = check_random_state(42)
 
     n_atoms = 2
@@ -74,7 +74,7 @@ def test_compute_max_error_patch():
     sum_axis = tuple(range(1, D.ndim))
     D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
 
-    encoder = DistributedSparseEncoder(n_workers=2)  # XXX 2 or more -- or better, parametrize?
+    encoder = DistributedSparseEncoder(n_workers=n_workers)
 
     encoder.init_workers(X, D, reg, params, DtD=None)
 
