@@ -381,7 +381,6 @@ def recv_cost(comm):
 
 def recv_max_error_patches(comm):
     max_error_patches = comm.gather(None, root=MPI.ROOT)
-    print(f"XXX done gathering error patches, len {len(max_error_patches)}")
     return max_error_patches
 
 # Update the docstring

@@ -6,7 +6,7 @@ from . import check_random_state
 from .shape_helpers import get_valid_support
 
 
-def get_max_error_dict(X, z, D, window=False):
+def get_max_error_dict(X, z, D, window=False, local_segments=None):
     """Get the maximal reconstruction error patch from the data as a new atom
 
     This idea is used for instance in [Yellin2017]
@@ -32,7 +32,7 @@ def get_max_error_dict(X, z, D, window=False):
     IMAGING BY CONVOLUTIONAL SPARSE DICTIONARY LEARNING AND CODING.
     """
     atom_support = D.shape[2:]
-    patch_rec_error = _patch_reconstruction_error(X, z, D, window=window)
+    patch_rec_error = _patch_reconstruction_error(X, z, D, window=window, local_segments=local_segments)
     i0 = patch_rec_error.argmax()
     pt0 = np.unravel_index(i0, patch_rec_error.shape)
 
@@ -53,12 +53,20 @@ def prox_d(D):
     return D
 
 
-def _patch_reconstruction_error(X, z, D, window=False):
+def _patch_reconstruction_error(X, z, D, window=False, local_segments=None):
     """Return the reconstruction error for each patches of size (P, L)."""
     n_trials, n_channels, *sig_support = X.shape
     atom_support = D.shape[2:]
 
     X_hat = reconstruct(z, D)
+
+    if local_segments is not None:
+        X_slice = (Ellipsis,) + tuple([  # XXX add rationale
+            slice(start, end + size_atom_ax - 1)
+            for (start, end), size_atom_ax in zip(
+                local_segments.inner_bounds, atom_support)
+        ])
+        X, X_hat = X[X_slice], X_hat[X_slice]
 
     diff = (X - X_hat)
     diff *= diff
