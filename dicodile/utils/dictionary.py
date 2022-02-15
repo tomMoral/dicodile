@@ -32,7 +32,7 @@ def get_max_error_dict(X, z, D, window=False, local_segments=None):
     IMAGING BY CONVOLUTIONAL SPARSE DICTIONARY LEARNING AND CODING.
     """
     atom_support = D.shape[2:]
-    patch_rec_error = _patch_reconstruction_error(X, z, D, window=window, local_segments=local_segments)
+    patch_rec_error, X = _patch_reconstruction_error(X, z, D, window=window, local_segments=local_segments)
     i0 = patch_rec_error.argmax()
     pt0 = np.unravel_index(i0, patch_rec_error.shape)
 
@@ -60,8 +60,12 @@ def _patch_reconstruction_error(X, z, D, window=False, local_segments=None):
 
     X_hat = reconstruct(z, D)
 
+    # When computing a distributed patch reconstruction error,
+    # we take the bounds into account.
+    # ``local_segments=None`` is used when computing the reconstruction
+    # error on the full signal.
     if local_segments is not None:
-        X_slice = (Ellipsis,) + tuple([  # XXX add rationale
+        X_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(
                 local_segments.inner_bounds, atom_support)
@@ -82,7 +86,7 @@ def _patch_reconstruction_error(X, z, D, window=False, local_segments=None):
         convolution_op = signal.convolve
 
     return np.sum([convolution_op(patch, diff_p, mode='valid')
-                   for diff_p in diff], axis=0)
+                   for diff_p in diff], axis=0), X
 
 
 def get_lambda_max(X, D_hat):
