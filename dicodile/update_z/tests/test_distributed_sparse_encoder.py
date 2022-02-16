@@ -54,7 +54,8 @@ def test_distributed_sparse_encoder():
 
     encoder.shutdown_workers()
 
-@pytest.mark.parametrize("n_workers", [1,2,3])
+
+@pytest.mark.parametrize("n_workers", [1, 2, 3])
 def test_compute_max_error_patch(n_workers):
     rng = check_random_state(42)
 
