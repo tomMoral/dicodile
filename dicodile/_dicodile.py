@@ -184,10 +184,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         null_atom_indices = np.where(z_nnz == 0)[0]
         if len(null_atom_indices) > 0:
             k0 = null_atom_indices[0]
-            assert bool(False) # XXX -- add a test that exercises this portion of the code ?
-            # z_hat = encoder.get_z_hat() -- we should not need that anymore :-)
-            # D_hat[k0] = get_max_error_dict(X, z_hat, D_hat, window=window)[0]
-            D_hat[k0] = encoder.compute_and_get_max_error_patch()
+            D_hat[k0] = encoder.compute_and_get_max_error_patch()  # XXX window
             if verbose > 1:
                 print('[INFO:{}] Resampled atom {}'.format(name, k0))
 
