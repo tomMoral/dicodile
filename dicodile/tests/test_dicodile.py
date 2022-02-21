@@ -30,8 +30,8 @@ def test_dicodile_greedy(n_workers):
                             n_atoms=n_atoms, n_channels=n_channels,
                             noise_level=1e-5, random_state=42)
     
-    #X = np.zeros((n_channels, n_times))
-    X *= 1e-6  # XXX
+    X = np.zeros((n_channels, n_times))
+    #X *= 1e-6  # XXX
     X[:,45:51] = np.ones((n_channels, 6)) * np.array([1, 0.5, 0.25]).reshape(3,1)
     print(X)  # XXX
 
