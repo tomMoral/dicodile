@@ -148,12 +148,15 @@ class DistributedSparseEncoder:
         return recv_sufficient_statistics(self.workers.comm, self.D_shape)
 
     def compute_and_get_max_error_patch(self, window=False):
+        # Send the command to distributed workers as well
+        # as the window parameter
         self.workers.send_command(
             constants.TAG_DICODILE_GET_MAX_ERROR_PATCH,
-            verbose=self.verbose)
-        # send window param to workers
-        # (we'll avoid traversing the usual abstractions)
+            verbose=self.verbose
+        )
         self.workers.comm.bcast({'window': window}, root=MPI.ROOT)
+        
+        # Receive the max patch for each worker.
         max_errors = recv_max_error_patches(self.workers.comm)
 
         # find largest patch in max_errors and return it
