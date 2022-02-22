@@ -590,12 +590,10 @@ class DICODWorker:
 
         _, _, *atom_support = self.D.shape
 
-        max_error_patch, max_error = \
-            get_max_error_dict(self.X_worker,
-                               self.z_hat,
-                               self.D,
-                               window=params['window'],
-                               local_segments=self.local_segments)
+        max_error_patch, max_error = get_max_error_patch(
+            self.X_worker, self.z_hat, self.D, window=params['window'],
+            local_segments=self.local_segments
+        )
         self.gather_array([max_error_patch, max_error])
 
     ###########################################################################
