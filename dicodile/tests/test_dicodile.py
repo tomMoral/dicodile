@@ -19,7 +19,7 @@ def test_dicodile():
     assert is_deacreasing(pobj)
 
 
-@pytest.mark.parametrize("n_workers", [1, 2, 3])
+@pytest.mark.parametrize("n_workers", [1])  # XXX [1,2,3]
 def test_dicodile_greedy(n_workers):
     n_channels = 3
     n_atoms = 2
@@ -29,15 +29,12 @@ def test_dicodile_greedy(n_workers):
     X, D, _ = simulate_data(n_times=n_times, n_times_atom=n_times_atom,
                             n_atoms=n_atoms, n_channels=n_channels,
                             noise_level=1e-5, random_state=42)
-    
+
     X = np.zeros((n_channels, n_times))
-    #X *= 1e-6  # XXX
-    X[:,45:51] = np.ones((n_channels, 6)) * np.array([1, 0.5, 0.25]).reshape(3,1)
-    print(X)  # XXX
+    X[:, 45:51] = np.ones((n_channels, 6)) * np.array([1, 0.5, 0.25]).reshape(3, 1)  # noqa: E501
 
     # Starts with a single random atom, expect to learn others
     # from the largest reconstruction error patch
-    # D[1:] = np.zeros((n_atoms-1, n_channels, n_times_atom))
     D[1:] *= 1e-6
 
     D_hat, z_hat, pobj, times = dicodile(

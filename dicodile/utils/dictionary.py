@@ -32,7 +32,8 @@ def get_max_error_dict(X, z, D, window=False, local_segments=None):
     IMAGING BY CONVOLUTIONAL SPARSE DICTIONARY LEARNING AND CODING.
     """
     atom_support = D.shape[2:]
-    patch_rec_error, X = _patch_reconstruction_error(X, z, D, window=window, local_segments=local_segments)
+    patch_rec_error, X = _patch_reconstruction_error(X, z, D, window=window,
+                                                     local_segments=local_segments)  # noqa: E501
     i0 = patch_rec_error.argmax()
     pt0 = np.unravel_index(i0, patch_rec_error.shape)
 

@@ -17,7 +17,8 @@ from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
-from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms, get_max_error_dict
+from dicodile.utils.dictionary import compute_DtD, compute_norm_atoms,\
+                                      get_max_error_dict
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
 from dicodile.update_z.coordinate_descent import _check_convergence
@@ -530,7 +531,7 @@ class DICODWorker:
         diff = (X_hat_worker[X_hat_slice] - self.X_worker[X_hat_slice]).ravel()
         cost = .5 * np.dot(diff, diff)
         return cost + self.reg * abs(self.z_hat[inner_slice]).sum()
-    
+
     def _get_z_hat(self):
         if flags.GET_OVERLAP_Z_HAT:
             res_slice = (Ellipsis,)
@@ -571,11 +572,23 @@ class DICODWorker:
         arr = [ii, n_coordinate_updates, runtime, t_local_init, t_run,
                t_select_coord, t_update_coord]
         self.gather_array(arr)
-    
+
     def compute_and_return_max_error_patch(self):
+        # receive window param
+        # cutting through abstractions here, refactor if needed
+        assert self._backend == "mpi"
+        comm = MPI.Comm.Get_parent()
+        params = comm.bcast(None, root=0)
+        assert 'window' in params
+
         _, _, *atom_support = self.D.shape
 
-        max_error_patch, max_error = get_max_error_dict(self.X_worker, self.z_hat, self.D, window=False, local_segments=self.local_segments)  # XXX window?
+        max_error_patch, max_error = \
+            get_max_error_dict(self.X_worker,
+                               self.z_hat,
+                               self.D,
+                               window=params['window'],
+                               local_segments=self.local_segments)
         self.gather_array([max_error_patch, max_error])
 
     ###########################################################################
