@@ -155,6 +155,7 @@ class DistributedSparseEncoder:
         # (we'll avoid traversing the usual abstractions)
         self.workers.comm.bcast({'window': window}, root=MPI.ROOT)
         max_errors = recv_max_error_patches(self.workers.comm)
+
         # find largest patch in max_errors and return it
         patch_idx = np.argmax([item[1] for item in max_errors])
         return max_errors[patch_idx][0]
