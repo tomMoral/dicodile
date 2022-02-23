@@ -185,7 +185,8 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
         null_atom_indices = np.where(z_nnz == 0)[0]
         if len(null_atom_indices) > 0:
             k0 = null_atom_indices[0]
-            D_hat[k0] = encoder.compute_and_get_max_error_patch(window=window)
+            d0 = encoder.compute_and_get_max_error_patch(window=window)
+            D_hat[k0] = prox_d(d0)
             if verbose > 1:
                 print('[INFO:{}] Resampled atom {}'.format(name, k0))
 
