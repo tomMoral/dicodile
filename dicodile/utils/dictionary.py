@@ -6,7 +6,7 @@ from . import check_random_state
 from .shape_helpers import get_valid_support
 
 
-def get_max_error_dict(X, z, D, window=False, local_segments=None):
+def get_max_error_patch(X, z, D, window=False, local_segments=None):
     """Get the maximal reconstruction error patch from the data as a new atom
 
     This idea is used for instance in [Yellin2017]
