@@ -155,7 +155,7 @@ class DistributedSparseEncoder:
             verbose=self.verbose
         )
         self.workers.comm.bcast({'window': window}, root=MPI.ROOT)
-        
+
         # Receive the max patch for each worker.
         max_errors = recv_max_error_patches(self.workers.comm)
 

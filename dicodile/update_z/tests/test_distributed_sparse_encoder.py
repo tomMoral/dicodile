@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from dicodile.utils import check_random_state
-from dicodile.utils.dictionary import compute_DtD, get_D, get_max_error_dict
+from dicodile.utils.dictionary import compute_DtD, get_D, get_max_error_patch
 from dicodile.utils.csc import compute_objective
 from dicodile.utils.csc import compute_ztX, compute_ztz
 
@@ -124,7 +124,7 @@ def test_compute_max_error_patch(n_workers):
     max_error_patch = encoder.compute_and_get_max_error_patch()
     assert max_error_patch.shape == (n_channels, n_times_atom)
 
-    reference_patch, _ = get_max_error_dict(X, z_hat, D)
+    reference_patch, _ = get_max_error_patch(X, z_hat, D)
     assert np.allclose(max_error_patch, reference_patch)
 
     encoder.shutdown_workers()

@@ -18,7 +18,7 @@ from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.dictionary import D_shape, compute_DtD
-from dicodile.utils.dictionary import get_max_error_dict
+from dicodile.utils.dictionary import get_max_error_patch
 from dicodile.utils.dictionary import norm_atoms_from_DtD_reshaped
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
