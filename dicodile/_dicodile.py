@@ -3,6 +3,7 @@ import numpy as np
 
 
 from .update_d.update_d import update_d
+from .utils.dictionary import prox_d
 from .utils.dictionary import get_lambda_max
 
 from .update_z.distributed_sparse_encoder import DistributedSparseEncoder
