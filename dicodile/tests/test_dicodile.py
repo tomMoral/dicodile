@@ -38,7 +38,7 @@ def test_dicodile_greedy(n_workers):
     D[1:] *= 1e-6
 
     D_hat, z_hat, pobj, times = dicodile(
-        X, D, reg=.1, z_positive=True, n_iter=10, eps=1e-4,
+        X, D, reg=.1, z_positive=True, n_iter=2, eps=1e-4,
         n_workers=n_workers, verbose=2, tol=1e-10)
 
     assert is_deacreasing(pobj)
