@@ -15,7 +15,8 @@ from ..utils.shape_helpers import get_valid_support
 from .dicod import recv_z_hat, recv_z_nnz
 from .dicod import _gather_run_statistics
 from .dicod import _send_task, _send_D, _send_signal
-from .dicod import recv_cost, recv_sufficient_statistics
+from .dicod import recv_cost, recv_max_error_patches,\
+    recv_sufficient_statistics
 
 
 class DistributedSparseEncoder:
@@ -145,6 +146,22 @@ class DistributedSparseEncoder:
             constants.TAG_DICODILE_GET_SUFFICIENT_STAT,
             verbose=self.verbose)
         return recv_sufficient_statistics(self.workers.comm, self.D_shape)
+
+    def compute_and_get_max_error_patch(self, window=False):
+        # Send the command to distributed workers as well
+        # as the window parameter
+        self.workers.send_command(
+            constants.TAG_DICODILE_GET_MAX_ERROR_PATCH,
+            verbose=self.verbose
+        )
+        self.workers.comm.bcast({'window': window}, root=MPI.ROOT)
+
+        # Receive the max patch for each worker.
+        max_errors = recv_max_error_patches(self.workers.comm)
+
+        # find largest patch in max_errors and return it
+        patch_idx = np.argmax([item[1] for item in max_errors])
+        return max_errors[patch_idx][0]
 
     def release_workers(self):
         self.workers.send_command(

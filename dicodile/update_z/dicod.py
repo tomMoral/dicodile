@@ -390,5 +390,10 @@ def recv_cost(comm):
     return cost[0]
 
 
+def recv_max_error_patches(comm):
+    max_error_patches = comm.gather(None, root=MPI.ROOT)
+    return max_error_patches
+
+
 # Update the docstring
 dicod.__doc__.format(STRATEGIES)

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from dicodile.utils import check_random_state
-from dicodile.utils.dictionary import compute_DtD, get_D
+from dicodile.utils.dictionary import compute_DtD, get_D, get_max_error_patch
 from dicodile.utils.csc import compute_objective
 from dicodile.utils.csc import compute_ztX, compute_ztz
 
@@ -92,3 +92,39 @@ def test_pre_computed_DtD_should_always_be_passed_to_set_worker_D():
 
     with pytest.raises(ValueError, match=r"pre-computed value DtD"):
         encoder.set_worker_D(D)
+
+
+@pytest.mark.parametrize("n_workers", [1, 2, 3])
+def test_compute_max_error_patch(n_workers):
+    rng = check_random_state(42)
+
+    n_atoms = 2
+    n_channels = 3
+    n_times_atom = 10
+    n_times = 10 * n_times_atom
+    reg = 5e-1
+
+    params = dict(tol=1e-2, n_seg='auto', timing=False, timeout=None,
+                  verbose=100, strategy='greedy', max_iter=100000,
+                  soft_lock='border', z_positive=True, return_ztz=False,
+                  freeze_support=False, warm_start=False, random_state=27)
+
+    X = rng.randn(n_channels, n_times)
+    D = rng.randn(n_atoms, n_channels, n_times_atom)
+    sum_axis = tuple(range(1, D.ndim))
+    D /= np.sqrt(np.sum(D * D, axis=sum_axis, keepdims=True))
+
+    encoder = DistributedSparseEncoder(n_workers=n_workers)
+
+    encoder.init_workers(X, D, reg, params, DtD=None)
+
+    encoder.process_z_hat()
+    z_hat = encoder.get_z_hat()
+
+    max_error_patch = encoder.compute_and_get_max_error_patch()
+    assert max_error_patch.shape == (n_channels, n_times_atom)
+
+    reference_patch, _ = get_max_error_patch(X, z_hat, D)
+    assert np.allclose(max_error_patch, reference_patch)
+
+    encoder.shutdown_workers()

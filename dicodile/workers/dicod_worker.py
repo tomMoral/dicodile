@@ -17,8 +17,9 @@ from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
 from dicodile.utils.order_iterator import get_order_iterator
-from dicodile.utils.dictionary import D_shape, compute_DtD,\
-    norm_atoms_from_DtD_reshaped
+from dicodile.utils.dictionary import D_shape, compute_DtD
+from dicodile.utils.dictionary import get_max_error_patch
+from dicodile.utils.dictionary import norm_atoms_from_DtD_reshaped
 
 from dicodile.update_z.coordinate_descent import _select_coordinate
 from dicodile.update_z.coordinate_descent import _check_convergence
@@ -199,7 +200,7 @@ class DICODWorker:
                 # else:
                 #     time.sleep(.001)
 
-            # Check is we reach the timeout
+            # Check if we reach the timeout
             if deadline is not None and time.time() >= deadline:
                 self.stop_before_convergence(
                     "Reached timeout", ii + 1, n_coordinate_updates
@@ -538,7 +539,7 @@ class DICODWorker:
         cost = .5 * np.dot(diff, diff)
         return cost + self.reg * abs(self.z_hat[inner_slice]).sum()
 
-    def return_z_hat(self):
+    def _get_z_hat(self):
         if flags.GET_OVERLAP_Z_HAT:
             res_slice = (Ellipsis,)
         else:
@@ -546,8 +547,10 @@ class DICODWorker:
                 slice(start, end)
                 for start, end in self.local_segments.inner_bounds
             ])
-        z_worker = self.z_hat[res_slice].ravel()
-        self.return_array(z_worker)
+        return self.z_hat[res_slice].ravel()
+
+    def return_z_hat(self):
+        self.return_array(self._get_z_hat())
 
     def return_z_nnz(self):
         res_slice = (Ellipsis,) + tuple([
@@ -576,6 +579,22 @@ class DICODWorker:
         arr = [ii, n_coordinate_updates, runtime, t_local_init, t_run,
                t_select_coord, t_update_coord]
         self.gather_array(arr)
+
+    def compute_and_return_max_error_patch(self):
+        # receive window param
+        # cutting through abstractions here, refactor if needed
+        assert self._backend == "mpi"
+        comm = MPI.Comm.Get_parent()
+        params = comm.bcast(None, root=0)
+        assert 'window' in params
+
+        _, _, *atom_support = self.D.shape
+
+        max_error_patch, max_error = get_max_error_patch(
+            self.X_worker, self.z_hat, self.D, window=params['window'],
+            local_segments=self.local_segments
+        )
+        self.gather_array([max_error_patch, max_error])
 
     ###########################################################################
     #     Display utilities

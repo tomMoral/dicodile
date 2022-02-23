@@ -26,4 +26,6 @@ def dicodile_worker():
             dicod_worker.recv_signal()
         if tag == constants.TAG_DICODILE_SET_TASK:
             dicod_worker.recv_task()
+        if tag == constants.TAG_DICODILE_GET_MAX_ERROR_PATCH:
+            dicod_worker.compute_and_return_max_error_patch()
         tag = wait_message()
