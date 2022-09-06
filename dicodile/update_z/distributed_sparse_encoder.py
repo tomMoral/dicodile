@@ -73,13 +73,18 @@ class DistributedSparseEncoder:
 
     def set_worker_D(self, D, DtD=None):
         msg = "Cannot change dictionary support on an encoder."
+        msg_incr = "Can only increase (not reduce) the number of atoms"
         if not _is_rank1(D):
             assert D.shape[1:] == self.D_shape[1:], msg
+            if self.D_shape[0] != D.shape[0]:
+                assert self.D_shape[0] < D.shape[0], msg_incr
             self.D_shape = D.shape  # XXX in case number of atoms change?
         else:
             u, v = D
             d_shape = D_shape((u, v))
             assert d_shape[1:] == self.D_shape[1:], msg
+            if self.D_shape[0] != d_shape[0]:
+                assert self.D_shape[0] < D.shape[0], msg_incr
             self.D_shape = d_shape
 
         if self.params['precomputed_DtD'] and DtD is None:
