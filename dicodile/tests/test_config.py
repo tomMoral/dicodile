@@ -7,7 +7,7 @@ def test_dicodile_home(monkeypatch):
     _set_env(monkeypatch, {
         "DICODILE_DATA_HOME": "/home/unittest/dicodile"
     })
-    assert(get_data_home() == Path("/home/unittest/dicodile/dicodile"))
+    assert get_data_home() == Path("/home/unittest/dicodile/dicodile")
 
 
 def test_XDG_DATA_home(monkeypatch):
@@ -15,7 +15,7 @@ def test_XDG_DATA_home(monkeypatch):
         "DICODILE_DATA_HOME":  None,
         "XDG_DATA_HOME": "/home/unittest/data"
     })
-    assert(get_data_home() == Path("/home/unittest/data/dicodile"))
+    assert get_data_home() == Path("/home/unittest/data/dicodile")
 
 
 def test_default_home(monkeypatch):
@@ -24,7 +24,7 @@ def test_default_home(monkeypatch):
         "DICODILE_DATA_HOME":  None,
         "XDG_DATA_HOME": None,
     })
-    assert(get_data_home() == Path("/home/default/data/dicodile"))
+    assert get_data_home() == Path("/home/default/data/dicodile")
 
 
 def test_dicodile_home_has_priority_over_xdg_data_home(monkeypatch):
@@ -32,7 +32,7 @@ def test_dicodile_home_has_priority_over_xdg_data_home(monkeypatch):
         "DICODILE_DATA_HOME": "/home/unittest/dicodile",
         "XDG_DATA_HOME": "/home/unittest/data"
     })
-    assert(get_data_home() == Path("/home/unittest/dicodile/dicodile"))
+    assert get_data_home() == Path("/home/unittest/dicodile/dicodile")
 
 
 def _set_env(monkeypatch, d):
