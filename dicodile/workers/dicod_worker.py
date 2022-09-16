@@ -81,7 +81,8 @@ class DICODWorker:
 
         diverging = False
         if flags.INTERACTIVE_PROCESSES and self.n_workers == 1:
-            import ipdb; ipdb.set_trace()  # noqa: E702
+            import ipdb
+            ipdb.set_trace()  # noqa: E702
 
         self.t_start = t_start = time.time()
         t_run = 0
@@ -249,7 +250,7 @@ class DICODWorker:
             constants['DtD'],
             n_atoms,
             atom_support
-            )
+        )
         self.constants = constants
 
         # List of all pending messages sent
@@ -764,6 +765,7 @@ class DICODWorker:
             inner_bounds=inner_bounds,
             full_support=worker_support)
 
+        self.max_iter *= self.local_segments.effective_n_seg
         self.synchronize_workers(with_main=True)
 
         return X_worker, z0
