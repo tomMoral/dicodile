@@ -38,6 +38,7 @@ class DICODWorker:
 
     def __init__(self, backend):
         self._backend = backend
+        self.D = None
 
     def run(self):
         self.recv_task()
@@ -695,19 +696,22 @@ class DICODWorker:
         """Receive a dictionary D"""
         if self._backend == "mpi":
             comm = MPI.Comm.Get_parent()
+            current_D_shape = None
             if self.rank1:
-                current_D_shape = D_shape(self.D)
+                if self.D is not None:
+                    current_D_shape = D_shape(self.D)
                 self.u = recv_broadcasted_array(comm)
                 self.v = recv_broadcasted_array(comm)
                 self.D = (self.u, self.v)
                 # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape != self.D.shape:
+                if current_D_shape is not None and current_D_shape != D_shape(self.D):
                     self._extend_z()
             else:
-                current_D_shape = self.D.shape
+                if self.D is not None:
+                    current_D_shape = self.D.shape
                 self.D = recv_broadcasted_array(comm)
                 # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape != self.D.shape:
+                if current_D_shape is not None and current_D_shape != self.D.shape:
                     self._extend_z()
             _, _, *atom_support = D_shape(self.D)
             self.overlap = np.array(atom_support) - 1
