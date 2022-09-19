@@ -748,7 +748,7 @@ class DICODWorker:
         local_seg_support = None
         if self.n_seg == 'auto':
             n_seg = None
-            local_seg_support = 2 * np.array(atom_support) - 1
+            local_seg_support = 2 * np.array(atom_support)
 
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
