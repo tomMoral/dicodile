@@ -91,6 +91,7 @@ class DICODWorker:
             deadline = t_start + self.timeout
         else:
             deadline = None
+
         for ii in range(self.max_iter):
             # Display the progress of the algorithm
             self.progress(ii, max_ii=self.max_iter, unit="iterations",
@@ -113,7 +114,7 @@ class DICODWorker:
                 k0, pt0, dz = None, None, 0
 
             # update the accumulator for 'random' strategy
-            accumulator = max(abs(dz), accumulator)
+            accumulator += abs(dz)
 
             # If requested, check that the update chosen only have an impact on
             # the segment and its overlap area.
@@ -748,7 +749,7 @@ class DICODWorker:
         local_seg_support = None
         if self.n_seg == 'auto':
             n_seg = None
-            local_seg_support = 2 * np.array(atom_support)
+            local_seg_support = 2 * np.array(atom_support) + 1
 
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
