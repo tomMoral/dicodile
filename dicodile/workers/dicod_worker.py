@@ -81,8 +81,7 @@ class DICODWorker:
 
         diverging = False
         if flags.INTERACTIVE_PROCESSES and self.n_workers == 1:
-            import ipdb
-            ipdb.set_trace()
+            import ipdb; ipdb.set_trace()  # noqa: E702
 
         self.t_start = t_start = time.time()
         t_run = 0
