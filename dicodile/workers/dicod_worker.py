@@ -111,7 +111,6 @@ class DICODWorker:
                 t_run += selection_duration
             else:
                 k0, pt0, dz = None, None, 0
-
             # update the accumulator for 'random' strategy
             accumulator = max(abs(dz), accumulator)
 
@@ -748,7 +747,7 @@ class DICODWorker:
         local_seg_support = None
         if self.n_seg == 'auto':
             n_seg = None
-            local_seg_support = 2 * np.array(atom_support) + 1
+            local_seg_support = 2 * np.array(atom_support) - 1
 
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
