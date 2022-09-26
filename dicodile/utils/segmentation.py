@@ -85,7 +85,9 @@ class Segmentation:
         self.n_seg_per_axis = []
         for size_ax, size_seg_ax in zip(self.signal_support, self.seg_support):
             # Make sure that n_seg_ax is of type int (and not np.int*)
-            n_seg_ax = max(1, int(size_ax // size_seg_ax))
+            rem = size_ax % size_seg_ax
+            n_seg_ax = max(1, int(size_ax // size_seg_ax) +
+                           (1 if rem != 0 else 0))
             self.n_seg_per_axis.append(n_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
