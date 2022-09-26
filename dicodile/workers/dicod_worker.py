@@ -113,7 +113,7 @@ class DICODWorker:
                 k0, pt0, dz = None, None, 0
 
             # update the accumulator for 'random' strategy
-            accumulator += abs(dz)
+            accumulator = max(abs(dz), accumulator)
 
             # If requested, check that the update chosen only have an impact on
             # the segment and its overlap area.
