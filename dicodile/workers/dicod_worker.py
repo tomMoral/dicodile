@@ -704,14 +704,14 @@ class DICODWorker:
                 self.v = recv_broadcasted_array(comm)
                 self.D = (self.u, self.v)
                 # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape is not None and current_D_shape != D_shape(self.D):
+                if current_D_shape is not None and current_D_shape != D_shape(self.D):  # noqa:E501
                     self._extend_z()
             else:
                 if self.D is not None:
                     current_D_shape = self.D.shape
                 self.D = recv_broadcasted_array(comm)
                 # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape is not None and current_D_shape != self.D.shape:
+                if current_D_shape is not None and current_D_shape != self.D.shape:  # noqa:E501
                     self._extend_z()
             _, _, *atom_support = D_shape(self.D)
             self.overlap = np.array(atom_support) - 1
@@ -724,16 +724,19 @@ class DICODWorker:
 
     def _extend_z(self):
         """
-        When adding new atoms in D, add the corresponding number of (zero-valued)
-        rows in z
+        When adding new atoms in D, add the corresponding
+        number of (zero-valued) rows in z
         """
         if self.rank1:
             d_shape = D_shape(self.D)
         else:
             d_shape = self.D.shape
         n_new_atoms = d_shape[0] - self.z_hat.shape[0]
-        assert n_new_atoms > 0, "can only increase (not decrease) the number of atoms"
-        self.z_hat = np.concatenate([self.z_hat, np.zeros(n_new_atoms, *self.z_hat.shape[1:])], axis=1)
+        assert n_new_atoms > 0, "cannot decrease the number of atoms"
+        self.z_hat = np.concatenate([self.z_hat,
+                                    np.zeros((n_new_atoms,
+                                              *self.z_hat.shape[1:]))],
+                                    axis=1)
 
     def recv_signal(self):
 
