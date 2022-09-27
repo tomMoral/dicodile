@@ -79,13 +79,13 @@ class DistributedSparseEncoder:
             if self.D_shape[0] != D.shape[0]:
                 assert self.D_shape[0] < D.shape[0], msg_incr
             # update shape in case we add atoms
-            self.D_shape = D.shape 
+            self.D_shape = D.shape
         else:
             u, v = D
             d_shape = D_shape((u, v))
             assert d_shape[1:] == self.D_shape[1:], msg
             if self.D_shape[0] != d_shape[0]:
-                assert self.D_shape[0] < D.shape[0], msg_incr
+                assert self.D_shape[0] < d_shape[0], msg_incr
             # update shape in case we add atoms
             self.D_shape = d_shape
 
