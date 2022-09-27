@@ -130,9 +130,6 @@ def test_compute_max_error_patch(n_workers):
     encoder.shutdown_workers()
 
 
-def test_cannot_shrink_n_atoms():
-    pass
-
 @pytest.mark.parametrize('rank1', [True, False])
 def test_grow_n_atoms(rank1):
     rng = check_random_state(42)
@@ -171,13 +168,14 @@ def test_grow_n_atoms(rank1):
     encoder.process_z_hat()
 
     # Add one atom
-    # not quite what we would do in practice (we would add atoms and not make a new dict)
+    # not quite what we would do in practice
+    # (we would add atoms and not make a new dict)
     D = make_dict(2)
     encoder.set_worker_D(D)
 
-    ## Process z hat
+    # Process z hat
     encoder.process_z_hat()
     z_hat = encoder.get_z_hat()
 
-    ## Check z_hat shape
+    # Check z_hat shape
     assert z_hat.shape[0] == 2
