@@ -90,6 +90,7 @@ class DICODWorker:
             deadline = t_start + self.timeout
         else:
             deadline = None
+
         for ii in range(self.max_iter):
             # Display the progress of the algorithm
             self.progress(ii, max_ii=self.max_iter, unit="iterations",
@@ -110,7 +111,6 @@ class DICODWorker:
                 t_run += selection_duration
             else:
                 k0, pt0, dz = None, None, 0
-
             # update the accumulator for 'random' strategy
             accumulator = max(abs(dz), accumulator)
 
@@ -249,7 +249,7 @@ class DICODWorker:
             constants['DtD'],
             n_atoms,
             atom_support
-            )
+        )
         self.constants = constants
 
         # List of all pending messages sent
@@ -764,6 +764,7 @@ class DICODWorker:
             inner_bounds=inner_bounds,
             full_support=worker_support)
 
+        self.max_iter *= self.local_segments.effective_n_seg
         self.synchronize_workers(with_main=True)
 
         return X_worker, z0
