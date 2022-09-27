@@ -1,9 +1,5 @@
 :orphan:
 
-
-
-.. _sphx_glr_auto_examples:
-
 .. _general_examples:
 
 Examples Gallery
@@ -17,14 +13,59 @@ Examples Gallery
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbnails">
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="This example illlustrates reconstruction of `Mandrill image &lt;http://sipi.usc.edu/database/downl...">
 
 .. only:: html
 
- .. figure:: /auto_examples/images/thumb/sphx_glr_plot_mandrill_thumb.png
-     :alt: DiCoDiLe on the Mandrill image
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_mandrill_thumb.png
+    :alt: DiCoDiLe on the Mandrill image
 
-     :ref:`sphx_glr_auto_examples_plot_mandrill.py`
+  :ref:`sphx_glr_auto_examples_plot_mandrill.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">DiCoDiLe on the Mandrill image</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates pattern recovery on a noisy text image using DiCoDiLe algorithm.">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_text_thumb.png
+    :alt: DiCoDiLe on text images
+
+  :ref:`sphx_glr_auto_examples_plot_text.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">DiCoDiLe on text images</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we use DiCoDiLe on an open `dataset`_ of gait (steps) IMU time-series to disco...">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_plot_gait_thumb.png
+    :alt: Gait (steps) example
+
+  :ref:`sphx_glr_auto_examples_plot_gait.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Gait (steps) example</div>
+    </div>
+
 
 .. raw:: html
 
@@ -35,69 +76,21 @@ Examples Gallery
    :hidden:
 
    /auto_examples/plot_mandrill
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates pattern recovery on a noisy text image using DiCoDiLe algorithm.">
-
-.. only:: html
-
- .. figure:: /auto_examples/images/thumb/sphx_glr_plot_text_thumb.png
-     :alt: DiCoDiLe on text images
-
-     :ref:`sphx_glr_auto_examples_plot_text.py`
-
-.. raw:: html
-
-    </div>
-
-
-.. toctree::
-   :hidden:
-
    /auto_examples/plot_text
+   /auto_examples/plot_gait
 
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we use DiCoDiLe on an open `dataset`_ of gait (steps) IMU time-series to disco...">
 
 .. only:: html
 
- .. figure:: /auto_examples/images/thumb/sphx_glr_plot_gait_thumb.png
-     :alt: Gait (steps) example
+  .. container:: sphx-glr-footer sphx-glr-footer-gallery
 
-     :ref:`sphx_glr_auto_examples_plot_gait.py`
+    .. container:: sphx-glr-download sphx-glr-download-python
 
-.. raw:: html
+      :download:`Download all examples in Python source code: auto_examples_python.zip </auto_examples/auto_examples_python.zip>`
 
-    </div>
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
 
-
-.. toctree::
-   :hidden:
-
-   /auto_examples/plot_gait
-.. raw:: html
-
-    <div class="sphx-glr-clear"></div>
-
-
-
-.. only :: html
-
- .. container:: sphx-glr-footer
-    :class: sphx-glr-footer-gallery
-
-
-  .. container:: sphx-glr-download sphx-glr-download-python
-
-    :download:`Download all examples in Python source code: auto_examples_python.zip </auto_examples/auto_examples_python.zip>`
-
-
-
-  .. container:: sphx-glr-download sphx-glr-download-jupyter
-
-    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip </auto_examples/auto_examples_jupyter.zip>`
+      :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip </auto_examples/auto_examples_jupyter.zip>`
 
 
 .. only:: html
