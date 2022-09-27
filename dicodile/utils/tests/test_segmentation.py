@@ -187,9 +187,9 @@ def test_inner_coordinate():
 
             if w_rank == n_seg[1] - 1:
                 assert segments.is_contained_coordinate(
-                   i_seg,
-                   (seg_support[0] - overlap[0] - 1, seg_support[1] - 1),
-                   inner=True)
+                    i_seg,
+                    (seg_support[0] - overlap[0] - 1, seg_support[1] - 1),
+                    inner=True)
             else:
                 assert not segments.is_contained_coordinate(
                     i_seg, (seg_support[0] - overlap[0] - 1,
@@ -267,3 +267,23 @@ def test_padding_to_overlap():
         overlap = seg.get_padding_to_overlap(i_seg)
         z = np.pad(z, overlap, mode='constant')
         assert z.shape == seg_support_all
+
+
+def test_segments():
+    """Tests if the number of segments is computed correctly."""
+    seg_support = [9]
+    inner_bounds = [[0, 252]]
+    full_support = (252,)
+
+    seg = Segmentation(n_seg=None, seg_support=seg_support,
+                       inner_bounds=inner_bounds, full_support=full_support)
+    seg.compute_n_seg()
+
+    assert seg.effective_n_seg == 28
+
+    seg_support = [10]
+    seg = Segmentation(n_seg=None, seg_support=seg_support,
+                       inner_bounds=inner_bounds, full_support=full_support)
+    seg.compute_n_seg()
+
+    assert seg.effective_n_seg == 26
