@@ -18,7 +18,7 @@ def main():
     tag = wait_message()
     while tag != constants.TAG_WORKER_STOP:
         if tag == constants.TAG_WORKER_RUN_DICOD:
-            dicod = DICODWorker(backend='mpi')
+            dicod = DICODWorker()
             dicod.run()
         if tag == constants.TAG_WORKER_RUN_DICODILE:
             dicodile_worker()

@@ -28,16 +28,9 @@ from dicodile.update_z.coordinate_descent import _init_beta, coordinate_update
 
 class DICODWorker:
     """Worker for DICOD, running LGCD locally and using MPI for communications
-
-    Parameters
-    ----------
-    backend: str
-        Backend used to communicate between workers. Available backends are
-        { 'mpi' }.
     """
 
     def __init__(self, backend):
-        self._backend = backend
         self.D = None
 
     def run(self):
@@ -84,7 +77,8 @@ class DICODWorker:
 
         diverging = False
         if flags.INTERACTIVE_PROCESSES and self.n_workers == 1:
-            import ipdb; ipdb.set_trace()  # noqa: E702
+            import ipdb
+            ipdb.set_trace()  # noqa: E702
 
         self.t_start = t_start = time.time()
         t_run = 0
@@ -586,7 +580,6 @@ class DICODWorker:
     def compute_and_return_max_error_patch(self):
         # receive window param
         # cutting through abstractions here, refactor if needed
-        assert self._backend == "mpi"
         comm = MPI.Comm.Get_parent()
         params = comm.bcast(None, root=0)
         assert 'window' in params
@@ -655,19 +648,11 @@ class DICODWorker:
         If main is True, this synchronization must also be called in the main
         program.
         """
-        if self._backend == "mpi":
-            self._synchronize_workers_mpi(with_main=with_main)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self._synchronize_workers_mpi(with_main=with_main)
 
     def recv_params(self):
         """Receive the parameter of the algorithm from the master node."""
-        if self._backend == "mpi":
-            self.rank, self.n_workers, params = self._recv_params_mpi()
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self.rank, self.n_workers, params = self._recv_params_mpi()
 
         self.tol = params['tol']
         self.reg = params['reg']
@@ -699,6 +684,7 @@ class DICODWorker:
         comm = MPI.Comm.Get_parent()
 
         previous_D_shape = D_shape(self.D) if self.D is not None else None
+
         if self.rank1:
             self.u = recv_broadcasted_array(comm)
             self.v = recv_broadcasted_array(comm)
@@ -802,56 +788,28 @@ class DICODWorker:
 
     def recv_array(self, shape):
         """Receive the part of the signal to encode from the master node."""
-        if self._backend == "mpi":
-            return self._recv_array_mpi(shape=shape)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        return self._recv_array_mpi(shape=shape)
 
     def send_message(self, msg, tag, i_worker, wait=False):
         """Send a message to a specified worker."""
         assert self.rank != i_worker
-        if self._backend == "mpi":
-            return self._send_message_mpi(msg, tag, i_worker, wait=wait)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        return self._send_message_mpi(msg, tag, i_worker, wait=wait)
 
     def send_result(self):
-        if self._backend == "mpi":
-            self._send_result_mpi()
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self._send_result_mpi()
 
     def return_array(self, sig):
-        if self._backend == "mpi":
-            self._return_array_mpi(sig)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self._return_array_mpi(sig)
 
     def reduce_sum_array(self, arr):
-        if self._backend == "mpi":
-            self._reduce_sum_array_mpi(arr)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self._reduce_sum_array_mpi(arr)
 
     def gather_array(self, arr):
-        if self._backend == "mpi":
-            self._gather_array_mpi(arr)
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        self._gather_array_mpi(arr)
 
     def shutdown(self):
-        if self._backend == "mpi":
-            from ..utils.mpi import shutdown_mpi
-            shutdown_mpi()
-        else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+        from ..utils.mpi import shutdown_mpi
+        shutdown_mpi()
 
     ###########################################################################
     #     mpi4py implementation
@@ -932,6 +890,6 @@ class DICODWorker:
 
 
 if __name__ == "__main__":
-    dicod = DICODWorker(backend='mpi')
+    dicod = DICODWorker()
     dicod.run()
     dicod.shutdown()
