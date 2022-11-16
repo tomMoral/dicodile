@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DiCoDiLe &#8212; dicodile  documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Examples Gallery" href="auto_examples/index.html" />
@@ -97,10 +98,10 @@
 <p>This package is still under development. If you have any trouble running this code,
 please <a class="reference external" href="https://github.com/tomMoral/dicodile/issues">open an issue on GitHub</a>.</p>
 <div class="section" id="dicodile">
-<h1>DiCoDiLe<a class="headerlink" href="#dicodile" title="Permalink to this headline">¶</a></h1>
+<h1>DiCoDiLe<a class="headerlink" href="#dicodile" title="Permalink to this heading">¶</a></h1>
 <p>Package to run the experiments for the preprint paper <a class="reference external" href="https://arxiv.org/abs/1901.09235">Distributed Convolutional Dictionary Learning (DiCoDiLe): Pattern Discovery in Large Images and Signals</a>.</p>
 <div class="section" id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
 <p>All the tests should work with python &gt;=3.6. This package depends on the python
 library <code class="docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code>, <code class="docutils literal notranslate"><span class="pre">scipy</span></code>, <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code>, <code class="docutils literal notranslate"><span class="pre">joblib</span></code>. The
 package can be installed with the following command run from the root of the
@@ -125,7 +126,7 @@ pytest .
 </div>
 </div>
 <div class="section" id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h2>
 <p>All experiments are with <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> and will try to spawned workers depending on the parameters set in the experiments. If you need to use an <code class="docutils literal notranslate"><span class="pre">hostfile</span></code> to configure indicate to MPI where to spawn the new workers, you can set the environment variable <code class="docutils literal notranslate"><span class="pre">MPI_HOSTFILE=/path/to/the/hostfile</span></code> and it will be automatically detected in all the experiments. Note that for each experiments you should provide enough workers to allow the script to run.</p>
 <p>All figures can be generated using scripts in <code class="docutils literal notranslate"><span class="pre">benchmarks</span></code>. Each script will generate and save the data to reproduce the figure. The figure can then be plotted by re-running the same script with the argument <code class="docutils literal notranslate"><span class="pre">--plot</span></code>. The figures are saved in pdf in the <code class="docutils literal notranslate"><span class="pre">benchmarks_results</span></code> folder. The computation are cached with <code class="docutils literal notranslate"><span class="pre">joblib</span></code> to be robust to failures.</p>
 <div class="admonition note">
@@ -160,7 +161,7 @@ $ <span class="nb">export</span> <span class="nv">OMPI_MCA_btl_tcp_if_exclude</s
 </div>
 </div></blockquote>
 <div class="section" id="contents">
-<h3>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h3>
+<h3>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">¶</a></h3>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples Gallery</a></li>
@@ -173,7 +174,7 @@ $ <span class="nb">export</span> <span class="nv">OMPI_MCA_btl_tcp_if_exclude</s
 </div>
 </div>
 <div class="section" id="indices-and-tables">
-<h3>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h3>
+<h3>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -195,8 +196,8 @@ $ <span class="nb">export</span> <span class="nv">OMPI_MCA_btl_tcp_if_exclude</s
       
     </p>
     <p>
-        &copy; Copyright 2020-2022, Dicodile Developers. Last updated 2022-09-27 15:51 UTC.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.1.<br/>
+        &copy; Copyright 2020-2022, Dicodile Developers. Last updated 2022-11-16 15:56 UTC.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br/>
     </p>
   </div>
 </footer>
