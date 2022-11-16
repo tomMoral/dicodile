@@ -735,7 +735,6 @@ class DICODWorker:
             self.z_hat,
             np.zeros((n_new_atoms, *self.z_hat.shape[1:]))
         ], axis=0)
-        print(self.z_hat.shape)
 
     def recv_signal(self):
 
