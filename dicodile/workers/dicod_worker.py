@@ -38,6 +38,7 @@ class DICODWorker:
 
     def __init__(self, backend):
         self._backend = backend
+        self.D = None
 
     def run(self):
         self.recv_task()
@@ -59,7 +60,8 @@ class DICODWorker:
         # compute the number of coordinates
         n_atoms, *_ = D_shape(self.D)
         seg_in_support = self.workers_segments.get_seg_support(
-            self.rank, inner=True)
+            self.rank, inner=True
+        )
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
         # Initialization of the algorithm variables
@@ -69,7 +71,8 @@ class DICODWorker:
             offset = np.r_[0, self.local_segments.inner_bounds[:, 0]]
             order = get_order_iterator(
                 (n_atoms, *seg_in_support), strategy=self.strategy,
-                random_state=rng, offset=offset)
+                random_state=rng, offset=offset
+            )
 
         i_seg = -1
         dz = 1
@@ -693,22 +696,50 @@ class DICODWorker:
 
     def recv_D(self):
         """Receive a dictionary D"""
-        if self._backend == "mpi":
-            comm = MPI.Comm.Get_parent()
-            if self.rank1:
-                self.u = recv_broadcasted_array(comm)
-                self.v = recv_broadcasted_array(comm)
-                self.D = (self.u, self.v)
-            else:
-                self.D = recv_broadcasted_array(comm)
-            _, _, *atom_support = D_shape(self.D)
-            self.overlap = np.array(atom_support) - 1
-            if self.precomputed_DtD:
-                self.DtD = recv_broadcasted_array(comm)
-            return self.D
+        comm = MPI.Comm.Get_parent()
+
+        previous_D_shape = D_shape(self.D) if self.D is not None else None
+        if self.rank1:
+            self.u = recv_broadcasted_array(comm)
+            self.v = recv_broadcasted_array(comm)
+            self.D = (self.u, self.v)
         else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+            self.D = recv_broadcasted_array(comm)
+
+        if self.precomputed_DtD:
+            self.DtD = recv_broadcasted_array(comm)
+
+        # update z if the shape of D changed (when adding new atoms)
+        if (previous_D_shape is not None and
+                previous_D_shape != D_shape(self.D)):
+            self._extend_z()
+
+        # update overlap if necessary
+        _, _, *atom_support = D_shape(self.D)
+        self.overlap = np.array(atom_support) - 1
+
+        return self.D
+
+    def _extend_z(self):
+        """
+        When adding new atoms in D, add the corresponding
+        number of (zero-valued) rows in z
+        """
+        # Only extend z_hat if it has already been created.
+        if not hasattr(self, "z_hat"):
+            return
+
+        if self.rank1:
+            d_shape = D_shape(self.D)
+        else:
+            d_shape = self.D.shape
+        n_new_atoms = d_shape[0] - self.z_hat.shape[0]
+        assert n_new_atoms > 0, "cannot decrease the number of atoms"
+
+        self.z_hat = np.concatenate([
+            self.z_hat,
+            np.zeros((n_new_atoms, *self.z_hat.shape[1:]))
+        ], axis=0)
 
     def recv_signal(self):
 

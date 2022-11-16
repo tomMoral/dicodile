@@ -39,6 +39,9 @@ def main_check_beta(comm, workers_segments):
 
 def worker_check_beta(rank, workers_segments, beta, D_shape):
     """Helper function for main_check_warm_beta, to be run in the workers."""
+
+    assert beta.shape[0] == D_shape[0]
+
     global_test_points = get_global_test_points(workers_segments)
     for i_probe, pt_global in enumerate(global_test_points):
         pt = workers_segments.get_local_coordinate(rank, pt_global)

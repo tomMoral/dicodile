@@ -90,11 +90,6 @@ def soft_thresholding(x, mu, positive=False):
     return np.sign(x) * np.maximum(abs(x) - mu, 0)
 
 
-def reconstruct(z_hat, D):
-    X_hat = _choose_convolve_multi(z_hat, D)
-    return X_hat
-
-
 def compute_objective(X, z_hat, D, reg):
     res = (X - reconstruct(z_hat, D)).ravel()
     return 0.5 * np.dot(res, res) + reg * abs(z_hat).sum()
@@ -104,7 +99,7 @@ def _is_rank1(D):
     return isinstance(D, tuple)
 
 
-def _choose_convolve_multi(z_hat, D):
+def reconstruct(z_hat, D):
     """Convolve z_hat and D for rank-1 and full rank cases.
 
     z_hat : array, shape (n_atoms, *valid_support)
