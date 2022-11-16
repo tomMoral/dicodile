@@ -725,12 +725,17 @@ class DICODWorker:
         When adding new atoms in D, add the corresponding
         number of (zero-valued) rows in z
         """
+        # Only extend z_hat if it has already been created.
+        if not hasattr(self, "z_hat"):
+            return
+
         if self.rank1:
             d_shape = D_shape(self.D)
         else:
             d_shape = self.D.shape
         n_new_atoms = d_shape[0] - self.z_hat.shape[0]
         assert n_new_atoms > 0, "cannot decrease the number of atoms"
+
         self.z_hat = np.concatenate([
             self.z_hat,
             np.zeros((n_new_atoms, *self.z_hat.shape[1:]))
