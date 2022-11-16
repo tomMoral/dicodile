@@ -159,11 +159,15 @@ def test_grow_n_atoms(rank1, warm_start):
             D = u, v
         return D
 
-    # Init dict with one atom
-    D = make_dict(1)
+    # Init dict with zero atom
+    D = make_dict(0)
 
     encoder = DistributedSparseEncoder(n_workers=3)
     encoder.init_workers(X, D, reg, params, DtD=None)
+
+    # update dict with one atom
+    D = make_dict(1)
+    encoder.set_worker_D(D)
 
     # Process z hat
     encoder.process_z_hat()
