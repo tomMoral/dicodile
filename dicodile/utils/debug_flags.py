@@ -5,7 +5,9 @@ TESTING_DICOD = os.environ.get("TESTING_DICOD", "0") == "1"
 
 
 # Start interactive child processes when set to True
-INTERACTIVE_PROCESSES = False
+INTERACTIVE_PROCESSES = (
+    os.environ.get("DICODILE_INTERACTIVE_WORKERS", "0") == "1"
+)
 
 # If set to True, check that inactive segments do not have any coefficient
 # with update over tol.

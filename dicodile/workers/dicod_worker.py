@@ -60,7 +60,8 @@ class DICODWorker:
         # compute the number of coordinates
         n_atoms, *_ = D_shape(self.D)
         seg_in_support = self.workers_segments.get_seg_support(
-            self.rank, inner=True)
+            self.rank, inner=True
+        )
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
         # Initialization of the algorithm variables
@@ -70,7 +71,8 @@ class DICODWorker:
             offset = np.r_[0, self.local_segments.inner_bounds[:, 0]]
             order = get_order_iterator(
                 (n_atoms, *seg_in_support), strategy=self.strategy,
-                random_state=rng, offset=offset)
+                random_state=rng, offset=offset
+            )
 
         i_seg = -1
         dz = 1
@@ -250,7 +252,7 @@ class DICODWorker:
             constants['DtD'],
             n_atoms,
             atom_support
-            )
+        )
         self.constants = constants
 
         # List of all pending messages sent
@@ -694,33 +696,29 @@ class DICODWorker:
 
     def recv_D(self):
         """Receive a dictionary D"""
-        if self._backend == "mpi":
-            comm = MPI.Comm.Get_parent()
-            current_D_shape = None
-            if self.rank1:
-                if self.D is not None:
-                    current_D_shape = D_shape(self.D)
-                self.u = recv_broadcasted_array(comm)
-                self.v = recv_broadcasted_array(comm)
-                self.D = (self.u, self.v)
-                # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape is not None and current_D_shape != D_shape(self.D):  # noqa:E501
-                    self._extend_z()
-            else:
-                if self.D is not None:
-                    current_D_shape = self.D.shape
-                self.D = recv_broadcasted_array(comm)
-                # update z if the shape of D changed (when adding new atoms)
-                if current_D_shape is not None and current_D_shape != self.D.shape:  # noqa:E501
-                    self._extend_z()
-            _, _, *atom_support = D_shape(self.D)
-            self.overlap = np.array(atom_support) - 1
-            if self.precomputed_DtD:
-                self.DtD = recv_broadcasted_array(comm)
-            return self.D
+        comm = MPI.Comm.Get_parent()
+
+        previous_D_shape = D_shape(self.D) if self.D is not None else None
+        if self.rank1:
+            self.u = recv_broadcasted_array(comm)
+            self.v = recv_broadcasted_array(comm)
+            self.D = (self.u, self.v)
         else:
-            raise NotImplementedError("Backend {} is not implemented"
-                                      .format(self._backend))
+            self.D = recv_broadcasted_array(comm)
+
+        if self.precomputed_DtD:
+            self.DtD = recv_broadcasted_array(comm)
+
+        # update z if the shape of D changed (when adding new atoms)
+        if (previous_D_shape is not None and
+                previous_D_shape != D_shape(self.D)):
+            self._extend_z()
+
+        # update overlap if necessary
+        _, _, *atom_support = D_shape(self.D)
+        self.overlap = np.array(atom_support) - 1
+
+        return self.D
 
     def _extend_z(self):
         """
@@ -733,10 +731,11 @@ class DICODWorker:
             d_shape = self.D.shape
         n_new_atoms = d_shape[0] - self.z_hat.shape[0]
         assert n_new_atoms > 0, "cannot decrease the number of atoms"
-        self.z_hat = np.concatenate([self.z_hat,
-                                    np.zeros((n_new_atoms,
-                                              *self.z_hat.shape[1:]))],
-                                    axis=1)
+        self.z_hat = np.concatenate([
+            self.z_hat,
+            np.zeros((n_new_atoms, *self.z_hat.shape[1:]))
+        ], axis=0)
+        print(self.z_hat.shape)
 
     def recv_signal(self):
 

@@ -131,7 +131,8 @@ def test_compute_max_error_patch(n_workers):
 
 
 @pytest.mark.parametrize('rank1', [True, False])
-def test_grow_n_atoms(rank1):
+@pytest.mark.parametrize('warm_start', [True, False])
+def test_grow_n_atoms(rank1, warm_start):
     rng = check_random_state(42)
 
     n_channels = 3
@@ -142,7 +143,7 @@ def test_grow_n_atoms(rank1):
     params = dict(tol=1e-2, n_seg='auto', timing=False, timeout=None,
                   verbose=100, strategy='greedy', max_iter=100000,
                   soft_lock='border', z_positive=True, return_ztz=False,
-                  freeze_support=False, warm_start=False, random_state=27)
+                  freeze_support=False, warm_start=warm_start, random_state=27)
 
     X = rng.randn(n_channels, n_times)
 
