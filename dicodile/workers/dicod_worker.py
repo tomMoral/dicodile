@@ -783,7 +783,6 @@ class DICODWorker:
             self.workers_segments.get_local_coordinate(self.rank, bound)
             for bound in np.transpose(inner_bounds)])
 
-        worker_support = self.workers_segments.get_seg_support(self.rank)
         self.local_segments = Segmentation(
             n_seg=n_seg, seg_support=local_seg_support,
             inner_bounds=inner_bounds,
