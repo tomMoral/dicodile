@@ -753,10 +753,10 @@ class DICODWorker:
         )
 
         # Receive X and z from the master node.
-        worker_support = self.workers_segments.get_seg_support(self.rank)
-        X_shape = (n_channels,) + get_full_support(worker_support,
+        self.worker_support = self.workers_segments.get_seg_support(self.rank)
+        X_shape = (n_channels,) + get_full_support(self.worker_support,
                                                    atom_support)
-        z0_shape = (n_atoms,) + worker_support
+        z0_shape = (n_atoms,) + self.worker_support
         if self.has_z0:
             z0 = self.recv_array(z0_shape)
         else:
@@ -777,16 +777,16 @@ class DICODWorker:
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
         # coordinate system.
-        inner_bounds = self.workers_segments.get_seg_bounds(
+        self.worker_inner_bounds = self.workers_segments.get_seg_bounds(
             self.rank, inner=True)
         inner_bounds = np.transpose([
             self.workers_segments.get_local_coordinate(self.rank, bound)
-            for bound in np.transpose(inner_bounds)])
+            for bound in np.transpose(self.worker_inner_bounds)])
 
         self.local_segments = Segmentation(
             n_seg=n_seg, seg_support=local_seg_support,
             inner_bounds=inner_bounds,
-            full_support=worker_support)
+            full_support=self.worker_support)
 
         self.max_iter *= self.local_segments.effective_n_seg
         self.synchronize_workers(with_main=True)
