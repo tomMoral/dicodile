@@ -308,14 +308,25 @@ class Segmentation:
             res += [v - offset]
         return tuple(res)
 
-    def is_contained_coordinate(self, i_seg, pt, inner=False):
+    def is_contained_coordinate(self, pt, seg_bounds,
+                                seg_bounds_innerX=None):
         """Ensure that a given point is in the bounds to be a local coordinate.
+
+        Parameters
+        ----------
+        pt: (int, int)
+            Coordinate to check
+        seg_bounds:
+            Bounds for the segment
+        seg_bounds_innerX:
+            Bounds for the segment, specify only if inner bounds should be
+        used, with use seg_bounds otherwise.
         """
-        seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
-        seg_bounds_x = self.get_seg_bounds(i_seg)
-        pt = self.get_global_coordinate(pt, seg_bounds_x)
+        if seg_bounds_innerX is None:
+            seg_bounds_innerX = seg_bounds
+        pt = self.get_global_coordinate(pt, seg_bounds)
         is_valid = True
-        for v, (stat_ax, end_ax) in zip(pt, seg_bounds):
+        for v, (stat_ax, end_ax) in zip(pt, seg_bounds_innerX):
             is_valid &= (stat_ax <= v < end_ax)
         return is_valid
 
@@ -330,7 +341,8 @@ class Segmentation:
         seg_bounds_inner = self.get_seg_bounds(i_seg, inner=True)
 
         update_bounds = [[v - r, v + r + 1] for v, r in zip(pt, radius)]
-        assert self.is_contained_coordinate(i_seg, pt, inner=True)
+        assert self.is_contained_coordinate(pt, seg_bounds,
+                                            seg_bounds_inner)
         for i in range(self.n_axis):
             assert (update_bounds[i][0] >= 0 or
                     seg_bounds[i][0] == seg_bounds_inner[i][0])

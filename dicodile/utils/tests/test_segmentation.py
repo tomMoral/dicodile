@@ -152,59 +152,79 @@ def test_inner_coordinate():
     for h_rank in range(n_seg[0]):
         for w_rank in range(n_seg[1]):
             i_seg = h_rank * n_seg[1] + w_rank
+            seg_bound = segments.get_seg_bounds(i_seg)
+            seg_bound_inner = segments.get_seg_bounds(i_seg, inner=True)
             seg_support = segments.get_seg_support(i_seg)
-            assert segments.is_contained_coordinate(i_seg, overlap,
-                                                    inner=True)
+
+            assert segments.is_contained_coordinate(
+                overlap, seg_bound, seg_bound_inner
+            )
 
             if h_rank == 0:
-                assert segments.is_contained_coordinate(i_seg, (0, overlap[1]),
-                                                        inner=True)
+                assert segments.is_contained_coordinate(
+                    (0, overlap[1]), seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (overlap[0] - 1, overlap[1]), inner=True)
+                    (overlap[0] - 1, overlap[1]), seg_bound,
+                    seg_bound_inner
+                )
 
             if w_rank == 0:
-                assert segments.is_contained_coordinate(i_seg, (overlap[0], 0),
-                                                        inner=True)
+                assert segments.is_contained_coordinate(
+                    (overlap[0], 0), seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (overlap[0], overlap[1] - 1), inner=True)
+                    (overlap[0], overlap[1] - 1), seg_bound,
+                    seg_bound_inner
+                )
 
             if h_rank == 0 and w_rank == 0:
-                assert segments.is_contained_coordinate(i_seg, (0, 0),
-                                                        inner=True)
+                assert segments.is_contained_coordinate(
+                    (0, 0), seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (overlap[0] - 1, overlap[1] - 1), inner=True)
+                    (overlap[0] - 1, overlap[1] - 1), seg_bound,
+                    seg_bound_inner
+                )
 
             if h_rank == n_seg[0] - 1:
                 assert segments.is_contained_coordinate(
-                    i_seg,
                     (seg_support[0] - 1, seg_support[1] - overlap[1] - 1),
-                    inner=True)
+                    seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (seg_support[0] - overlap[0],
-                            seg_support[1] - overlap[1] - 1), inner=True)
+                    (seg_support[0] - overlap[0],
+                     seg_support[1] - overlap[1] - 1),
+                    seg_bound, seg_bound_inner
+                )
 
             if w_rank == n_seg[1] - 1:
                 assert segments.is_contained_coordinate(
-                    i_seg,
                     (seg_support[0] - overlap[0] - 1, seg_support[1] - 1),
-                    inner=True)
+                    seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (seg_support[0] - overlap[0] - 1,
-                            seg_support[1] - overlap[1]), inner=True)
+                    (seg_support[0] - overlap[0] -
+                     1, seg_support[1] - overlap[1]),
+                    seg_bound, seg_bound_inner
+                )
 
             if h_rank == n_seg[0] - 1 and w_rank == n_seg[1] - 1:
                 assert segments.is_contained_coordinate(
-                    i_seg, (seg_support[0] - 1, seg_support[1] - 1),
-                    inner=True)
+                    (seg_support[0] - 1, seg_support[1] - 1),
+                    seg_bound, seg_bound_inner
+                )
             else:
                 assert not segments.is_contained_coordinate(
-                    i_seg, (seg_support[0] - overlap[0],
-                            seg_support[1] - overlap[1]), inner=True)
+                    (seg_support[0] - overlap[0],
+                     seg_support[1] - overlap[1]),
+                    seg_bound, seg_bound_inner
+                )
 
 
 def test_touched_overlap_area():
@@ -216,6 +236,7 @@ def test_touched_overlap_area():
 
     for i_seg in range(segments.effective_n_seg):
         seg_bound = segments.get_seg_bounds(i_seg)
+        seg_bound_inner = segments.get_seg_bounds(i_seg, inner=True)
         seg_support = segments.get_seg_support(i_seg)
         seg_slice = segments.get_seg_slice(i_seg)
         seg_inner_slice = segments.get_seg_slice(i_seg, inner=True)
@@ -228,7 +249,8 @@ def test_touched_overlap_area():
                     (seg_support[0] - overlap[0] - 1,
                      seg_support[1] - overlap[1] - 1)
                     ]:
-            assert segments.is_contained_coordinate(i_seg, pt0, inner=True)
+            assert segments.is_contained_coordinate(pt0, seg_bound,
+                                                    seg_bound_inner)
             segments.check_area_contained(i_seg, pt0, overlap)
             z = np.zeros(sig_support)
             pt_global = segments.get_global_coordinate(pt0, seg_bound)

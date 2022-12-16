@@ -357,9 +357,11 @@ class DICODWorker:
         pt0 = self.workers_segments.get_local_coordinate(pt_global,
                                                          self.worker_bounds)
         assert not self.workers_segments.is_contained_coordinate(
-            self.rank, pt0, inner=True), (pt_global, pt0)
+            pt0, self.worker_bounds, self.worker_inner_bounds
+        ), (pt_global, pt0)
         coordinate_exist = self.workers_segments.is_contained_coordinate(
-            self.rank, pt0, inner=False)
+            pt0, self.worker_bounds
+        )
         self.coordinate_update(k0, pt0, dz, coordinate_exist=coordinate_exist)
 
         if flags.CHECK_BETA and np.random.rand() > 0.99:
@@ -505,7 +507,7 @@ class DICODWorker:
                         self.worker_bounds
                     )
                     pt_exist = self.workers_segments.is_contained_coordinate(
-                        self.rank, pt0, inner=False)
+                        pt0, self.worker_bounds)
                     if not pt_exist and (k0, *pt0) not in done_pt:
                         done_pt.add((k0, *pt0))
                         self.coordinate_update(k0, pt0, dz,
