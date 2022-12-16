@@ -133,11 +133,13 @@ def test_change_coordinate():
         seg_support = segments.get_seg_support(i_seg)
         origin = tuple([start for start, _ in seg_bound])
         assert segments.get_global_coordinate(i_seg, (0, 0)) == origin
-        assert segments.get_local_coordinate(i_seg, origin) == (0, 0)
+        assert segments.get_local_coordinate(origin,
+                                             seg_bound) == (0, 0)
 
         corner = tuple([end for _, end in seg_bound])
         assert segments.get_global_coordinate(i_seg, seg_support) == corner
-        assert segments.get_local_coordinate(i_seg, corner) == seg_support
+        assert segments.get_local_coordinate(corner,
+                                             seg_bound) == seg_support
 
 
 def test_inner_coordinate():

@@ -354,7 +354,8 @@ class DICODWorker:
 
         k0 = int(k0)
         pt_global = tuple([int(v) for v in pt_global])
-        pt0 = self.workers_segments.get_local_coordinate(self.rank, pt_global)
+        pt0 = self.workers_segments.get_local_coordinate(pt_global,
+                                                         self.worker_bounds)
         assert not self.workers_segments.is_contained_coordinate(
             self.rank, pt0, inner=True), (pt_global, pt0)
         coordinate_exist = self.workers_segments.is_contained_coordinate(
@@ -499,8 +500,10 @@ class DICODWorker:
                     k0, *pt_global, dz = msg
                     k0 = int(k0)
                     pt_global = tuple([int(v) for v in pt_global])
-                    pt0 = self.workers_segments.get_local_coordinate(self.rank,
-                                                                     pt_global)
+                    pt0 = self.workers_segments.get_local_coordinate(
+                        pt_global,
+                        self.worker_bounds
+                    )
                     pt_exist = self.workers_segments.is_contained_coordinate(
                         self.rank, pt0, inner=False)
                     if not pt_exist and (k0, *pt0) not in done_pt:
@@ -774,13 +777,16 @@ class DICODWorker:
             n_seg = None
             local_seg_support = 2 * np.array(atom_support) - 1
 
+        self.worker_bounds = self.workers_segments.get_seg_bounds(
+            self.rank)
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
         # coordinate system.
         self.worker_inner_bounds = self.workers_segments.get_seg_bounds(
             self.rank, inner=True)
         inner_bounds = np.transpose([
-            self.workers_segments.get_local_coordinate(self.rank, bound)
+            self.workers_segments.get_local_coordinate(bound,
+                                                       self.worker_bounds)
             for bound in np.transpose(self.worker_inner_bounds)])
 
         self.local_segments = Segmentation(

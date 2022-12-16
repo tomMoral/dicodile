@@ -26,8 +26,9 @@ def main_check_beta(comm, workers_segments):
         sum_beta = np.empty(1, 'd')
         value = []
         for i_worker in range(workers_segments.effective_n_seg):
-
-            pt = workers_segments.get_local_coordinate(i_worker, pt_global)
+            worker_bounds = workers_segments.get_seg_bounds(i_worker)
+            pt = workers_segments.get_local_coordinate(pt_global,
+                                                       worker_bounds)
             if workers_segments.is_contained_coordinate(i_worker, pt):
                 comm.Recv([sum_beta, MPI.DOUBLE], source=i_worker,
                           tag=constants.TAG_ROOT + i_probe)
@@ -44,7 +45,9 @@ def worker_check_beta(rank, workers_segments, beta, D_shape):
 
     global_test_points = get_global_test_points(workers_segments)
     for i_probe, pt_global in enumerate(global_test_points):
-        pt = workers_segments.get_local_coordinate(rank, pt_global)
+        worker_bounds = workers_segments.get_seg_bounds(rank)
+        pt = workers_segments.get_local_coordinate(pt_global,
+                                                   worker_bounds)
         if workers_segments.is_contained_coordinate(rank, pt):
             beta_slice = (Ellipsis,) + pt
             sum_beta = np.array(beta[beta_slice].sum(), dtype='d')

@@ -287,20 +287,21 @@ class Segmentation:
             res += [v + offset]
         return tuple(res)
 
-    def get_local_coordinate(self, i_seg, pt):
+    def get_local_coordinate(self, pt, seg_bounds):
         """Convert a point from global coordinate to local coordinate
 
         Parameters
         ----------
         pt: (int, int)
-            Coordinate to convert, from the global coordinate system.
+            Coordinate to convert, from the global coordinate system
+        seg_bounds:
+            Bounds for the segment
 
         Return
         ------
         pt : (int, int)
             Coordinate converted in the local coordinate system.
         """
-        seg_bounds = self.get_seg_bounds(i_seg)
         res = []
         for v, (offset, _) in zip(pt, seg_bounds):
             res += [v - offset]
