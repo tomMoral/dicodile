@@ -268,20 +268,21 @@ class Segmentation:
                 seg_slice = self.get_seg_slice(i, inner=True)
                 assert np.all(abs(dz[seg_slice]) <= tol)
 
-    def get_global_coordinate(self, i_seg, pt):
+    def get_global_coordinate(self, pt, seg_bounds):
         """Convert a point from local coordinate to global coordinate
 
         Parameters
         ----------
         pt: (int, int)
             Coordinate to convert, from the local coordinate system.
+        seg_bounds:
+            Bounds for the segment
 
         Return
         ------
         pt : (int, int)
             Coordinate converted in the global coordinate system.
         """
-        seg_bounds = self.get_seg_bounds(i_seg)
         res = []
         for v, (offset, _) in zip(pt, seg_bounds):
             res += [v + offset]
@@ -311,7 +312,8 @@ class Segmentation:
         """Ensure that a given point is in the bounds to be a local coordinate.
         """
         seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
-        pt = self.get_global_coordinate(i_seg, pt)
+        seg_bounds_x = self.get_seg_bounds(i_seg)
+        pt = self.get_global_coordinate(pt, seg_bounds_x)
         is_valid = True
         for v, (stat_ax, end_ax) in zip(pt, seg_bounds):
             is_valid &= (stat_ax <= v < end_ax)

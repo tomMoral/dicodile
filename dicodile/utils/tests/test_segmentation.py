@@ -132,12 +132,12 @@ def test_change_coordinate():
         seg_bound = segments.get_seg_bounds(i_seg)
         seg_support = segments.get_seg_support(i_seg)
         origin = tuple([start for start, _ in seg_bound])
-        assert segments.get_global_coordinate(i_seg, (0, 0)) == origin
+        assert segments.get_global_coordinate((0, 0), seg_bound) == origin
         assert segments.get_local_coordinate(origin,
                                              seg_bound) == (0, 0)
 
         corner = tuple([end for _, end in seg_bound])
-        assert segments.get_global_coordinate(i_seg, seg_support) == corner
+        assert segments.get_global_coordinate(seg_support, seg_bound) == corner
         assert segments.get_local_coordinate(corner,
                                              seg_bound) == seg_support
 
@@ -215,6 +215,7 @@ def test_touched_overlap_area():
                             overlap=overlap)
 
     for i_seg in range(segments.effective_n_seg):
+        seg_bound = segments.get_seg_bounds(i_seg)
         seg_support = segments.get_seg_support(i_seg)
         seg_slice = segments.get_seg_slice(i_seg)
         seg_inner_slice = segments.get_seg_slice(i_seg, inner=True)
@@ -230,7 +231,7 @@ def test_touched_overlap_area():
             assert segments.is_contained_coordinate(i_seg, pt0, inner=True)
             segments.check_area_contained(i_seg, pt0, overlap)
             z = np.zeros(sig_support)
-            pt_global = segments.get_global_coordinate(i_seg, pt0)
+            pt_global = segments.get_global_coordinate(pt0, seg_bound)
             update_slice = tuple([
                 slice(max(v - r, 0), v + r + 1)
                 for v, r in zip(pt_global, overlap)])

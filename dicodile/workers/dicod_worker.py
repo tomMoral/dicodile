@@ -145,7 +145,7 @@ class DICODWorker:
 
                 # Notify neighboring workers of the update if needed.
                 pt_global = self.workers_segments.get_global_coordinate(
-                    self.rank, pt0)
+                    pt0, self.worker_bounds)
                 workers = self.workers_segments.get_touched_segments(
                     pt=pt_global, radius=np.array(self.overlap) + 1
                 )
@@ -456,7 +456,7 @@ class DICODWorker:
         for k0, *pt0 in zip(*self.z0.nonzero()):
             # Notify neighboring workers of the update if needed.
             pt_global = self.workers_segments.get_global_coordinate(
-                self.rank, pt0)
+                pt0, self.worker_bounds)
             workers = self.workers_segments.get_touched_segments(
                 pt=pt_global, radius=np.array(self.overlap) + 1
             )

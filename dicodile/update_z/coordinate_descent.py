@@ -334,7 +334,8 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, order=None):
         # TODO: broken~~~!!!
         k0, *pt0 = np.unravel_index(i0, dz_opt_seg.shape)
         # k0, *pt0 = tuple(fast_unravel(i0, dz_opt_seg.shape))
-        pt0 = segments.get_global_coordinate(i_seg, pt0)
+        bounds = segments.get_seg_bounds(i_seg)
+        pt0 = segments.get_global_coordinate(pt0, bounds)
 
     dz = dz_opt[(k0, *pt0)]
     return k0, pt0, dz
@@ -435,7 +436,7 @@ def compute_dE(dz_opt, beta, z_hat, reg):
         dz_opt * (z_hat + .5 * dz_opt - beta)
         # l1 term
         + reg * (abs(z_hat) - abs(z_hat + dz_opt))
-        )
+    )
 
 
 def _check_convergence(segments, tol, iteration, dz_opt, n_coordinates,
