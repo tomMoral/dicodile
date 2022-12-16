@@ -296,7 +296,9 @@ def test_padding_to_overlap():
     for i_seg in range(np.prod(n_seg)):
         seg_support = seg.get_seg_support(i_seg)
         z = np.empty(seg_support)
-        overlap = seg.get_padding_to_overlap(i_seg)
+        seg_bound = seg.get_seg_bounds(i_seg)
+        seg_bound_inner = seg.get_seg_bounds(i_seg, inner=True)
+        overlap = seg.get_padding_to_overlap(seg_bound, seg_bound_inner)
         z = np.pad(z, overlap, mode='constant')
         assert z.shape == seg_support_all
 

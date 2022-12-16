@@ -414,13 +414,26 @@ class Segmentation:
 
         return updated_slices
 
-    def get_padding_to_overlap(self, i_seg):
+    def get_padding_to_overlap(self, seg_bounds, seg_bounds_inner):
+        """
 
-        seg_bounds = self.get_seg_bounds(i_seg)
-        seg_inner_bounds = self.get_seg_bounds(i_seg, inner=True)
+        Parameter
+        ---------
+        seg_bounds:
+            Bounds of the considered segment
+        seg_bounds_inner:
+            Inner bounds of the considered segment
+        seg_support:
+            Support of the considered segment
+
+        Return
+        ------
+
+        """
+
         padding_support = []
         for overlap_ax, (start_ax, end_ax), (start_in_ax, end_in_ax) in zip(
-                self.overlap, seg_bounds, seg_inner_bounds):
+                self.overlap, seg_bounds, seg_bounds_inner):
             padding_support += [
                 (overlap_ax - (start_in_ax - start_ax),
                  overlap_ax - (end_ax - end_in_ax))

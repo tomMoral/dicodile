@@ -451,7 +451,7 @@ class DICODWorker:
         ztX = compute_ztX(self.z_hat[z_slice], self.X_worker[X_slice])
 
         padding_support = self.workers_segments.get_padding_to_overlap(
-            self.rank)
+            self.worker_bounds, self.worker_inner_bounds)
         ztz = compute_ztz(self.z_hat, atom_support,
                           padding_support=padding_support)
         return np.array(ztz, dtype='d'), np.array(ztX, dtype='d')
