@@ -330,15 +330,12 @@ class Segmentation:
             is_valid &= (stat_ax <= v < end_ax)
         return is_valid
 
-    def check_area_contained(self, i_seg, pt, radius):
-        """Check that the given area is contained in segment i_seg.
+    def check_area_contained(self, pt, radius, seg_bounds, seg_bounds_inner,
+                             seg_support):
+        """Check that the given area is contained in segment with bounds seg_bounds.
 
         If not, fail with an AssertionError.
         """
-
-        seg_bounds = self.get_seg_bounds(i_seg)
-        seg_support = self.get_seg_support(i_seg)
-        seg_bounds_inner = self.get_seg_bounds(i_seg, inner=True)
 
         update_bounds = [[v - r, v + r + 1] for v, r in zip(pt, radius)]
         assert self.is_contained_coordinate(pt, seg_bounds,

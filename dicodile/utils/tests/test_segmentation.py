@@ -242,7 +242,8 @@ def test_touched_overlap_area():
         seg_inner_slice = segments.get_seg_slice(i_seg, inner=True)
         if i_seg != 0:
             with pytest.raises(AssertionError):
-                segments.check_area_contained(i_seg, (0, 0), overlap)
+                segments.check_area_contained((0, 0), overlap, seg_bound,
+                                              seg_bound_inner, seg_support)
         for pt0 in [overlap, (overlap[0], 25), (25, overlap[1]), (25, 25),
                     (seg_support[0] - overlap[0] - 1, 25),
                     (25, seg_support[1] - overlap[1] - 1),
@@ -251,7 +252,8 @@ def test_touched_overlap_area():
                     ]:
             assert segments.is_contained_coordinate(pt0, seg_bound,
                                                     seg_bound_inner)
-            segments.check_area_contained(i_seg, pt0, overlap)
+            segments.check_area_contained(pt0, overlap, seg_bound,
+                                          seg_bound_inner, seg_support)
             z = np.zeros(sig_support)
             pt_global = segments.get_global_coordinate(pt0, seg_bound)
             update_slice = tuple([

@@ -114,8 +114,12 @@ class DICODWorker:
             # If requested, check that the update chosen only have an impact on
             # the segment and its overlap area.
             if flags.CHECK_UPDATE_CONTAINED and pt0 is not None:
-                self.workers_segments.check_area_contained(self.rank,
-                                                           pt0, self.overlap)
+                self.workers_segments.check_area_contained(
+                    pt0, self.overlap,
+                    self.worker_bounds,
+                    self.worker_inner_bounds,
+                    self.worker_support
+                )
 
             # Check if the coordinate is soft-locked or not.
             soft_locked = False
