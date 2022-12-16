@@ -267,8 +267,13 @@ def test_touched_overlap_area():
             # segment in z to use local coordinate.
             z_seg = z[seg_slice]
 
-            updated_slices = segments.get_touched_overlap_slices(i_seg, pt0,
-                                                                 overlap)
+            updated_slices = segments.get_touched_overlap_slices(
+                pt0,
+                overlap,
+                seg_bound,
+                seg_bound_inner,
+                seg_support
+            )
             # Assert that all selected coordinate are indeed in the update area
             for u_slice in updated_slices:
                 assert np.all(z_seg[u_slice] == 1)

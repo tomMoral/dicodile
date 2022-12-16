@@ -127,7 +127,8 @@ class DICODWorker:
                     self.soft_lock != 'none'):
                 n_lock = 1 if self.soft_lock == "corner" else 0
                 lock_slices = self.workers_segments.get_touched_overlap_slices(
-                    self.rank, pt0, np.array(self.overlap) + 1
+                    pt0, np.array(self.overlap) + 1, self.worker_bounds,
+                    self.worker_inner_bounds, self.worker_support
                 )
                 # Only soft lock in the corners
                 if len(lock_slices) > n_lock:

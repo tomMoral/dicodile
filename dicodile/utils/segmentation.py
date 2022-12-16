@@ -276,7 +276,7 @@ class Segmentation:
         pt: (int, int)
             Coordinate to convert, from the local coordinate system.
         seg_bounds:
-            Bounds for the segment
+            Bounds of the considered segment
 
         Return
         ------
@@ -296,7 +296,7 @@ class Segmentation:
         pt: (int, int)
             Coordinate to convert, from the global coordinate system
         seg_bounds:
-            Bounds for the segment
+            Bounds of the considered segment
 
         Return
         ------
@@ -317,10 +317,10 @@ class Segmentation:
         pt: (int, int)
             Coordinate to check
         seg_bounds:
-            Bounds for the segment
+            Bounds of the considered segment
         seg_bounds_innerX:
-            Bounds for the segment, specify only if inner bounds should be
-        used, with use seg_bounds otherwise.
+            Bounds of the considered segment, specify only if inner bounds
+        should be used, with uses seg_bounds otherwise.
         """
         if seg_bounds_innerX is None:
             seg_bounds_innerX = seg_bounds
@@ -334,6 +334,19 @@ class Segmentation:
                              seg_support):
         """Check that the given area is contained in segment with bounds seg_bounds.
 
+        Parameter
+        ---------
+        pt : list of int
+            Coordinate of the given update.
+        radius: int or list of int
+            Radius of the update. If an integer is given, use the same integer
+            for all axis.
+        seg_bounds:
+            Bounds of the considered segment
+        seg_bounds_inner:
+            Inner bounds of the considered segment
+        seg_support:
+            Support of the considered segment
         If not, fail with an AssertionError.
         """
 
@@ -346,18 +359,23 @@ class Segmentation:
             assert (update_bounds[i][1] <= seg_support[i]
                     or seg_bounds[i][1] == seg_bounds_inner[i][1])
 
-    def get_touched_overlap_slices(self, i_seg, pt, radius):
+    def get_touched_overlap_slices(self, pt, radius, seg_bounds,
+                                   seg_bounds_inner, seg_support):
         """Return a list of slices in the overlap area, touched a rectangle
 
         Parameter
         ---------
-        i_seg : int
-            Indice of the considered segment.
         pt : list of int
             Coordinate of the given update.
         radius: int or list of int
             Radius of the update. If an integer is given, use the same integer
             for all axis.
+        seg_bounds:
+            Bounds of the considered segment
+        seg_bounds_inner:
+            Inner bounds of the considered segment
+        seg_support:
+            Support of the considered segment
 
         Return
         ------
@@ -365,10 +383,6 @@ class Segmentation:
             Slices to select parts in the overlap area touched by the given
             area. The slices can have some overlap
         """
-        seg_bounds = self.get_seg_bounds(i_seg)
-        seg_support = self.get_seg_support(i_seg)
-        seg_bounds_inner = self.get_seg_bounds(i_seg, inner=True)
-
         update_bounds = [[min(max(0, v - r), size_valid_ax),
                           max(min(v + r + 1, size_valid_ax), 0)]
                          for v, r, size_valid_ax in zip(pt, radius,
