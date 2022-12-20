@@ -30,7 +30,7 @@ class DICODWorker:
     """Worker for DICOD, running LGCD locally and using MPI for communications
     """
 
-    def __init__(self, backend):
+    def __init__(self):
         self.D = None
 
     def run(self):
