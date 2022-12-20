@@ -11,7 +11,10 @@ from .update_z.distributed_sparse_encoder import DistributedSparseEncoder
 
 DEFAULT_DICOD_KWARGS = dict(max_iter=int(1e8), n_seg='auto',
                             strategy='greedy', timeout=None,
-                            soft_lock='border', debug=False)
+                            soft_lock='border', debug=False,
+                            timing=False, z_positive=False,
+                            return_ztz=False, warm_start=True,
+                            freeze_support=False, random_state=None)
 
 
 def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
@@ -116,8 +119,7 @@ def dicodile(X, D_init, reg=.1, n_iter=100, eps=1e-5, window=False,
     params.update(dicod_kwargs)
     params.update(dict(
         z_positive=z_positive, tol=tol,
-        random_state=random_state, reg=reg_, timing=False,
-        return_ztz=False, freeze_support=False, warm_start=True,
+        random_state=random_state, reg=reg_
     ))
 
     encoder = DistributedSparseEncoder(n_workers, w_world=w_world,
