@@ -4,7 +4,7 @@ from dicodile.utils.mpi import wait_message
 
 
 def dicodile_worker():
-    dicod_worker = DICODWorker(backend='mpi')
+    dicod_worker = DICODWorker()
 
     tag = wait_message()
     while tag != constants.TAG_DICODILE_STOP:
