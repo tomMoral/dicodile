@@ -322,22 +322,22 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, order=None):
     if strategy in ['random', 'cyclic-r', 'cyclic']:
         k0, *pt0 = next(order)
     else:
-        if strategy in ['greedy', 'gs-r']:
-            seg_slice = segments.get_seg_slice(i_seg, inner=True)
-            dz_opt_seg = dz_opt[seg_slice]
-            i0 = abs(dz_opt_seg).argmax()
+        seg_slice = segments.get_seg_slice(i_seg, inner=True)
 
+        if strategy in ['greedy', 'gs-r']:
+            d_seg = dz_opt[seg_slice]
         elif strategy == 'gs-q':
-            seg_slice = segments.get_seg_slice(i_seg, inner=True)
-            dE_seg = dE[seg_slice]
-            i0 = abs(dE_seg).argmax()
+            d_seg = dE[seg_slice]
+
+        i0 = abs(d_seg).argmax()
+
         # TODO: broken~~~!!!
-        k0, *pt0 = np.unravel_index(i0, dz_opt_seg.shape)
-        # k0, *pt0 = tuple(fast_unravel(i0, dz_opt_seg.shape))
+        k0, *pt0 = np.unravel_index(i0, d_seg.shape)
         bounds = segments.get_seg_bounds(i_seg)
         pt0 = segments.get_global_coordinate(pt0, bounds)
 
     dz = dz_opt[(k0, *pt0)]
+
     return k0, pt0, dz
 
 
