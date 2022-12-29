@@ -124,9 +124,10 @@ class Segmentation:
             i_seg %= ax_offset
         return seg_bounds
 
-    def get_seg_slice(self, i_seg, inner=False):
+    def get_seg_slice(self, i_seg, seg_bounds=None, inner=False):
         """Return a segment's slice"""
-        seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
+        if seg_bounds is None:
+            seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
     def get_seg_support(self, i_seg, inner=False):
@@ -167,7 +168,8 @@ class Segmentation:
         """Return the next segment indice in a cyclic way."""
         return (i_seg + 1) % self.effective_n_seg
 
-    def get_touched_segments(self, pt, radius):
+    def get_touched_segments(self, pt, radius, seg_pt=None,
+                             seg_inner_bounds=None):
         """Return all segments touched by an update in pt with a given radius.
 
         Parameter
@@ -193,8 +195,13 @@ class Segmentation:
                 raise ValueError("Interference radius is too large compared "
                                  "to the segmentation size.")
 
-        i_seg = self.find_segment(pt)
-        seg_bounds = self.get_seg_bounds(i_seg, inner=True)
+        i_seg = seg_pt
+        if i_seg is None:
+            i_seg = self.find_segment(pt)
+
+        seg_bounds = seg_inner_bounds
+        if seg_bounds is None:
+            seg_bounds = self.get_seg_bounds(i_seg, inner=True)
 
         segments = [i_seg]
         axis_offset = self.effective_n_seg
