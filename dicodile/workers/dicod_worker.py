@@ -98,11 +98,14 @@ class DICODWorker:
 
             # Increment the segment and select the coordinate to update
             i_seg = self.local_segments.increment_seg(i_seg)
+
             if self.local_segments.is_active_segment(i_seg):
                 t_start_selection = time.time()
+
                 k0, pt0, dz = _select_coordinate(
                     self.dz_opt, self.dE, self.local_segments, i_seg,
                     strategy=self.strategy, order=order)
+
                 selection_duration = time.time() - t_start_selection
                 t_select_coord.append(selection_duration)
                 t_run += selection_duration
