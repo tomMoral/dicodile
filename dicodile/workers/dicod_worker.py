@@ -133,10 +133,13 @@ class DICODWorker:
                 if (pt0 is not None and abs(dz) > self.tol and
                         self.soft_lock != 'none'):
                     n_lock = 1 if self.soft_lock == "corner" else 0
-                    lock_slices = self.workers_segments.get_touched_overlap_slices(
-                        pt0, np.array(self.overlap) + 1, self.worker_bounds,
-                        self.worker_inner_bounds, self.worker_support
-                    )
+                    lock_slices = []
+                    if self.workers_segments.effective_n_seg > 1:
+                        lock_slices = self.workers_segments.get_touched_overlap_slices(
+                            pt0, np.array(self.overlap) +
+                            1, self.worker_bounds,
+                            self.worker_inner_bounds, self.worker_support
+                        )
                     # Only soft lock in the corners
                     if len(lock_slices) > n_lock:
                         max_on_lock = max([
@@ -160,13 +163,14 @@ class DICODWorker:
                     pt_global = self.workers_segments.get_global_coordinate(
                         pt0, self.worker_bounds)
 
-                    workers = self.workers_segments.get_touched_segments(
-                        pt_global, np.array(self.overlap) +
-                        1, self.rank, self.worker_inner_bounds
-                    )
-                    msg = np.array([k0, *pt_global, dz], 'd')
+                    if self.workers_segments.effective_n_seg > 1:
+                        workers = self.workers_segments.get_touched_segments(
+                            pt_global, np.array(self.overlap) +
+                            1, self.rank, self.worker_inner_bounds
+                        )
+                        msg = np.array([k0, *pt_global, dz], 'd')
 
-                    self.notify_neighbors(msg, workers)
+                        self.notify_neighbors(msg, workers)
 
                     # Logging of the time and the cost function if necessary
                     update_duration = time.time() - t_start_update
