@@ -17,47 +17,26 @@ class WorkerSegmentation:
         Full shape of the underlying signals
     """
 
-    def __init__(self, n_seg=None, seg_support=None, signal_support=None,
-                 inner_bounds=None, full_support=None, overlap=None):
+    def __init__(self, n_seg, signal_support, overlap=None):
 
-        # Get the shape of the signal from signal_support or inner_bounds
-        if inner_bounds is not None:
-            signal_support_ = [v[0] for v in np.diff(inner_bounds, axis=1)]
-            if signal_support is not None:
-                assert signal_support == signal_support_, (
-                    "Incoherent shape for inner_bounds and signal_support. Got"
-                    " signal_support={} and inner_bounds={}".format(
-                        signal_support, inner_bounds
-                    ))
-            signal_support = signal_support_
-        else:
-            assert signal_support is not None, (
-                "either signal_support or inner_bounds should be provided")
-            if isinstance(signal_support, int):
-                signal_support = [signal_support]
-            inner_bounds = [[0, s] for s in signal_support]
+        if isinstance(signal_support, int):
+            signal_support = [signal_support]
+
         self.signal_support = signal_support
-        self.inner_bounds = inner_bounds
+        self.inner_bounds = [[0, s] for s in signal_support]
+        self.full_support = [end for _, end in self.inner_bounds]
+
         self.n_axis = len(signal_support)
 
-        if full_support is None:
-            full_support = [end for _, end in self.inner_bounds]
-        self.full_support = full_support
         assert np.all([size_full_ax >= end
                        for size_full_ax, (_, end) in zip(self.full_support,
                                                          self.inner_bounds)])
 
-        # compute the size of each segment and the number of segments
-        if seg_support is not None:
-            if isinstance(seg_support, int):
-                seg_support = [seg_support] * self.n_axis
-            self.seg_support = tuple(seg_support)
-            self.compute_n_seg()
-        elif n_seg is not None:
-            if isinstance(n_seg, int):
-                n_seg = [n_seg] * self.n_axis
-            self.n_seg_per_axis = tuple(n_seg)
-            self.compute_seg_support()
+        if isinstance(n_seg, int):
+            n_seg = [n_seg] * self.n_axis
+
+        self.n_seg_per_axis = tuple(n_seg)
+        self.compute_seg_support()
 
         # Validate the overlap
         if overlap is None:
@@ -71,24 +50,6 @@ class WorkerSegmentation:
         # Initializes variable to keep track of active segments
         self._n_active_segments = self.effective_n_seg
         self._active_segments = [True] * self.effective_n_seg
-
-        # Validate the Segmentation
-        if n_seg is not None:
-            assert tuple(n_seg) == self.n_seg_per_axis
-        if seg_support is not None:
-            assert tuple(seg_support) == self.seg_support
-
-    def compute_n_seg(self):
-        """Compute the number of segment for each axis based on their shapes.
-        """
-        self.effective_n_seg = 1
-        self.n_seg_per_axis = []
-        for size_ax, size_seg_ax in zip(self.signal_support, self.seg_support):
-            # Make sure that n_seg_ax is of type int (and not np.int*)
-            n_seg_ax = max(1, int(size_ax // size_seg_ax) +
-                           ((size_ax % size_seg_ax) != 0))
-            self.n_seg_per_axis.append(n_seg_ax)
-            self.effective_n_seg *= n_seg_ax
 
     def compute_seg_support(self):
         """Compute the number of segment for each axis based on their shapes.
