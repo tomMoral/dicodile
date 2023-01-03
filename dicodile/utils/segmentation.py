@@ -373,35 +373,15 @@ class LocalSegmentation:
         Full shape of the underlying signals
     """
 
-    def __init__(self, n_seg=None, seg_support=None, signal_support=None,
-                 inner_bounds=None, full_support=None, overlap=None):
+    def __init__(self, n_seg, seg_support,
+                 inner_bounds, full_support):
 
-        # Get the shape of the signal from signal_support or inner_bounds
-        if inner_bounds is not None:
-            signal_support_ = [v[0] for v in np.diff(inner_bounds, axis=1)]
-            if signal_support is not None:
-                assert signal_support == signal_support_, (
-                    "Incoherent shape for inner_bounds and signal_support. Got"
-                    " signal_support={} and inner_bounds={}".format(
-                        signal_support, inner_bounds
-                    ))
-            signal_support = signal_support_
-        else:
-            assert signal_support is not None, (
-                "either signal_support or inner_bounds should be provided")
-            if isinstance(signal_support, int):
-                signal_support = [signal_support]
-            inner_bounds = [[0, s] for s in signal_support]
-        self.signal_support = signal_support
+        # Get the shape of the signal from inner_bounds
+        self.signal_support = [v[0] for v in np.diff(inner_bounds, axis=1)]
         self.inner_bounds = inner_bounds
-        self.n_axis = len(signal_support)
-
-        if full_support is None:
-            full_support = [end for _, end in self.inner_bounds]
         self.full_support = full_support
-        assert np.all([size_full_ax >= end
-                       for size_full_ax, (_, end) in zip(self.full_support,
-                                                         self.inner_bounds)])
+
+        self.n_axis = len(self.signal_support)
 
         # compute the size of each segment and the number of segments
         if seg_support is not None:
@@ -415,14 +395,7 @@ class LocalSegmentation:
             self.n_seg_per_axis = tuple(n_seg)
             self.compute_seg_support()
 
-        # Validate the overlap
-        if overlap is None:
-            self.overlap = [0] * self.n_axis
-        elif isinstance(overlap, int):
-            self.overlap = [overlap] * self.n_axis
-        else:
-            assert np.iterable(overlap)
-            self.overlap = overlap
+        self.overlap = [0] * self.n_axis
 
         # Initializes variable to keep track of active segments
         self._n_active_segments = self.effective_n_seg
