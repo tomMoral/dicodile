@@ -484,7 +484,8 @@ class DICODWorker:
             pt_global = self.workers_segments.get_global_coordinate(
                 pt0, self.worker_bounds)
             workers = self.workers_segments.get_touched_segments(
-                pt_global, np.array(self.overlap) + 1, self.rank
+                pt_global, np.array(self.overlap) +
+                1, self.rank, self.worker_inner_bounds
             )
             msg = np.array([k0, *pt_global, self.z0[(k0, *pt0)]], 'd')
             self.notify_neighbors(msg, workers)

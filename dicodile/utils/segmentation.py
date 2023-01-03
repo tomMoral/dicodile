@@ -103,37 +103,8 @@ class WorkerSegmentation(Segmentation):
         seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return tuple(np.diff(seg_bounds, axis=1).squeeze(axis=1))
 
-    def find_segment(self, pt):
-        """Find the indice of the segment containing the given point.
-
-        If the point is not contained in the segmentation boundaries, return
-        the indice of the closest segment in manhattan distance.
-
-        Parameter
-        ---------
-        pt : list of int
-            Coordinate of the given update.
-
-        Return
-        ------
-        i_seg : int
-            Indices of the segment containing pt or the closest one in
-            manhattan distance if pt is out of range.
-        """
-        assert len(pt) == self.n_axis
-        i_seg = 0
-        axis_offset = self.effective_n_seg
-        for x, n_seg_axis, size_seg_axis, (axis_start, axis_end) in zip(
-                pt, self.n_seg_per_axis, self.seg_support, self.inner_bounds):
-            axis_offset //= n_seg_axis
-            axis_i_seg = max(min((x - axis_start) // size_seg_axis,
-                                 n_seg_axis - 1), 0)
-            i_seg += axis_i_seg * axis_offset
-
-        return i_seg
-
-    def get_touched_segments(self, pt, radius, seg_pt=None,
-                             seg_inner_bounds=None):
+    def get_touched_segments(self, pt, radius, i_seg,
+                             seg_inner_bounds):
         """Return all segments touched by an update in pt with a given radius.
 
         Parameter
@@ -159,15 +130,9 @@ class WorkerSegmentation(Segmentation):
                 raise ValueError("Interference radius is too large compared "
                                  "to the segmentation size.")
 
-        i_seg = seg_pt
-        if i_seg is None:
-            i_seg = self.find_segment(pt)
-
         seg_bounds = seg_inner_bounds
-        if seg_bounds is None:
-            seg_bounds = self.get_seg_bounds(i_seg, inner=True)
-
         segments = [i_seg]
+
         axis_offset = self.effective_n_seg
         for x, r, n_seg_axis, (axis_start, axis_end), overlap_ax in zip(
                 pt, radius, self.n_seg_per_axis, seg_bounds, self.overlap):
