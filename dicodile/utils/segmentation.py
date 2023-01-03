@@ -15,6 +15,26 @@ class Segmentation:
             self.seg_support.append(size_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
+    def get_global_coordinate(self, pt, seg_bounds):
+        """Convert a point from local coordinate to global coordinate
+
+        Parameters
+        ----------
+        pt: (int, int)
+            Coordinate to convert, from the local coordinate system.
+        seg_bounds:
+            Bounds of the considered segment
+
+        Return
+        ------
+        pt : (int, int)
+            Coordinate converted in the global coordinate system.
+        """
+        res = []
+        for v, (offset, _) in zip(pt, seg_bounds):
+            res += [v + offset]
+        return tuple(res)
+
     def increment_seg(self, i_seg):
         """Return the next segment indice in a cyclic way."""
         return (i_seg + 1) % self.effective_n_seg
@@ -154,26 +174,6 @@ class WorkerSegmentation(Segmentation):
             assert ii_seg < self.effective_n_seg, msg
 
         return segments
-
-    def get_global_coordinate(self, pt, seg_bounds):
-        """Convert a point from local coordinate to global coordinate
-
-        Parameters
-        ----------
-        pt: (int, int)
-            Coordinate to convert, from the local coordinate system.
-        seg_bounds:
-            Bounds of the considered segment
-
-        Return
-        ------
-        pt : (int, int)
-            Coordinate converted in the global coordinate system.
-        """
-        res = []
-        for v, (offset, _) in zip(pt, seg_bounds):
-            res += [v + offset]
-        return tuple(res)
 
     def get_local_coordinate(self, pt, seg_bounds):
         """Convert a point from global coordinate to local coordinate
@@ -549,26 +549,6 @@ class LocalSegmentation(Segmentation):
             if not self.is_active_segment(i):
                 seg_slice = self.get_seg_slice(i)
                 assert np.all(abs(dz[seg_slice]) <= tol)
-
-    def get_global_coordinate(self, pt, seg_bounds):
-        """Convert a point from local coordinate to global coordinate
-
-        Parameters
-        ----------
-        pt: (int, int)
-            Coordinate to convert, from the local coordinate system.
-        seg_bounds:
-            Bounds of the considered segment
-
-        Return
-        ------
-        pt : (int, int)
-            Coordinate converted in the global coordinate system.
-        """
-        res = []
-        for v, (offset, _) in zip(pt, seg_bounds):
-            res += [v + offset]
-        return tuple(res)
 
     def reset(self):
         # Re-activate all the segments
