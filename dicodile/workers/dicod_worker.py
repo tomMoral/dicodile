@@ -103,12 +103,12 @@ class DICODWorker:
             if self.local_segments.is_active_segment(i_seg):
                 t_start_selection = time.time()
 
-                local_seg_inner_bounds = self.local_segments.get_seg_bounds(
-                    i_seg, inner=True
-                )
+                local_seg_bounds = self.local_segments.get_seg_bounds(
+                    i_seg)
+
                 k0, pt0, dz = _select_coordinate(
                     self.dz_opt, self.dE, self.local_segments, i_seg,
-                    self.strategy, local_seg_inner_bounds, order=order
+                    self.strategy, local_seg_bounds, order=order
                 )
                 selection_duration = time.time() - t_start_selection
                 t_select_coord.append(selection_duration)
@@ -156,7 +156,7 @@ class DICODWorker:
 
                     # update the selected coordinate and beta
                     self.coordinate_update(
-                        k0, pt0, dz, i_seg, local_seg_inner_bounds)
+                        k0, pt0, dz, i_seg, local_seg_bounds)
 
                     # Notify neighboring workers of the update if needed.
                     pt_global = self.workers_segments.get_global_coordinate(
@@ -322,7 +322,7 @@ class DICODWorker:
         return t_local_init
 
     def coordinate_update(self, k0, pt0, dz, i_seg=None,
-                          i_seg_inner_bounds=None, coordinate_exist=True):
+                          i_seg_bounds=None, coordinate_exist=True):
 
         self.beta, self.dz_opt, self.dE = coordinate_update(
             k0, pt0, dz, beta=self.beta, dz_opt=self.dz_opt, dE=self.dE,
@@ -334,7 +334,7 @@ class DICODWorker:
         # convergence.
 
         touched_segments = self.local_segments.get_touched_segments(
-            pt0, self.overlap, i_seg, i_seg_inner_bounds)
+            pt0, self.overlap, i_seg, i_seg_bounds)
         n_changed_status = self.local_segments.set_active_segments(
             touched_segments)
 

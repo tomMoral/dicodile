@@ -426,7 +426,7 @@ class LocalSegmentation(Segmentation):
             self.n_seg_per_axis.append(n_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
-    def get_seg_bounds(self, i_seg, inner=False):
+    def get_seg_bounds(self, i_seg):
         """Return a segment's boundaries."""
 
         seg_bounds = []
@@ -441,22 +441,19 @@ class LocalSegmentation(Segmentation):
             ax_bound_end = ax_bound_start + size_seg_ax
             if (ax_i_seg + 1) % n_seg_ax == 0:
                 ax_bound_end = end_in_ax
-            if not inner:
-                ax_bound_end = min(ax_bound_end + overlap_ax, size_full_ax)
-                ax_bound_start = max(ax_bound_start - overlap_ax, 0)
             seg_bounds.append([ax_bound_start, ax_bound_end])
             i_seg %= ax_offset
         return seg_bounds
 
-    def get_seg_slice(self, i_seg, seg_bounds=None, inner=False):
+    def get_seg_slice(self, i_seg, seg_bounds=None):
         """Return a segment's slice"""
         if seg_bounds is None:
-            seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
+            seg_bounds = self.get_seg_bounds(i_seg)
         return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
-    def get_seg_support(self, i_seg, inner=False):
+    def get_seg_support(self, i_seg):
         """Return a segment's shape"""
-        seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
+        seg_bounds = self.get_seg_bounds(i_seg)
         return tuple(np.diff(seg_bounds, axis=1).squeeze(axis=1))
 
     def find_segment(self, pt):
@@ -489,7 +486,7 @@ class LocalSegmentation(Segmentation):
         return i_seg
 
     def get_touched_segments(self, pt, radius, seg_pt=None,
-                             seg_inner_bounds=None):
+                             seg_bounds=None):
         """Return all segments touched by an update in pt with a given radius.
 
         Parameter
@@ -519,9 +516,8 @@ class LocalSegmentation(Segmentation):
         if i_seg is None:
             i_seg = self.find_segment(pt)
 
-        seg_bounds = seg_inner_bounds
         if seg_bounds is None:
-            seg_bounds = self.get_seg_bounds(i_seg, inner=True)
+            seg_bounds = self.get_seg_bounds(i_seg)
 
         segments = [i_seg]
         axis_offset = self.effective_n_seg
@@ -592,7 +588,7 @@ class LocalSegmentation(Segmentation):
         """
         for i in range(self.effective_n_seg):
             if not self.is_active_segment(i):
-                seg_slice = self.get_seg_slice(i, inner=True)
+                seg_slice = self.get_seg_slice(i)
                 assert np.all(abs(dz[seg_slice]) <= tol)
 
     def get_global_coordinate(self, pt, seg_bounds):
