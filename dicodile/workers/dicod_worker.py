@@ -53,7 +53,7 @@ class DICODWorker:
         # compute the number of coordinates
         n_atoms, *_ = D_shape(self.D)
         seg_in_support = self.workers_segments.get_seg_support(
-            self.rank, inner=True
+            self.worker_inner_bounds
         )
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
@@ -782,8 +782,15 @@ class DICODWorker:
             overlap=self.overlap
         )
 
+        self.worker_bounds = self.workers_segments.get_seg_bounds(
+            self.rank)
+        self.worker_inner_bounds = self.workers_segments.get_seg_bounds(
+            self.rank, inner=True)
+
         # Receive X and z from the master node.
-        self.worker_support = self.workers_segments.get_seg_support(self.rank)
+        self.worker_support = self.workers_segments.get_seg_support(
+            self.worker_bounds
+        )
         X_shape = (n_channels,) + get_full_support(self.worker_support,
                                                    atom_support)
         z0_shape = (n_atoms,) + self.worker_support
@@ -804,13 +811,9 @@ class DICODWorker:
             n_seg = None
             local_seg_support = 2 * np.array(atom_support) - 1
 
-        self.worker_bounds = self.workers_segments.get_seg_bounds(
-            self.rank)
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
         # coordinate system.
-        self.worker_inner_bounds = self.workers_segments.get_seg_bounds(
-            self.rank, inner=True)
         inner_bounds = np.transpose([
             self.workers_segments.get_local_coordinate(bound,
                                                        self.worker_bounds)

@@ -263,7 +263,9 @@ def _send_signal(workers, w_world, atom_support, X, z0=None):
     # Make sure that each worker has at least a segment of twice the size of
     # the dictionary. If this is not the case, the algorithm is not valid as it
     # is possible to have interference with workers that are not neighbors.
-    worker_support = workers_segments.get_seg_support(0, inner=True)
+    worker_inner_bounds = workers_segments.get_seg_bounds(0, inner=True)
+    worker_support = workers_segments.get_seg_support(worker_inner_bounds)
+
     msg = ("The size of the support in each worker is smaller than twice the "
            "size of the atom support. The algorithm is does not converge in "
            "this condition. Reduce the number of cores.\n"
@@ -361,13 +363,12 @@ def recv_z_hat(comm, n_atoms, workers_segments):
     inner = not flags.GET_OVERLAP_Z_HAT
     z_hat = np.empty((n_atoms, *valid_support), dtype='d')
     for i_seg in range(workers_segments.effective_n_seg):
-        worker_support = workers_segments.get_seg_support(
-            i_seg, inner=inner)
+        bounds = workers_segments.get_seg_bounds(i_seg, inner=inner)
+        worker_support = workers_segments.get_seg_support(bounds)
         z_worker = np.zeros((n_atoms,) + worker_support, 'd')
         comm.Recv([z_worker.ravel(), MPI.DOUBLE], source=i_seg,
                   tag=constants.TAG_ROOT + i_seg)
-        worker_slice = workers_segments.get_seg_slice(
-            i_seg, inner=inner)
+        worker_slice = workers_segments.get_seg_slice(i_seg, bounds)
         z_hat[worker_slice] = z_worker
 
     return z_hat

@@ -98,9 +98,8 @@ class WorkerSegmentation(Segmentation):
             seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
-    def get_seg_support(self, i_seg, inner=False):
+    def get_seg_support(self, seg_bounds):
         """Return a segment's shape"""
-        seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
         return tuple(np.diff(seg_bounds, axis=1).squeeze(axis=1))
 
     def get_touched_segments(self, pt, radius, i_seg,
