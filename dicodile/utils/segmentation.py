@@ -1,7 +1,26 @@
 import numpy as np
 
 
-class WorkerSegmentation:
+class Segmentation:
+
+    def compute_seg_support(self):
+        """Compute the number of segment for each axis based on their shapes.
+        """
+        self.effective_n_seg = 1
+        self.seg_support = []
+        for size_ax, n_seg_ax in zip(self.signal_support, self.n_seg_per_axis):
+            # Make sure that n_seg_ax is of type int (and not np.int*)
+            size_seg_ax = size_ax // n_seg_ax
+            size_seg_ax += (size_ax % n_seg_ax >= n_seg_ax // 2)
+            self.seg_support.append(size_seg_ax)
+            self.effective_n_seg *= n_seg_ax
+
+    def increment_seg(self, i_seg):
+        """Return the next segment indice in a cyclic way."""
+        return (i_seg + 1) % self.effective_n_seg
+
+
+class WorkerSegmentation(Segmentation):
     """Segmentation of a multi-dimensional signal and utilities to navigate it.
 
     Parameters
@@ -50,18 +69,6 @@ class WorkerSegmentation:
         # Initializes variable to keep track of active segments
         self._n_active_segments = self.effective_n_seg
         self._active_segments = [True] * self.effective_n_seg
-
-    def compute_seg_support(self):
-        """Compute the number of segment for each axis based on their shapes.
-        """
-        self.effective_n_seg = 1
-        self.seg_support = []
-        for size_ax, n_seg_ax in zip(self.signal_support, self.n_seg_per_axis):
-            # Make sure that n_seg_ax is of type int (and not np.int*)
-            size_seg_ax = size_ax // n_seg_ax
-            size_seg_ax += (size_ax % n_seg_ax >= n_seg_ax // 2)
-            self.seg_support.append(size_seg_ax)
-            self.effective_n_seg *= n_seg_ax
 
     def get_seg_bounds(self, i_seg, inner=False):
         """Return a segment's boundaries."""
@@ -357,7 +364,7 @@ class WorkerSegmentation:
         return padding_support
 
 
-class LocalSegmentation:
+class LocalSegmentation(Segmentation):
     """Segmentation of a multi-dimensional signal and utilities to navigate it.
 
     Parameters
@@ -417,18 +424,6 @@ class LocalSegmentation:
             n_seg_ax = max(1, int(size_ax // size_seg_ax) +
                            ((size_ax % size_seg_ax) != 0))
             self.n_seg_per_axis.append(n_seg_ax)
-            self.effective_n_seg *= n_seg_ax
-
-    def compute_seg_support(self):
-        """Compute the number of segment for each axis based on their shapes.
-        """
-        self.effective_n_seg = 1
-        self.seg_support = []
-        for size_ax, n_seg_ax in zip(self.signal_support, self.n_seg_per_axis):
-            # Make sure that n_seg_ax is of type int (and not np.int*)
-            size_seg_ax = size_ax // n_seg_ax
-            size_seg_ax += (size_ax % n_seg_ax >= n_seg_ax // 2)
-            self.seg_support.append(size_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
     def get_seg_bounds(self, i_seg, inner=False):
@@ -492,10 +487,6 @@ class LocalSegmentation:
             i_seg += axis_i_seg * axis_offset
 
         return i_seg
-
-    def increment_seg(self, i_seg):
-        """Return the next segment indice in a cyclic way."""
-        return (i_seg + 1) % self.effective_n_seg
 
     def get_touched_segments(self, pt, radius, seg_pt=None,
                              seg_inner_bounds=None):
