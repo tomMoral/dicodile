@@ -281,10 +281,10 @@ def _send_signal(workers, w_world, atom_support, X, z0=None):
     X = np.array(X, dtype='d')
 
     for i_seg in range(n_workers):
-        if z0 is not None:
-            worker_slice = workers_segments.get_seg_slice(i_seg)
-            _send_array(workers.comm, i_seg, z0[worker_slice])
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
+        if z0 is not None:
+            worker_slice = workers_segments.get_seg_slice(seg_bounds)
+            _send_array(workers.comm, i_seg, z0[worker_slice])
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
@@ -368,7 +368,7 @@ def recv_z_hat(comm, n_atoms, workers_segments):
         z_worker = np.zeros((n_atoms,) + worker_support, 'd')
         comm.Recv([z_worker.ravel(), MPI.DOUBLE], source=i_seg,
                   tag=constants.TAG_ROOT + i_seg)
-        worker_slice = workers_segments.get_seg_slice(i_seg, bounds)
+        worker_slice = workers_segments.get_seg_slice(bounds)
         z_hat[worker_slice] = z_worker
 
     return z_hat

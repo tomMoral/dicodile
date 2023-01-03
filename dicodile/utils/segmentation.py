@@ -15,6 +15,10 @@ class Segmentation:
             self.seg_support.append(size_seg_ax)
             self.effective_n_seg *= n_seg_ax
 
+    def get_seg_slice(self, seg_bounds):
+        """Return a segment's slice"""
+        return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
+
     def get_global_coordinate(self, pt, seg_bounds):
         """Convert a point from local coordinate to global coordinate
 
@@ -111,12 +115,6 @@ class WorkerSegmentation(Segmentation):
             seg_bounds.append([ax_bound_start, ax_bound_end])
             i_seg %= ax_offset
         return seg_bounds
-
-    def get_seg_slice(self, i_seg, seg_bounds=None, inner=False):
-        """Return a segment's slice"""
-        if seg_bounds is None:
-            seg_bounds = self.get_seg_bounds(i_seg, inner=inner)
-        return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
     def get_seg_support(self, seg_bounds):
         """Return a segment's shape"""
@@ -409,12 +407,6 @@ class LocalSegmentation(Segmentation):
             i_seg %= ax_offset
         return seg_bounds
 
-    def get_seg_slice(self, i_seg, seg_bounds=None):
-        """Return a segment's slice"""
-        if seg_bounds is None:
-            seg_bounds = self.get_seg_bounds(i_seg)
-        return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
-
     def find_segment(self, pt):
         """Find the indice of the segment containing the given point.
 
@@ -547,7 +539,8 @@ class LocalSegmentation(Segmentation):
         """
         for i in range(self.effective_n_seg):
             if not self.is_active_segment(i):
-                seg_slice = self.get_seg_slice(i)
+                seg_bound = self.get_seg_bounds(i)
+                seg_slice = self.get_seg_slice(seg_bound)
                 assert np.all(abs(dz[seg_slice]) <= tol)
 
     def reset(self):

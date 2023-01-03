@@ -291,7 +291,8 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     return beta, dz_opt, dE
 
 
-def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, i_seg_bounds, order=None):
+def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, seg_bounds,
+                       order=None):
     """Pick a coordinate to update
 
     Parameters
@@ -322,8 +323,7 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, i_seg_bounds, orde
     if strategy in ['random', 'cyclic-r', 'cyclic']:
         k0, *pt0 = next(order)
     else:
-        seg_slice = segments.get_seg_slice(i_seg,
-                                           seg_bounds=i_seg_bounds)
+        seg_slice = segments.get_seg_slice(seg_bounds)
 
         if strategy in ['greedy', 'gs-r']:
             d_seg = dz_opt[seg_slice]
@@ -334,7 +334,7 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, i_seg_bounds, orde
 
         # TODO: broken~~~!!!
         k0, *pt0 = np.unravel_index(i0, d_seg.shape)
-        pt0 = segments.get_global_coordinate(pt0, i_seg_bounds)
+        pt0 = segments.get_global_coordinate(pt0, seg_bounds)
 
     dz = dz_opt[(k0, *pt0)]
 
