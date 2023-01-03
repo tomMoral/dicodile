@@ -415,11 +415,6 @@ class LocalSegmentation(Segmentation):
             seg_bounds = self.get_seg_bounds(i_seg)
         return (Ellipsis,) + tuple([slice(s, e) for s, e in seg_bounds])
 
-    def get_seg_support(self, i_seg):
-        """Return a segment's shape"""
-        seg_bounds = self.get_seg_bounds(i_seg)
-        return tuple(np.diff(seg_bounds, axis=1).squeeze(axis=1))
-
     def find_segment(self, pt):
         """Find the indice of the segment containing the given point.
 
