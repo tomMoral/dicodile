@@ -164,10 +164,6 @@ class WorkerSegmentation:
 
         return i_seg
 
-    def increment_seg(self, i_seg):
-        """Return the next segment indice in a cyclic way."""
-        return (i_seg + 1) % self.effective_n_seg
-
     def get_touched_segments(self, pt, radius, seg_pt=None,
                              seg_inner_bounds=None):
         """Return all segments touched by an update in pt with a given radius.
@@ -226,54 +222,6 @@ class WorkerSegmentation:
             assert ii_seg < self.effective_n_seg, msg
 
         return segments
-
-    def is_active_segment(self, i_seg):
-        """Return True if segment i_seg is active"""
-        return self._active_segments[i_seg]
-
-    def set_active_segments(self, indices):
-        """Activate segments indices and return the number of changed status.
-        """
-        if isinstance(indices, int):
-            indices = [indices]
-
-        n_changed_status = 0
-        for i_seg in indices:
-            n_changed_status += not self._active_segments[i_seg]
-            self._active_segments[i_seg] = True
-
-        self._n_active_segments += n_changed_status
-        assert self._n_active_segments <= self.effective_n_seg
-
-        return n_changed_status
-
-    def set_inactive_segments(self, indices):
-        """Deactivate segments indices and return the number of changed status.
-        """
-        if not np.iterable(indices):
-            indices = [indices]
-
-        n_changed_status = 0
-        for i_seg in indices:
-            n_changed_status += self._active_segments[i_seg]
-            self._active_segments[i_seg] = False
-
-        self._n_active_segments -= n_changed_status
-        return self._n_active_segments >= 0
-
-        return n_changed_status
-
-    def exist_active_segment(self):
-        """Return True if at least one segment is active."""
-        return self._n_active_segments > 0
-
-    def test_active_segments(self, dz, tol):
-        """Test the state of active segments is coherent with dz and tol
-        """
-        for i in range(self.effective_n_seg):
-            if not self.is_active_segment(i):
-                seg_slice = self.get_seg_slice(i, inner=True)
-                assert np.all(abs(dz[seg_slice]) <= tol)
 
     def get_global_coordinate(self, pt, seg_bounds):
         """Convert a point from local coordinate to global coordinate
@@ -446,10 +394,6 @@ class WorkerSegmentation:
                  overlap_ax - (end_ax - end_in_ax))
             ]
         return padding_support
-
-    def reset(self):
-        # Re-activate all the segments
-        self.set_active_segments(range(self.effective_n_seg))
 
 
 class LocalSegmentation:
