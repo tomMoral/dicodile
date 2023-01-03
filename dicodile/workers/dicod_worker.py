@@ -12,7 +12,7 @@ from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils import constants as constants
 from dicodile.utils.debugs import worker_check_beta
-from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.segmentation import LocalSegmentation, WorkerSegmentation
 from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
@@ -89,6 +89,7 @@ class DICODWorker:
             deadline = None
 
         for ii in range(self.max_iter):
+
             # Display the progress of the algorithm
             self.progress(ii, max_ii=self.max_iter, unit="iterations",
                           extra_msg=abs(dz))
@@ -105,12 +106,10 @@ class DICODWorker:
                 local_seg_inner_bounds = self.local_segments.get_seg_bounds(
                     i_seg, inner=True
                 )
-
                 k0, pt0, dz = _select_coordinate(
                     self.dz_opt, self.dE, self.local_segments, i_seg,
                     self.strategy, local_seg_inner_bounds, order=order
                 )
-
                 selection_duration = time.time() - t_start_selection
                 t_select_coord.append(selection_duration)
                 t_run += selection_duration
@@ -230,7 +229,6 @@ class DICODWorker:
             self.stop_before_convergence(
                 "Reached max_iter", ii + 1, n_coordinate_updates
             )
-
         self.synchronize_workers(with_main=True)
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
@@ -777,7 +775,7 @@ class DICODWorker:
         self.workers_topology = X_info['workers_topology']
         self.size_msg = len(self.workers_topology) + 2
 
-        self.workers_segments = Segmentation(
+        self.workers_segments = WorkerSegmentation(
             n_seg=self.workers_topology,
             signal_support=self.valid_support,
             overlap=self.overlap
@@ -817,7 +815,7 @@ class DICODWorker:
                                                        self.worker_bounds)
             for bound in np.transpose(self.worker_inner_bounds)])
 
-        self.local_segments = Segmentation(
+        self.local_segments = LocalSegmentation(
             n_seg=n_seg, seg_support=local_seg_support,
             inner_bounds=inner_bounds,
             full_support=self.worker_support)

@@ -10,7 +10,7 @@ import numpy as np
 from dicodile.utils.csc import _dense_transpose_convolve, reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
-from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.segmentation import WorkerSegmentation
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.order_iterator import get_order_iterator
@@ -86,7 +86,7 @@ def coordinate_descent(X_i, D, reg, z0=None, DtD=None, n_seg='auto',
     if n_seg == 'auto':
         n_seg = np.array(valid_support) // (2 * np.array(atom_support) - 1)
         n_seg = tuple(np.maximum(1, n_seg))
-    segments = Segmentation(n_seg, signal_support=valid_support)
+    segments = WorkerSegmentation(n_seg, signal_support=valid_support)
 
     # Pre-compute constants for maintaining the auxillary variable beta and
     # compute the coordinate update values.

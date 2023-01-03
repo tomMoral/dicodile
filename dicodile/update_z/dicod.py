@@ -13,7 +13,7 @@ from ..utils import debug_flags as flags
 from ..utils.csc import _is_rank1, compute_objective
 from ..utils.debugs import main_check_beta
 from .coordinate_descent import STRATEGIES
-from ..utils.segmentation import Segmentation
+from ..utils.segmentation import WorkerSegmentation
 from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
@@ -256,9 +256,9 @@ def _send_signal(workers, w_world, atom_support, X, z0=None):
         X_info["workers_topology"] = w_world, n_workers // w_world
 
     # compute a segmentation for the image,
-    workers_segments = Segmentation(n_seg=X_info['workers_topology'],
-                                    signal_support=valid_support,
-                                    overlap=overlap)
+    workers_segments = WorkerSegmentation(n_seg=X_info['workers_topology'],
+                                          signal_support=valid_support,
+                                          overlap=overlap)
 
     # Make sure that each worker has at least a segment of twice the size of
     # the dictionary. If this is not the case, the algorithm is not valid as it
