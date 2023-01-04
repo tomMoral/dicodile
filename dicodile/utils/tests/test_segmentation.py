@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.segmentation import WorkerSegmentation, LocalSegmentation
 
 
 def test_segmentation_coverage():
@@ -10,17 +10,19 @@ def test_segmentation_coverage():
     for h_seg in [5, 7, 9, 13, 17]:
         for w_seg in [3, 11]:
             z = np.zeros(sig_support)
-            segments = Segmentation(n_seg=(h_seg, w_seg),
-                                    signal_support=sig_support)
+            segments = WorkerSegmentation(n_seg=(h_seg, w_seg),
+                                          signal_support=sig_support)
             assert tuple(segments.n_seg_per_axis) == (h_seg, w_seg)
-            seg_slice = segments.get_seg_slice(0)
-            seg_support = segments.get_seg_support(0)
+            seg_bound = segments.get_seg_bounds(0)
+            seg_slice = segments.get_seg_slice(seg_bound)
+            seg_support = segments.get_seg_support(seg_bound)
             assert seg_support == z[seg_slice].shape
             z[seg_slice] += 1
             i_seg = segments.increment_seg(0)
             while i_seg != 0:
-                seg_slice = segments.get_seg_slice(i_seg)
-                seg_support = segments.get_seg_support(i_seg)
+                seg_bound = segments.get_seg_bounds(i_seg)
+                seg_slice = segments.get_seg_slice(seg_bound)
+                seg_support = segments.get_seg_support(seg_bound)
                 assert seg_support == z[seg_slice].shape
                 z[seg_slice] += 1
                 i_seg = segments.increment_seg(i_seg)
@@ -30,10 +32,12 @@ def test_segmentation_coverage():
     z = np.zeros(sig_support)
     inner_bounds = [(8, 100), (3, 50)]
     inner_slice = tuple([slice(start, end) for start, end in inner_bounds])
-    segments = Segmentation(n_seg=7, inner_bounds=inner_bounds,
-                            full_support=sig_support)
+    segments = LocalSegmentation(n_seg=7, seg_support=None,
+                                 inner_bounds=inner_bounds,
+                                 full_support=sig_support)
     for i_seg in range(segments.effective_n_seg):
-        seg_slice = segments.get_seg_slice(i_seg)
+        seg_bound = segments.get_seg_bounds(i_seg)
+        seg_slice = segments.get_seg_slice(seg_bound)
         z[seg_slice] += 1
 
     assert np.all(z[inner_slice] == 1)
@@ -47,12 +51,16 @@ def test_segmentation_coverage_overlap():
     for overlap in [(3, 0), (0, 5), (3, 5), (12, 7)]:
         for h_seg in [5, 7, 9, 13, 15, 17]:
             for w_seg in [3, 11]:
-                segments = Segmentation(n_seg=(h_seg, w_seg),
-                                        signal_support=sig_support,
-                                        overlap=overlap)
+                segments = WorkerSegmentation(n_seg=(h_seg, w_seg),
+                                              signal_support=sig_support,
+                                              overlap=overlap)
                 z = np.zeros(sig_support)
                 for i_seg in range(segments.effective_n_seg):
-                    seg_slice = segments.get_seg_slice(i_seg, inner=True)
+                    seg_bound_inner = segments.get_seg_bounds(
+                        i_seg, inner=True
+                    )
+
+                    seg_slice = segments.get_seg_slice(seg_bound_inner)
                     z[seg_slice] += 1
                     i_seg = segments.increment_seg(i_seg)
                 non_overlapping = np.prod(sig_support)
@@ -60,7 +68,8 @@ def test_segmentation_coverage_overlap():
 
                 z = np.zeros(sig_support)
                 for i_seg in range(segments.effective_n_seg):
-                    seg_slice = segments.get_seg_slice(i_seg)
+                    seg_bound = segments.get_seg_bounds(i_seg)
+                    seg_slice = segments.get_seg_slice(seg_bound)
                     z[seg_slice] += 1
                     i_seg = segments.increment_seg(i_seg)
 
@@ -93,7 +102,8 @@ def test_touched_segments():
                 h0 = rng.randint(-h_radius, sig_support[0] + h_radius)
                 w0 = rng.randint(-w_radius, sig_support[1] + w_radius)
                 z = np.zeros(sig_support)
-                segments = Segmentation(n_seg, signal_support=sig_support)
+                segments = WorkerSegmentation(
+                    n_seg, signal_support=sig_support)
 
                 touched_slice = (
                     slice(max(0, h0 - h_radius), min(H, h0 + h_radius + 1)),
@@ -108,7 +118,8 @@ def test_touched_segments():
 
                 expected_n_active_segments = segments.effective_n_seg
                 for i_seg in range(segments.effective_n_seg):
-                    seg_slice = segments.get_seg_slice(i_seg)
+                    seg_bound = segments.get_seg_bounds(i_seg)
+                    seg_slice = segments.get_seg_slice(seg_bound)
                     is_touched = np.any(z[seg_slice] == 1)
                     expected_n_active_segments -= is_touched
 
@@ -116,7 +127,7 @@ def test_touched_segments():
                 assert n_active_segments == expected_n_active_segments
 
     # Check an error is returned when touched radius is larger than seg_size
-    segments = Segmentation(n_seg, signal_support=sig_support)
+    segments = WorkerSegmentation(n_seg, signal_support=sig_support)
     with pytest.raises(ValueError, match="too large"):
         segments.get_touched_segments((0, 0), (30, 2))
 
@@ -125,12 +136,12 @@ def test_change_coordinate():
     sig_support = (505, 407)
     overlap = (12, 7)
     n_seg = (4, 4)
-    segments = Segmentation(n_seg=n_seg, signal_support=sig_support,
-                            overlap=overlap)
+    segments = WorkerSegmentation(n_seg=n_seg, signal_support=sig_support,
+                                  overlap=overlap)
 
     for i_seg in range(segments.effective_n_seg):
         seg_bound = segments.get_seg_bounds(i_seg)
-        seg_support = segments.get_seg_support(i_seg)
+        seg_support = segments.get_seg_support(seg_bound)
         origin = tuple([start for start, _ in seg_bound])
         assert segments.get_global_coordinate((0, 0), seg_bound) == origin
         assert segments.get_local_coordinate(origin,
@@ -146,15 +157,15 @@ def test_inner_coordinate():
     sig_support = (505, 407)
     overlap = (11, 11)
     n_seg = (4, 4)
-    segments = Segmentation(n_seg=n_seg, signal_support=sig_support,
-                            overlap=overlap)
+    segments = WorkerSegmentation(n_seg=n_seg, signal_support=sig_support,
+                                  overlap=overlap)
 
     for h_rank in range(n_seg[0]):
         for w_rank in range(n_seg[1]):
             i_seg = h_rank * n_seg[1] + w_rank
             seg_bound = segments.get_seg_bounds(i_seg)
             seg_bound_inner = segments.get_seg_bounds(i_seg, inner=True)
-            seg_support = segments.get_seg_support(i_seg)
+            seg_support = segments.get_seg_support(seg_bound)
 
             assert segments.is_contained_coordinate(
                 overlap, seg_bound, seg_bound_inner
@@ -231,15 +242,15 @@ def test_touched_overlap_area():
     sig_support = (505, 407)
     overlap = (11, 9)
     n_seg = (8, 4)
-    segments = Segmentation(n_seg=n_seg, signal_support=sig_support,
-                            overlap=overlap)
+    segments = WorkerSegmentation(n_seg=n_seg, signal_support=sig_support,
+                                  overlap=overlap)
 
     for i_seg in range(segments.effective_n_seg):
         seg_bound = segments.get_seg_bounds(i_seg)
         seg_bound_inner = segments.get_seg_bounds(i_seg, inner=True)
-        seg_support = segments.get_seg_support(i_seg)
-        seg_slice = segments.get_seg_slice(i_seg)
-        seg_inner_slice = segments.get_seg_slice(i_seg, inner=True)
+        seg_support = segments.get_seg_support(seg_bound)
+        seg_slice = segments.get_seg_slice(seg_bound)
+        seg_inner_slice = segments.get_seg_slice(seg_bound_inner)
         if i_seg != 0:
             with pytest.raises(AssertionError):
                 segments.check_area_contained((0, 0), overlap, seg_bound,
@@ -290,13 +301,14 @@ def test_padding_to_overlap():
     sig_support = (504, 504)
     overlap = (12, 7)
 
-    seg = Segmentation(n_seg=n_seg, signal_support=sig_support,
-                       overlap=overlap)
-    seg_support_all = seg.get_seg_support(n_seg[1] + 1)
+    seg = WorkerSegmentation(n_seg=n_seg, signal_support=sig_support,
+                             overlap=overlap)
+    seg_bound_all = seg.get_seg_bounds(n_seg[1] + 1)
+    seg_support_all = seg.get_seg_support(seg_bound_all)
     for i_seg in range(np.prod(n_seg)):
-        seg_support = seg.get_seg_support(i_seg)
-        z = np.empty(seg_support)
         seg_bound = seg.get_seg_bounds(i_seg)
+        seg_support = seg.get_seg_support(seg_bound)
+        z = np.empty(seg_support)
         seg_bound_inner = seg.get_seg_bounds(i_seg, inner=True)
         overlap = seg.get_padding_to_overlap(seg_bound, seg_bound_inner)
         z = np.pad(z, overlap, mode='constant')
@@ -309,15 +321,17 @@ def test_segments():
     inner_bounds = [[0, 252]]
     full_support = (252,)
 
-    seg = Segmentation(n_seg=None, seg_support=seg_support,
-                       inner_bounds=inner_bounds, full_support=full_support)
+    seg = LocalSegmentation(n_seg=None, seg_support=seg_support,
+                            inner_bounds=inner_bounds,
+                            full_support=full_support)
     seg.compute_n_seg()
 
     assert seg.effective_n_seg == 28
 
     seg_support = [10]
-    seg = Segmentation(n_seg=None, seg_support=seg_support,
-                       inner_bounds=inner_bounds, full_support=full_support)
+    seg = LocalSegmentation(n_seg=None, seg_support=seg_support,
+                            inner_bounds=inner_bounds,
+                            full_support=full_support)
     seg.compute_n_seg()
 
     assert seg.effective_n_seg == 26
