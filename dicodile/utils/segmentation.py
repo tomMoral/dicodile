@@ -287,7 +287,8 @@ class WorkerSegmentation(Segmentation):
 
     def check_area_contained(self, pt, radius, seg_bounds, seg_bounds_inner,
                              seg_support):
-        """Check that the given area is contained in segment with bounds seg_bounds.
+        """Check that the given area is contained in segment with bounds
+        seg_bounds.
 
         Parameter
         ---------

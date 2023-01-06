@@ -134,7 +134,7 @@ class DICODWorker:
                     n_lock = 1 if self.soft_lock == "corner" else 0
                     lock_slices = []
                     if self.workers_segments.effective_n_seg > 1:
-                        lock_slices = self.workers_segments.get_touched_overlap_slices(
+                        lock_slices = self.workers_segments.get_touched_overlap_slices(  # noqa
                             pt0, np.array(self.overlap) +
                             1, self.worker_bounds,
                             self.worker_inner_bounds, self.worker_support
@@ -147,9 +147,9 @@ class DICODWorker:
                         ])
                         soft_locked = max_on_lock > abs(dz)
 
-                # Update the selected coordinate and beta, only if the update is
-                # greater than the convergence tolerance and is contained in the
-                # worker. If the update is not in the worker, this will
+                # Update the selected coordinate and beta, only if the update
+                # is greater than the convergence tolerance and is contained
+                # in the worker. If the update is not in the worker, this will
                 # effectively work has a soft lock to prevent interferences.
                 if abs(dz) > self.tol and not soft_locked:
                     t_start_update = time.time()
@@ -181,13 +181,13 @@ class DICODWorker:
                         self._log_updates.append((t_run, ii, self.rank,
                                                   k0, pt_global, dz))
 
-                # Inactivate the current segment if the magnitude of the update is
-                # too small. This only work when using LGCD.
+                # Inactivate the current segment if the magnitude of the
+                # update is too small. This only work when using LGCD.
                 if abs(dz) <= self.tol and self.strategy == "greedy":
                     self.local_segments.set_inactive_segments(i_seg)
 
-                # When workers are diverging, finish the worker to avoid having to
-                # wait until max_iter for stopping the algorithm.
+                # When workers are diverging, finish the worker to avoid
+                # having to wait until max_iter for stopping the algorithm.
                 if abs(dz) >= 1e3:
                     self.info("diverging worker")
                     self.wait_status_changed(status=constants.STATUS_FINISHED)
