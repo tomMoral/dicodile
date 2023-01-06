@@ -10,7 +10,7 @@ import numpy as np
 from dicodile.utils.csc import _dense_transpose_convolve, reconstruct
 from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
-from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.segmentation import WorkerSegmentation
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.order_iterator import get_order_iterator
@@ -86,7 +86,7 @@ def coordinate_descent(X_i, D, reg, z0=None, DtD=None, n_seg='auto',
     if n_seg == 'auto':
         n_seg = np.array(valid_support) // (2 * np.array(atom_support) - 1)
         n_seg = tuple(np.maximum(1, n_seg))
-    segments = Segmentation(n_seg, signal_support=valid_support)
+    segments = WorkerSegmentation(n_seg, signal_support=valid_support)
 
     # Pre-compute constants for maintaining the auxillary variable beta and
     # compute the coordinate update values.
@@ -291,7 +291,8 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
     return beta, dz_opt, dE
 
 
-def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, order=None):
+def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, seg_bounds,
+                       order=None):
     """Pick a coordinate to update
 
     Parameters
@@ -322,21 +323,21 @@ def _select_coordinate(dz_opt, dE, segments, i_seg, strategy, order=None):
     if strategy in ['random', 'cyclic-r', 'cyclic']:
         k0, *pt0 = next(order)
     else:
-        if strategy in ['greedy', 'gs-r']:
-            seg_slice = segments.get_seg_slice(i_seg, inner=True)
-            dz_opt_seg = dz_opt[seg_slice]
-            i0 = abs(dz_opt_seg).argmax()
+        seg_slice = segments.get_seg_slice(seg_bounds)
 
+        if strategy in ['greedy', 'gs-r']:
+            d_seg = dz_opt[seg_slice]
         elif strategy == 'gs-q':
-            seg_slice = segments.get_seg_slice(i_seg, inner=True)
-            dE_seg = dE[seg_slice]
-            i0 = abs(dE_seg).argmax()
+            d_seg = dE[seg_slice]
+
+        i0 = abs(d_seg).argmax()
+
         # TODO: broken~~~!!!
-        k0, *pt0 = np.unravel_index(i0, dz_opt_seg.shape)
-        # k0, *pt0 = tuple(fast_unravel(i0, dz_opt_seg.shape))
-        pt0 = segments.get_global_coordinate(i_seg, pt0)
+        k0, *pt0 = np.unravel_index(i0, d_seg.shape)
+        pt0 = segments.get_global_coordinate(pt0, seg_bounds)
 
     dz = dz_opt[(k0, *pt0)]
+
     return k0, pt0, dz
 
 
@@ -435,7 +436,7 @@ def compute_dE(dz_opt, beta, z_hat, reg):
         dz_opt * (z_hat + .5 * dz_opt - beta)
         # l1 term
         + reg * (abs(z_hat) - abs(z_hat + dz_opt))
-        )
+    )
 
 
 def _check_convergence(segments, tol, iteration, dz_opt, n_coordinates,

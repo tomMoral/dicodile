@@ -12,7 +12,7 @@ from dicodile.utils import check_random_state
 from dicodile.utils import debug_flags as flags
 from dicodile.utils import constants as constants
 from dicodile.utils.debugs import worker_check_beta
-from dicodile.utils.segmentation import Segmentation
+from dicodile.utils.segmentation import LocalSegmentation, WorkerSegmentation
 from dicodile.utils.mpi import recv_broadcasted_array
 from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_full_support
@@ -53,7 +53,7 @@ class DICODWorker:
         # compute the number of coordinates
         n_atoms, *_ = D_shape(self.D)
         seg_in_support = self.workers_segments.get_seg_support(
-            self.rank, inner=True
+            self.worker_inner_bounds
         )
         n_coordinates = n_atoms * np.prod(seg_in_support)
 
@@ -89,6 +89,7 @@ class DICODWorker:
             deadline = None
 
         for ii in range(self.max_iter):
+
             # Display the progress of the algorithm
             self.progress(ii, max_ii=self.max_iter, unit="iterations",
                           extra_msg=abs(dz))
@@ -98,83 +99,104 @@ class DICODWorker:
 
             # Increment the segment and select the coordinate to update
             i_seg = self.local_segments.increment_seg(i_seg)
+
             if self.local_segments.is_active_segment(i_seg):
                 t_start_selection = time.time()
+
+                local_seg_bounds = self.local_segments.get_seg_bounds(
+                    i_seg)
+
                 k0, pt0, dz = _select_coordinate(
                     self.dz_opt, self.dE, self.local_segments, i_seg,
-                    strategy=self.strategy, order=order)
+                    self.strategy, local_seg_bounds, order=order
+                )
                 selection_duration = time.time() - t_start_selection
                 t_select_coord.append(selection_duration)
                 t_run += selection_duration
+
+                # update the accumulator for 'random' strategy
+                accumulator = max(abs(dz), accumulator)
+
+                # If requested, check that the update chosen only have an
+                # impact on the segment and its overlap area.
+                if flags.CHECK_UPDATE_CONTAINED and pt0 is not None:
+                    self.workers_segments.check_area_contained(
+                        pt0, self.overlap,
+                        self.worker_bounds,
+                        self.worker_inner_bounds,
+                        self.worker_support
+                    )
+
+                # Check if the coordinate is soft-locked or not.
+                soft_locked = False
+                if (pt0 is not None and abs(dz) > self.tol and
+                        self.soft_lock != 'none'):
+                    n_lock = 1 if self.soft_lock == "corner" else 0
+                    lock_slices = []
+                    if self.workers_segments.effective_n_seg > 1:
+                        lock_slices = self.workers_segments.get_touched_overlap_slices(  # noqa
+                            pt0, np.array(self.overlap) +
+                            1, self.worker_bounds,
+                            self.worker_inner_bounds, self.worker_support
+                        )
+                    # Only soft lock in the corners
+                    if len(lock_slices) > n_lock:
+                        max_on_lock = max([
+                            abs(self.dz_opt[u_slice]).max()
+                            for u_slice in lock_slices
+                        ])
+                        soft_locked = max_on_lock > abs(dz)
+
+                # Update the selected coordinate and beta, only if the update
+                # is greater than the convergence tolerance and is contained
+                # in the worker. If the update is not in the worker, this will
+                # effectively work has a soft lock to prevent interferences.
+                if abs(dz) > self.tol and not soft_locked:
+                    t_start_update = time.time()
+
+                    # update the selected coordinate and beta
+                    self.coordinate_update(
+                        k0, pt0, dz, i_seg, local_seg_bounds)
+
+                    # Notify neighboring workers of the update if needed.
+                    pt_global = self.workers_segments.get_global_coordinate(
+                        pt0, self.worker_bounds)
+
+                    if self.workers_segments.effective_n_seg > 1:
+                        workers = self.workers_segments.get_touched_segments(
+                            pt_global, np.array(self.overlap) +
+                            1, self.rank, self.worker_inner_bounds
+                        )
+                        msg = np.array([k0, *pt_global, dz], 'd')
+
+                        self.notify_neighbors(msg, workers)
+
+                    # Logging of the time and the cost function if necessary
+                    update_duration = time.time() - t_start_update
+                    n_coordinate_updates += 1
+                    t_run += update_duration
+                    t_update_coord.append(update_duration)
+
+                    if self.timing:
+                        self._log_updates.append((t_run, ii, self.rank,
+                                                  k0, pt_global, dz))
+
+                # Inactivate the current segment if the magnitude of the
+                # update is too small. This only work when using LGCD.
+                if abs(dz) <= self.tol and self.strategy == "greedy":
+                    self.local_segments.set_inactive_segments(i_seg)
+
+                # When workers are diverging, finish the worker to avoid
+                # having to wait until max_iter for stopping the algorithm.
+                if abs(dz) >= 1e3:
+                    self.info("diverging worker")
+                    self.wait_status_changed(status=constants.STATUS_FINISHED)
+                    diverging = True
+                    break
             else:
                 k0, pt0, dz = None, None, 0
-            # update the accumulator for 'random' strategy
-            accumulator = max(abs(dz), accumulator)
-
-            # If requested, check that the update chosen only have an impact on
-            # the segment and its overlap area.
-            if flags.CHECK_UPDATE_CONTAINED and pt0 is not None:
-                self.workers_segments.check_area_contained(self.rank,
-                                                           pt0, self.overlap)
-
-            # Check if the coordinate is soft-locked or not.
-            soft_locked = False
-            if (pt0 is not None and abs(dz) > self.tol and
-                    self.soft_lock != 'none'):
-                n_lock = 1 if self.soft_lock == "corner" else 0
-                lock_slices = self.workers_segments.get_touched_overlap_slices(
-                    self.rank, pt0, np.array(self.overlap) + 1
-                )
-                # Only soft lock in the corners
-                if len(lock_slices) > n_lock:
-                    max_on_lock = max([
-                        abs(self.dz_opt[u_slice]).max()
-                        for u_slice in lock_slices
-                    ])
-                    soft_locked = max_on_lock > abs(dz)
-
-            # Update the selected coordinate and beta, only if the update is
-            # greater than the convergence tolerance and is contained in the
-            # worker. If the update is not in the worker, this will
-            # effectively work has a soft lock to prevent interferences.
-            if abs(dz) > self.tol and not soft_locked:
-                t_start_update = time.time()
-
-                # update the selected coordinate and beta
-                self.coordinate_update(k0, pt0, dz)
-
-                # Notify neighboring workers of the update if needed.
-                pt_global = self.workers_segments.get_global_coordinate(
-                    self.rank, pt0)
-                workers = self.workers_segments.get_touched_segments(
-                    pt=pt_global, radius=np.array(self.overlap) + 1
-                )
-                msg = np.array([k0, *pt_global, dz], 'd')
-
-                self.notify_neighbors(msg, workers)
-
-                # Logging of the time and the cost function if necessary
-                update_duration = time.time() - t_start_update
-                n_coordinate_updates += 1
-                t_run += update_duration
-                t_update_coord.append(update_duration)
-
-                if self.timing:
-                    self._log_updates.append((t_run, ii, self.rank,
-                                              k0, pt_global, dz))
-
-            # Inactivate the current segment if the magnitude of the update is
-            # too small. This only work when using LGCD.
-            if abs(dz) <= self.tol and self.strategy == "greedy":
-                self.local_segments.set_inactive_segments(i_seg)
-
-            # When workers are diverging, finish the worker to avoid having to
-            # wait until max_iter for stopping the algorithm.
-            if abs(dz) >= 1e3:
-                self.info("diverging worker")
-                self.wait_status_changed(status=constants.STATUS_FINISHED)
-                diverging = True
-                break
+                if self.strategy == "greedy":
+                    self.local_segments.set_inactive_segments(i_seg)
 
             # Check the stopping criterion and if we have locally converged,
             # wait either for an incoming message or for full convergence.
@@ -207,7 +229,6 @@ class DICODWorker:
             self.stop_before_convergence(
                 "Reached max_iter", ii + 1, n_coordinate_updates
             )
-
         self.synchronize_workers(with_main=True)
         assert diverging or self.check_no_transitting_message()
         runtime = time.time() - t_start
@@ -300,7 +321,9 @@ class DICODWorker:
                   self.local_segments.effective_n_seg, global_msg=True)
         return t_local_init
 
-    def coordinate_update(self, k0, pt0, dz, coordinate_exist=True):
+    def coordinate_update(self, k0, pt0, dz, i_seg=None,
+                          i_seg_bounds=None, coordinate_exist=True):
+
         self.beta, self.dz_opt, self.dE = coordinate_update(
             k0, pt0, dz, beta=self.beta, dz_opt=self.dz_opt, dE=self.dE,
             z_hat=self.z_hat, D=self.D, reg=self.reg, constants=self.constants,
@@ -309,8 +332,9 @@ class DICODWorker:
 
         # Re-activate the segments where beta have been updated to ensure
         # convergence.
+
         touched_segments = self.local_segments.get_touched_segments(
-            pt=pt0, radius=self.overlap)
+            pt0, self.overlap, i_seg, i_seg_bounds)
         n_changed_status = self.local_segments.set_active_segments(
             touched_segments)
 
@@ -354,11 +378,14 @@ class DICODWorker:
 
         k0 = int(k0)
         pt_global = tuple([int(v) for v in pt_global])
-        pt0 = self.workers_segments.get_local_coordinate(self.rank, pt_global)
+        pt0 = self.workers_segments.get_local_coordinate(pt_global,
+                                                         self.worker_bounds)
         assert not self.workers_segments.is_contained_coordinate(
-            self.rank, pt0, inner=True), (pt_global, pt0)
+            pt0, self.worker_bounds, self.worker_inner_bounds
+        ), (pt_global, pt0)
         coordinate_exist = self.workers_segments.is_contained_coordinate(
-            self.rank, pt0, inner=False)
+            pt0, self.worker_bounds
+        )
         self.coordinate_update(k0, pt0, dz, coordinate_exist=coordinate_exist)
 
         if flags.CHECK_BETA and np.random.rand() > 0.99:
@@ -443,7 +470,7 @@ class DICODWorker:
         ztX = compute_ztX(self.z_hat[z_slice], self.X_worker[X_slice])
 
         padding_support = self.workers_segments.get_padding_to_overlap(
-            self.rank)
+            self.worker_bounds, self.worker_inner_bounds)
         ztz = compute_ztz(self.z_hat, atom_support,
                           padding_support=padding_support)
         return np.array(ztz, dtype='d'), np.array(ztX, dtype='d')
@@ -455,9 +482,10 @@ class DICODWorker:
         for k0, *pt0 in zip(*self.z0.nonzero()):
             # Notify neighboring workers of the update if needed.
             pt_global = self.workers_segments.get_global_coordinate(
-                self.rank, pt0)
+                pt0, self.worker_bounds)
             workers = self.workers_segments.get_touched_segments(
-                pt=pt_global, radius=np.array(self.overlap) + 1
+                pt_global, np.array(self.overlap) +
+                1, self.rank, self.worker_inner_bounds
             )
             msg = np.array([k0, *pt_global, self.z0[(k0, *pt0)]], 'd')
             self.notify_neighbors(msg, workers)
@@ -499,10 +527,12 @@ class DICODWorker:
                     k0, *pt_global, dz = msg
                     k0 = int(k0)
                     pt_global = tuple([int(v) for v in pt_global])
-                    pt0 = self.workers_segments.get_local_coordinate(self.rank,
-                                                                     pt_global)
+                    pt0 = self.workers_segments.get_local_coordinate(
+                        pt_global,
+                        self.worker_bounds
+                    )
                     pt_exist = self.workers_segments.is_contained_coordinate(
-                        self.rank, pt0, inner=False)
+                        pt0, self.worker_bounds)
                     if not pt_exist and (k0, *pt0) not in done_pt:
                         done_pt.add((k0, *pt0))
                         self.coordinate_update(k0, pt0, dz,
@@ -746,17 +776,24 @@ class DICODWorker:
         self.workers_topology = X_info['workers_topology']
         self.size_msg = len(self.workers_topology) + 2
 
-        self.workers_segments = Segmentation(
+        self.workers_segments = WorkerSegmentation(
             n_seg=self.workers_topology,
             signal_support=self.valid_support,
             overlap=self.overlap
         )
 
+        self.worker_bounds = self.workers_segments.get_seg_bounds(
+            self.rank)
+        self.worker_inner_bounds = self.workers_segments.get_seg_bounds(
+            self.rank, inner=True)
+
         # Receive X and z from the master node.
-        worker_support = self.workers_segments.get_seg_support(self.rank)
-        X_shape = (n_channels,) + get_full_support(worker_support,
+        self.worker_support = self.workers_segments.get_seg_support(
+            self.worker_bounds
+        )
+        X_shape = (n_channels,) + get_full_support(self.worker_support,
                                                    atom_support)
-        z0_shape = (n_atoms,) + worker_support
+        z0_shape = (n_atoms,) + self.worker_support
         if self.has_z0:
             z0 = self.recv_array(z0_shape)
         else:
@@ -777,17 +814,15 @@ class DICODWorker:
         # Get local inner bounds. First, compute the seg_bound without overlap
         # in local coordinates and then convert the bounds in the local
         # coordinate system.
-        inner_bounds = self.workers_segments.get_seg_bounds(
-            self.rank, inner=True)
         inner_bounds = np.transpose([
-            self.workers_segments.get_local_coordinate(self.rank, bound)
-            for bound in np.transpose(inner_bounds)])
+            self.workers_segments.get_local_coordinate(bound,
+                                                       self.worker_bounds)
+            for bound in np.transpose(self.worker_inner_bounds)])
 
-        worker_support = self.workers_segments.get_seg_support(self.rank)
-        self.local_segments = Segmentation(
+        self.local_segments = LocalSegmentation(
             n_seg=n_seg, seg_support=local_seg_support,
             inner_bounds=inner_bounds,
-            full_support=worker_support)
+            full_support=self.worker_support)
 
         self.max_iter *= self.local_segments.effective_n_seg
         self.synchronize_workers(with_main=True)
