@@ -100,6 +100,10 @@ def get_participants():
         subject_rows.append(meta)
 
     participants = pd.DataFrame(subject_rows)
-    participants.to_csv('gait_particants.tsv', sep='\t', index=False)
+    participants.to_csv('gait_participants.tsv', sep='\t', index=False)
 
     return participants
+
+
+if __name__ == '__main__':
+    get_participants()
