@@ -9,8 +9,8 @@ from download import download
 
 from dicodile.config import DATA_HOME
 
-GAIT_CODE_LIST_FNAME = Path("gait_code_list.json")
-GAIT_PARTICIPANTS_FNAME = Path("gait_participants.tsv")
+GAIT_CODE_LIST_FNAME = DATA_HOME / "gait" / "gait_code_list.json"
+GAIT_PARTICIPANTS_FNAME = DATA_HOME / "gait" / "gait_participants.tsv"
 
 
 def download_gait(verbose=True):
