@@ -18,12 +18,12 @@ Examples Gallery
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illlustrates reconstruction of `Mandrill image &lt;http://sipi.usc.edu/database/downl...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illlustrates reconstruction of Mandrill image using DiCoDiLe algorithm with defaul...">
 
 .. only:: html
 
   .. image:: /auto_examples/images/thumb/sphx_glr_plot_mandrill_thumb.png
-    :alt: DiCoDiLe on the Mandrill image
+    :alt:
 
   :ref:`sphx_glr_auto_examples_plot_mandrill.py`
 
@@ -40,7 +40,7 @@ Examples Gallery
 .. only:: html
 
   .. image:: /auto_examples/images/thumb/sphx_glr_plot_text_thumb.png
-    :alt: DiCoDiLe on text images
+    :alt:
 
   :ref:`sphx_glr_auto_examples_plot_text.py`
 
@@ -57,7 +57,7 @@ Examples Gallery
 .. only:: html
 
   .. image:: /auto_examples/images/thumb/sphx_glr_plot_gait_thumb.png
-    :alt: Gait (steps) example
+    :alt:
 
   :ref:`sphx_glr_auto_examples_plot_gait.py`
 
