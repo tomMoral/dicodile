@@ -1,15 +1,14 @@
-import json
-from zipfile import ZipFile
-from tqdm import tqdm
 import re
+import json
+from tqdm import tqdm
+from zipfile import ZipFile
 
 import pandas as pd
-from pathlib import Path
 from download import download
 
 from dicodile.config import DATA_HOME
 
-GAIT_CODE_LIST_FNAME = DATA_HOME / "gait" / "gait_code_list.json"
+GAIT_RECORD_ID_LIST_FNAME = DATA_HOME / "gait" / "gait_record_id_list.json"
 GAIT_PARTICIPANTS_FNAME = DATA_HOME / "gait" / "gait_participants.tsv"
 
 
@@ -71,17 +70,17 @@ def get_gait_data(subject=1, trial=1, only_meta=False, verbose=True):
             return meta
 
 
-def get_gait_code_list():
-    """Returns the list of all available codes.
+def get_gait_record_id_list():
+    """Returns the list of ids for all available records.
 
     Returns
     -------
-    list
-        List of codes.
+    record_id_list: list
+        List of record's id, formed as [subject_id]-[trial].
     """
-    if GAIT_CODE_LIST_FNAME.exists():
-        with open(GAIT_CODE_LIST_FNAME, "r") as f:
-            code_list = json.load(f)
+    if GAIT_RECORD_ID_LIST_FNAME.exists():
+        with open(GAIT_RECORD_ID_LIST_FNAME, "r") as f:
+            record_id_list = json.load(f)
 
     else:
         gait_zip = download_gait(verbose=False)
@@ -89,25 +88,25 @@ def get_gait_code_list():
         with ZipFile(gait_zip) as zf:
             all_files = zf.namelist()
 
-        code_list = []
+        record_id_list = []
         for file in all_files:
-            code_list.extend(re.findall(r"\d+-\d+", file))
+            record_id_list.extend(re.findall(r"\d+-\d+", file))
 
-        code_list = list(set(code_list))  # remove duplicates
+        record_id_list = list(set(record_id_list))  # remove duplicates
         # sort by subject id then by trial number
-        code_list.sort(key=lambda x: (
+        record_id_list.sort(key=lambda x: (
             int(x.split('-')[0]), int(x.split('-')[1])))
 
         # save as JSON
-        with open(GAIT_CODE_LIST_FNAME, 'w') as f:
-            json.dump(code_list, f, indent=2)
+        with open(GAIT_RECORD_ID_LIST_FNAME, 'w') as f:
+            json.dump(record_id_list, f, indent=2)
 
-    return code_list
+    return record_id_list
 
 
 def get_participants():
     """Get the information relatives to all individual subjects, such as age,
-    gender, number of available trials, etc.  
+    gender, number of available trials, etc.
 
     Returns
     -------
@@ -119,8 +118,8 @@ def get_participants():
         participants = pd.read_csv(GAIT_PARTICIPANTS_FNAME, sep='\t')
 
     else:
-        all_codes = get_gait_code_list()
-        n_subjects = int(all_codes[-1].split('-')[0])
+        all_records_id = get_gait_record_id_list()
+        n_subjects = int(all_records_id[-1].split('-')[0])
 
         subject_rows = []
         for subject in tqdm(range(1, n_subjects+1)):
@@ -129,11 +128,16 @@ def get_participants():
                 subject, trial=1, only_meta=True, verbose=False
             )
 
-            for key in ['Trial', 'Code', 'LeftFootActivity', 'RightFootActivity']:
+            key_to_remove = [
+                'Trial', 'Code', 'LeftFootActivity', 'RightFootActivity'
+            ]
+            for key in key_to_remove:
                 del meta[key]
 
-            subject_trials = [code for code in all_codes
-                              if code.split('-')[0] == str(subject)]
+            subject_trials = [
+                idx for idx in all_records_id
+                if idx.split('-')[0] == str(subject)
+            ]
             meta.update(n_trials=len(subject_trials))
             subject_rows.append(meta)
 
@@ -144,5 +148,5 @@ def get_participants():
 
 
 if __name__ == '__main__':
-    get_gait_code_list()
+    get_gait_record_id_list()
     get_participants()
