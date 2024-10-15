@@ -116,7 +116,7 @@ def init_dictionary(X, n_atoms, atom_support, random_state=None):
     X_std = X.std()
     n_channels, *sig_support = X.shape
     valid_support = get_valid_support(sig_support, atom_support)
-    n_patches = np.product(valid_support)
+    n_patches = np.prod(valid_support)
 
     indices = iter(rng.choice(n_patches, size=10 * n_atoms, replace=False))
     D = np.empty(shape=(n_atoms, n_channels, *atom_support))
