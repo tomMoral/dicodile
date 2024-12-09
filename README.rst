@@ -6,7 +6,7 @@ please `open an issue on GitHub <https://github.com/tomMoral/dicodile/issues>`_.
 DiCoDiLe
 --------
 
-Package to run the experiments for the preprint paper `Distributed Convolutional Dictionary Learning (DiCoDiLe): Pattern Discovery in Large Images and Signals <https://arxiv.org/abs/1901.09235>`__.
+Package to run the experiments for the preprint paper `DiCoDiLe: Distributed Convolutional Dictionary Learning <https://hal.science/hal-02371715v2/file/PAMI_dicodile.pdf>`__.
 
 Installation
 ^^^^^^^^^^^^
