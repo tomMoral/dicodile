@@ -15,8 +15,8 @@ from ..utils.shape_helpers import get_valid_support
 from .dicod import recv_z_hat, recv_z_nnz
 from .dicod import _gather_run_statistics
 from .dicod import _send_task, _send_D, _send_signal
-from .dicod import recv_cost, recv_max_error_patches,\
-    recv_sufficient_statistics
+from .dicod import recv_cost, recv_max_error_patches
+from .dicod import recv_sufficient_statistics
 
 
 class DistributedSparseEncoder:
