@@ -132,6 +132,45 @@ class DICODWorker:
                         for u_slice in lock_slices
                     ])
                     soft_locked = max_on_lock > abs(dz)
+                    if max_on_lock == abs(dz):
+                        self.info("soft lock for ==")
+                        #  {pt_global} == {pt_max}, "
+                        #   f"({locking_worker})")
+                #         # Resolve equalities
+                #         slice_max = lock_slices[np.argmax([
+                #             abs(self.dz_opt[u_slice]).max()
+                #             for u_slice in lock_slices
+                #         ])]
+                #         pt_max = np.unravel_index(
+                #             abs(self.dz_opt[slice_max]).argmax(),
+                #             self.dz_opt[slice_max].shape
+                #         )[1:]
+                #         pt_max = tuple(
+                #             s.start + v
+                #             for v, s in zip(pt_max, slice_max[1:])
+                #         )
+                #         pt_max = (
+                #             self.workers_segments
+                #             .get_global_coordinate(self.rank, pt_max)
+                #         )
+                #         locking_worker = (
+                #             self.workers_segments.get_touched_segments(
+                #                 pt_max, radius=0
+                #             )
+                #         )
+                #         locking_worker = locking_worker[0]
+
+                #         pt_global = (
+                #             self.workers_segments.get_global_coordinate(
+                #                 self.rank, pt0
+                #             )
+                #         )
+
+                #         soft_locked = locking_worker < self.rank
+                # if ii > 10000:
+                #     print(self.rank, "soft lock ==")
+                #     np.save(f'dump_{self.rank}.npy', self.dz_opt)
+                #     time.sleep(10)
 
             # Update the selected coordinate and beta, only if the update is
             # greater than the convergence tolerance and is contained in the
@@ -162,6 +201,8 @@ class DICODWorker:
                 if self.timing:
                     self._log_updates.append((t_run, ii, self.rank,
                                               k0, pt_global, dz))
+            # elif soft_locked:
+            #     time.sleep(.1)
 
             # Inactivate the current segment if the magnitude of the update is
             # too small. This only work when using LGCD.
