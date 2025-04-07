@@ -13,7 +13,7 @@ from ..utils import debug_flags as flags
 from ..utils.csc import _is_rank1, compute_objective
 from ..utils.debugs import main_check_beta
 from .coordinate_descent import STRATEGIES
-from ..utils.segmentation import Segmentation
+from ..utils.segmentation import WorkerSegmentation
 from .coordinate_descent import coordinate_descent
 from ..utils.mpi import broadcast_array, recv_reduce_sum_array
 from ..utils.shape_helpers import get_valid_support, find_grid_size
@@ -256,14 +256,16 @@ def _send_signal(workers, w_world, atom_support, X, z0=None):
         X_info["workers_topology"] = w_world, n_workers // w_world
 
     # compute a segmentation for the image,
-    workers_segments = Segmentation(n_seg=X_info['workers_topology'],
-                                    signal_support=valid_support,
-                                    overlap=overlap)
+    workers_segments = WorkerSegmentation(n_seg=X_info['workers_topology'],
+                                          signal_support=valid_support,
+                                          overlap=overlap)
 
     # Make sure that each worker has at least a segment of twice the size of
     # the dictionary. If this is not the case, the algorithm is not valid as it
     # is possible to have interference with workers that are not neighbors.
-    worker_support = workers_segments.get_seg_support(0, inner=True)
+    worker_inner_bounds = workers_segments.get_seg_bounds(0, inner=True)
+    worker_support = workers_segments.get_seg_support(worker_inner_bounds)
+
     msg = ("The size of the support in each worker is smaller than twice the "
            "size of the atom support. The algorithm is does not converge in "
            "this condition. Reduce the number of cores.\n"
@@ -279,10 +281,10 @@ def _send_signal(workers, w_world, atom_support, X, z0=None):
     X = np.array(X, dtype='d')
 
     for i_seg in range(n_workers):
-        if z0 is not None:
-            worker_slice = workers_segments.get_seg_slice(i_seg)
-            _send_array(workers.comm, i_seg, z0[worker_slice])
         seg_bounds = workers_segments.get_seg_bounds(i_seg)
+        if z0 is not None:
+            worker_slice = workers_segments.get_seg_slice(seg_bounds)
+            _send_array(workers.comm, i_seg, z0[worker_slice])
         X_worker_slice = (Ellipsis,) + tuple([
             slice(start, end + size_atom_ax - 1)
             for (start, end), size_atom_ax in zip(seg_bounds, atom_support)
@@ -361,13 +363,12 @@ def recv_z_hat(comm, n_atoms, workers_segments):
     inner = not flags.GET_OVERLAP_Z_HAT
     z_hat = np.empty((n_atoms, *valid_support), dtype='d')
     for i_seg in range(workers_segments.effective_n_seg):
-        worker_support = workers_segments.get_seg_support(
-            i_seg, inner=inner)
+        bounds = workers_segments.get_seg_bounds(i_seg, inner=inner)
+        worker_support = workers_segments.get_seg_support(bounds)
         z_worker = np.zeros((n_atoms,) + worker_support, 'd')
         comm.Recv([z_worker.ravel(), MPI.DOUBLE], source=i_seg,
                   tag=constants.TAG_ROOT + i_seg)
-        worker_slice = workers_segments.get_seg_slice(
-            i_seg, inner=inner)
+        worker_slice = workers_segments.get_seg_slice(bounds)
         z_hat[worker_slice] = z_worker
 
     return z_hat
