@@ -10,7 +10,7 @@ jobs:
   build_docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Generate HTML docs
         uses: ax3l/sphinx-action@newer-sphinx
         env:
@@ -23,7 +23,7 @@ jobs:
             pip install -e .[doc]
             echo "localhost slots=50">hostfile
       - name:  Upload generated HTML as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: DocHTML
           path: docs/_build/html/
@@ -34,9 +34,9 @@ jobs:
       build_docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: DocHTML
           path: docs/_build/html/
@@ -51,7 +51,7 @@ jobs:
           git add .
           git commit -m "Update documentation" -a || true
       - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
+        uses: ad-m/github-push-action@v0.8.0
         with:
           branch: gh-pages
           directory: gh-pages
