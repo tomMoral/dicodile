@@ -9,21 +9,29 @@ on:
 jobs:
   build_docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OMPI_MCA_mpi_yield_when_idle: 1
     steps:
-      - uses: actions/checkout@v2
-      - name: Generate HTML docs
-        uses: ax3l/sphinx-action@newer-sphinx
-        env:
-          ALLOW: --allow-run-as-root
+      # setuptools_scm needs the full history to derive the version
+      - uses: actions/checkout@v4
         with:
-          docs-folder: "docs/"
-          pre-build-command: |
-            apt-get update
-            apt-get install -y git libopenmpi-dev openmpi-bin
-            pip install -e .[doc]
-            echo "localhost slots=50">hostfile
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dicodile
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+          python -m pip install --upgrade pip
+          python -m pip install -e .[doc]
+      - name: Generate HTML docs
+        run: |
+          echo "localhost slots=50">hostfile
+          make -C docs html
       - name:  Upload generated HTML as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: DocHTML
           path: docs/_build/html/
@@ -34,9 +42,9 @@ jobs:
       build_docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: DocHTML
           path: docs/_build/html/
@@ -51,7 +59,7 @@ jobs:
           git add .
           git commit -m "Update documentation" -a || true
       - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
+        uses: ad-m/github-push-action@v0.8.0
         with:
           branch: gh-pages
           directory: gh-pages

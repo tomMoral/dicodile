@@ -15,8 +15,9 @@ from dicodile.utils.csc import compute_ztz, compute_ztX
 from dicodile.utils.shape_helpers import get_valid_support
 from dicodile.utils.order_iterator import get_order_iterator
 from dicodile.utils.csc import compute_objective, soft_thresholding
-from dicodile.utils.dictionary import D_shape, compute_DtD,\
-    compute_norm_atoms, norm_atoms_from_DtD_reshaped
+from dicodile.utils.dictionary import (D_shape, compute_DtD,
+                                       compute_norm_atoms,
+                                       norm_atoms_from_DtD_reshaped)
 
 
 STRATEGIES = {'greedy', 'random', 'cyclic', 'cyclic-r', 'gs-r', 'gs-q'}
@@ -274,9 +275,7 @@ def _init_beta(X_i, D, reg, z_i=None, constants={}, z_positive=False,
 
     if z_i is not None:
         assert z_i.shape == beta.shape
-        for k, *pt in zip(*z_i.nonzero()):
-            pt = tuple(pt)
-            beta[(k, *pt)] -= z_i[(k, *pt)] * norm_atoms[k]
+        beta -= z_i * norm_atoms
 
     dz_opt = soft_thresholding(-beta, reg, positive=z_positive) / norm_atoms
 

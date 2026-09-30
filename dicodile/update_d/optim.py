@@ -94,7 +94,7 @@ def fista(f_obj, f_grad, f_prox, step_size, x0, max_iter, verbose=0,
 
             if scipy_line_search:
                 norm_grad = np.dot(grad.ravel(), grad.ravel())
-                step_size, obj_uv = optimize.linesearch.scalar_search_armijo(
+                step_size, obj_uv = optimize._linesearch.scalar_search_armijo(
                     compute_obj_and_step, obj_uv, -norm_grad, c1=1e-5,
                     alpha0=step_size, amin=MIN_STEP_SIZE)
                 if step_size is not None:
