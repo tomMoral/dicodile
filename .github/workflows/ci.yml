@@ -35,6 +35,7 @@ jobs:
   # unit tests
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash -l {0}
@@ -45,7 +46,6 @@ jobs:
         python: ['3.10', '3.12', '3.13']
     env:
       DICODILE_DATA_HOME: /home/runner/data
-      MPI_HOSTFILE: hostfile
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
