@@ -46,6 +46,12 @@ jobs:
         python: ['3.10', '3.12', '3.13']
     env:
       DICODILE_DATA_HOME: /home/runner/data
+      # mpi_workers reads MPI_HOSTFILE at import, before the update_z conftest
+      # can set it, so it has to come from the environment.
+      MPI_HOSTFILE: hostfile
+      # The runner has fewer cores than the tests ask workers for. Yield
+      # instead of spinning, or oversubscribed ranks starve each other.
+      OMPI_MCA_mpi_yield_when_idle: 1
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3

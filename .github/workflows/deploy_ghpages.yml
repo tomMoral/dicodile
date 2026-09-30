@@ -10,6 +10,8 @@ jobs:
   build_docs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      OMPI_MCA_mpi_yield_when_idle: 1
     steps:
       # setuptools_scm needs the full history to derive the version
       - uses: actions/checkout@v4
